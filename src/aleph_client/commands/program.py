@@ -16,7 +16,6 @@ from aleph_message.models import (
 
 from aleph_client import synchronous
 from aleph_client.account import _load_account
-from aleph_client.asynchronous import get_fallback_session
 from aleph_client.commands import help_strings
 from aleph_client.commands.utils import (
     setup_logging,
@@ -147,66 +146,61 @@ def upload(
     else:
         subscriptions = None
 
-    try:
-        # Upload the source code
-        with open(path_object, "rb") as fd:
-            logger.debug("Reading file")
-            # TODO: Read in lazy mode instead of copying everything in memory
-            file_content = fd.read()
-            storage_engine = (
-                StorageEnum.ipfs
-                if len(file_content) > 4 * 1024 * 1024
-                else StorageEnum.storage
-            )
-            logger.debug("Uploading file")
-            user_code: StoreMessage = synchronous.create_store(
-                account=account,
-                file_content=file_content,
-                storage_engine=storage_engine,
-                channel=channel,
-                guess_mime_type=True,
-                ref=None,
-            )
-            logger.debug("Upload finished")
-            if print_messages or print_code_message:
-                typer.echo(f"{user_code.json(indent=4)}")
-            program_ref = user_code.item_hash
-
-        # Register the program
-        message, status = synchronous.create_program(
+    # Upload the source code
+    with open(path_object, "rb") as fd:
+        logger.debug("Reading file")
+        # TODO: Read in lazy mode instead of copying everything in memory
+        file_content = fd.read()
+        storage_engine = (
+            StorageEnum.ipfs
+            if len(file_content) > 4 * 1024 * 1024
+            else StorageEnum.storage
+        )
+        logger.debug("Uploading file")
+        user_code: StoreMessage = synchronous.create_store(
             account=account,
-            program_ref=program_ref,
-            entrypoint=entrypoint,
-            runtime=runtime,
-            storage_engine=StorageEnum.storage,
+            file_content=file_content,
+            storage_engine=storage_engine,
             channel=channel,
-            memory=memory,
-            vcpus=vcpus,
-            timeout_seconds=timeout_seconds,
-            persistent=persistent,
-            encoding=encoding,
-            volumes=volumes,
-            subscriptions=subscriptions,
+            guess_mime_type=True,
+            ref=None,
         )
         logger.debug("Upload finished")
-        if print_messages or print_program_message:
-            typer.echo(f"{message.json(indent=4)}")
+        if print_messages or print_code_message:
+            typer.echo(f"{user_code.json(indent=4)}")
+        program_ref = user_code.item_hash
 
-        hash: str = message.item_hash
-        hash_base32 = b32encode(b16decode(hash.upper())).strip(b"=").lower().decode()
+    # Register the program
+    message, status = synchronous.create_program(
+        account=account,
+        program_ref=program_ref,
+        entrypoint=entrypoint,
+        runtime=runtime,
+        storage_engine=StorageEnum.storage,
+        channel=channel,
+        memory=memory,
+        vcpus=vcpus,
+        timeout_seconds=timeout_seconds,
+        persistent=persistent,
+        encoding=encoding,
+        volumes=volumes,
+        subscriptions=subscriptions,
+    )
+    logger.debug("Upload finished")
+    if print_messages or print_program_message:
+        typer.echo(f"{message.json(indent=4)}")
 
-        typer.echo(
-            f"Your program has been uploaded on Aleph .\n\n"
-            "Available on:\n"
-            f"  {settings.VM_URL_PATH.format(hash=hash)}\n"
-            f"  {settings.VM_URL_HOST.format(hash_base32=hash_base32)}\n"
-            "Visualise on:\n  https://explorer.aleph.im/address/"
-            f"{message.chain}/{message.sender}/message/PROGRAM/{hash}\n"
-        )
+    hash: str = message.item_hash
+    hash_base32 = b32encode(b16decode(hash.upper())).strip(b"=").lower().decode()
 
-    finally:
-        # Prevent aiohttp unclosed connector warning
-        asyncio.run(get_fallback_session().close())
+    typer.echo(
+        f"Your program has been uploaded on Aleph .\n\n"
+        "Available on:\n"
+        f"  {settings.VM_URL_PATH.format(hash=hash)}\n"
+        f"  {settings.VM_URL_HOST.format(hash_base32=hash_base32)}\n"
+        "Visualise on:\n  https://explorer.aleph.im/address/"
+        f"{message.chain}/{message.sender}/message/PROGRAM/{hash}\n"
+    )
 
 
 @app.command()
@@ -225,51 +219,47 @@ def update(
     account = _load_account(private_key, private_key_file)
     path = path.absolute()
 
+    program_message: ProgramMessage = synchronous.get_message(
+        item_hash=hash, message_type=ProgramMessage
+    )
+    code_ref = program_message.content.code.ref
+    code_message: StoreMessage = synchronous.get_message(
+        item_hash=code_ref, message_type=StoreMessage
+    )
+
     try:
-        program_message: ProgramMessage = synchronous.get_message(
-            item_hash=hash, message_type=ProgramMessage
+        path, encoding = create_archive(path)
+    except BadZipFile:
+        typer.echo("Invalid zip archive")
+        raise typer.Exit(3)
+    except FileNotFoundError:
+        typer.echo("No such file or directory")
+        raise typer.Exit(4)
+
+    if encoding != program_message.content.code.encoding:
+        logger.error(
+            f"Code must be encoded with the same encoding as the previous version "
+            f"('{encoding}' vs '{program_message.content.code.encoding}'"
         )
-        code_ref = program_message.content.code.ref
-        code_message: StoreMessage = synchronous.get_message(
-            item_hash=code_ref, message_type=StoreMessage
+        raise typer.Exit(1)
+
+    # Upload the source code
+    with open(path, "rb") as fd:
+        logger.debug("Reading file")
+        # TODO: Read in lazy mode instead of copying everything in memory
+        file_content = fd.read()
+        logger.debug("Uploading file")
+        message, status = synchronous.create_store(
+            account=account,
+            file_content=file_content,
+            storage_engine=code_message.content.item_type,
+            channel=code_message.channel,
+            guess_mime_type=True,
+            ref=code_message.item_hash,
         )
-
-        try:
-            path, encoding = create_archive(path)
-        except BadZipFile:
-            typer.echo("Invalid zip archive")
-            raise typer.Exit(3)
-        except FileNotFoundError:
-            typer.echo("No such file or directory")
-            raise typer.Exit(4)
-
-        if encoding != program_message.content.code.encoding:
-            logger.error(
-                f"Code must be encoded with the same encoding as the previous version "
-                f"('{encoding}' vs '{program_message.content.code.encoding}'"
-            )
-            raise typer.Exit(1)
-
-        # Upload the source code
-        with open(path, "rb") as fd:
-            logger.debug("Reading file")
-            # TODO: Read in lazy mode instead of copying everything in memory
-            file_content = fd.read()
-            logger.debug("Uploading file")
-            message, status = synchronous.create_store(
-                account=account,
-                file_content=file_content,
-                storage_engine=code_message.content.item_type,
-                channel=code_message.channel,
-                guess_mime_type=True,
-                ref=code_message.item_hash,
-            )
-            logger.debug("Upload finished")
-            if print_message:
-                typer.echo(f"{message.json(indent=4)}")
-    finally:
-        # Prevent aiohttp unclosed connector warning
-        asyncio.run(get_fallback_session().close())
+        logger.debug("Upload finished")
+        if print_message:
+            typer.echo(f"{message.json(indent=4)}")
 
 
 @app.command()
