@@ -6,12 +6,10 @@ from aleph_client.types import Account
 
 
 class UserSession:
-    account: Account
     api_server: str
     http_session: aiohttp.ClientSession
 
-    def __init__(self, account: Account, api_server: str):
-        self.account = account
+    def __init__(self, api_server: str):
         self.api_server = api_server
         self.http_session = aiohttp.ClientSession(base_url=api_server)
 
@@ -31,3 +29,11 @@ class UserSession:
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         await self.http_session.close()
+
+
+class AuthenticatedUserSession(UserSession):
+    account: Account
+
+    def __init__(self, account: Account, api_server: str):
+        super().__init__(api_server=api_server)
+        self.account = account

@@ -6,7 +6,7 @@ from aleph_client.asynchronous import (
     create_aggregate,
     fetch_aggregate,
 )
-from aleph_client.user_session import UserSession
+from aleph_client.user_session import AuthenticatedUserSession
 from tests.integration.toolkit import try_until
 from .config import REFERENCE_NODE, TARGET_NODE
 
@@ -21,7 +21,7 @@ async def create_aggregate_on_target(
     receiver_node: str,
     channel="INTEGRATION_TESTS",
 ):
-    async with UserSession(account=account, api_server=emitter_node) as tx_session:
+    async with AuthenticatedUserSession(account=account, api_server=emitter_node) as tx_session:
         aggregate_message, message_status = await create_aggregate(
             session=tx_session,
             key=key,
@@ -40,7 +40,7 @@ async def create_aggregate_on_target(
     assert aggregate_message.content.address == account.get_address()
     assert aggregate_message.content.content == content
 
-    async with UserSession(account=account, api_server=receiver_node) as rx_session:
+    async with AuthenticatedUserSession(account=account, api_server=receiver_node) as rx_session:
         aggregate_from_receiver = await try_until(
             fetch_aggregate,
             lambda aggregate: aggregate is not None,

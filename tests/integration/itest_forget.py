@@ -4,7 +4,7 @@ import pytest
 
 from aleph_client.asynchronous import create_post, get_posts, get_messages, forget
 from aleph_client.types import Account
-from aleph_client.user_session import UserSession
+from aleph_client.user_session import AuthenticatedUserSession
 from .config import REFERENCE_NODE, TARGET_NODE, TEST_CHANNEL
 from .toolkit import try_until
 
@@ -17,7 +17,7 @@ async def create_and_forget_post(
         condition: Callable[[Dict], bool],
         timeout: int = 5,
     ):
-        async with UserSession(account=account, api_server=receiver_node) as rx_session:
+        async with AuthenticatedUserSession(account=account, api_server=receiver_node) as rx_session:
             return await try_until(
                 get_posts,
                 condition,
@@ -26,7 +26,7 @@ async def create_and_forget_post(
                 hashes=[item_hash],
             )
 
-    async with UserSession(account=account, api_server=emitter_node) as tx_session:
+    async with AuthenticatedUserSession(account=account, api_server=emitter_node) as tx_session:
         post_message, message_status = await create_post(
             session=tx_session,
             post_content="A considerate and politically correct post.",
@@ -44,7 +44,7 @@ async def create_and_forget_post(
 
     post_hash = post_message.item_hash
     reason = "This well thought-out content offends me!"
-    async with UserSession(account=account, api_server=emitter_node) as tx_session:
+    async with AuthenticatedUserSession(account=account, api_server=emitter_node) as tx_session:
         forget_message, forget_status = await forget(
             session=tx_session,
             hashes=[post_hash],
@@ -100,7 +100,7 @@ async def test_forget_a_forget_message(fixture_account):
 
     # TODO: this test should be moved to the PyAleph API tests, once a framework is in place.
     post_hash = await create_and_forget_post(fixture_account, TARGET_NODE, TARGET_NODE)
-    async with UserSession(account=fixture_account, api_server=TARGET_NODE) as session:
+    async with AuthenticatedUserSession(account=fixture_account, api_server=TARGET_NODE) as session:
         get_post_response = await get_posts(session=session, hashes=[post_hash])
         assert len(get_post_response["posts"]) == 1
         post = get_post_response["posts"][0]

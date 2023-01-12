@@ -48,7 +48,7 @@ from .exceptions import (
     BroadcastError,
 )
 from .models import MessagesResponse
-from .user_session import UserSession
+from .user_session import AuthenticatedUserSession, UserSession
 from .utils import get_message_type_value
 
 logger = logging.getLogger(__name__)
@@ -60,7 +60,7 @@ except ImportError:
     magic = None  # type:ignore
 
 
-async def ipfs_push(session: UserSession, content: Mapping) -> str:
+async def ipfs_push(session: AuthenticatedUserSession, content: Mapping) -> str:
     """Push arbitrary content as JSON to the IPFS service."""
 
     url = "/api/v0/ipfs/add_json"
@@ -71,7 +71,7 @@ async def ipfs_push(session: UserSession, content: Mapping) -> str:
         return (await resp.json()).get("hash")
 
 
-async def storage_push(session: UserSession, content: Mapping) -> str:
+async def storage_push(session: AuthenticatedUserSession, content: Mapping) -> str:
     """Push arbitrary content as JSON to the storage service."""
 
     url = "/api/v0/storage/add_json"
@@ -82,7 +82,9 @@ async def storage_push(session: UserSession, content: Mapping) -> str:
         return (await resp.json()).get("hash")
 
 
-async def ipfs_push_file(session: UserSession, file_content: Union[str, bytes]) -> str:
+async def ipfs_push_file(
+    session: AuthenticatedUserSession, file_content: Union[str, bytes]
+) -> str:
     """Push a file to the IPFS service."""
     data = aiohttp.FormData()
     data.add_field("file", file_content)
@@ -95,7 +97,7 @@ async def ipfs_push_file(session: UserSession, file_content: Union[str, bytes]) 
         return (await resp.json()).get("hash")
 
 
-async def storage_push_file(session: UserSession, file_content) -> str:
+async def storage_push_file(session: AuthenticatedUserSession, file_content) -> str:
     """Push a file to the storage service."""
     data = aiohttp.FormData()
     data.add_field("file", file_content)
@@ -162,7 +164,7 @@ async def _handle_broadcast_deprecated_response(
 
 
 async def _broadcast_deprecated(
-    session: UserSession, message_dict: Mapping[str, Any]
+    session: AuthenticatedUserSession, message_dict: Mapping[str, Any]
 ) -> None:
 
     """
@@ -212,7 +214,7 @@ BROADCAST_MESSAGE_FIELDS = {
 
 
 async def _broadcast(
-    session: UserSession,
+    session: AuthenticatedUserSession,
     message: AlephMessage,
     sync: bool,
 ) -> MessageStatus:
@@ -247,7 +249,7 @@ async def _broadcast(
 
 
 async def create_post(
-    session: UserSession,
+    session: AuthenticatedUserSession,
     post_content,
     post_type: str,
     ref: Optional[str] = None,
@@ -292,7 +294,7 @@ async def create_post(
 
 
 async def create_aggregate(
-    session: UserSession,
+    session: AuthenticatedUserSession,
     key: str,
     content: Mapping[str, Any],
     address: Optional[str] = None,
@@ -331,7 +333,7 @@ async def create_aggregate(
 
 
 async def create_store(
-    session: UserSession,
+    session: AuthenticatedUserSession,
     address: Optional[str] = None,
     file_content: Optional[bytes] = None,
     file_path: Optional[Union[str, Path]] = None,
@@ -414,7 +416,7 @@ async def create_store(
 
 
 async def create_program(
-    session: UserSession,
+    session: AuthenticatedUserSession,
     program_ref: str,
     entrypoint: str,
     runtime: str,
@@ -517,7 +519,7 @@ async def create_program(
 
 
 async def forget(
-    session: UserSession,
+    session: AuthenticatedUserSession,
     hashes: List[str],
     reason: Optional[str],
     storage_engine: StorageEnum = StorageEnum.storage,
@@ -566,7 +568,7 @@ def compute_sha256(s: str) -> str:
 
 
 async def _prepare_aleph_message(
-    session: UserSession,
+    session: AuthenticatedUserSession,
     message_type: MessageType,
     content: Dict[str, Any],
     channel: Optional[str],
@@ -609,7 +611,7 @@ async def _prepare_aleph_message(
 
 
 async def submit(
-    session: UserSession,
+    session: AuthenticatedUserSession,
     content: Dict[str, Any],
     message_type: MessageType,
     channel: Optional[str] = None,

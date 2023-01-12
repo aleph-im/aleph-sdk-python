@@ -19,7 +19,7 @@ from aleph_client.chains.common import get_fallback_private_key
 
 from aiohttp import web
 
-from aleph_client.user_session import UserSession
+from aleph_client.user_session import AuthenticatedUserSession
 
 app = web.Application()
 routes = web.RouteTableDef()
@@ -44,7 +44,7 @@ async def source_post(request):
             return web.json_response(
                 {"status": "error", "message": "unauthorized secret"}
             )
-    async with UserSession(account=app["account"], api_server="https://api2.aleph.im") as session:
+    async with AuthenticatedUserSession(account=app["account"], api_server="https://api2.aleph.im") as session:
         message, _status = await create_post(
             session=session,
             post_content=data,
