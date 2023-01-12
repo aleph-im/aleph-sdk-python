@@ -11,11 +11,10 @@ from aleph_client.asynchronous import (
     fetch_aggregate,
 )
 from aleph_client.conf import settings
-from aleph_client.types import Account
 from aleph_client.user_session import UserSession
 
 
-def make_mock_session(mock_account: Account, get_return_value: Dict[str, Any]):
+def make_mock_session(get_return_value: Dict[str, Any]):
 
     mock_response = AsyncMock()
     mock_response.status = 200
@@ -29,15 +28,14 @@ def make_mock_session(mock_account: Account, get_return_value: Dict[str, Any]):
 
     user_session = AsyncMock()
     user_session.http_session = mock_session
-    user_session.account = mock_account
 
     return user_session
 
 
 @pytest.mark.asyncio
-async def test_fetch_aggregate(ethereum_account: Account):
+async def test_fetch_aggregate():
     mock_session = make_mock_session(
-        ethereum_account, {"data": {"corechannel": {"nodes": [], "resource_nodes": []}}}
+        {"data": {"corechannel": {"nodes": [], "resource_nodes": []}}}
     )
 
     response = await fetch_aggregate(
@@ -49,9 +47,9 @@ async def test_fetch_aggregate(ethereum_account: Account):
 
 
 @pytest.mark.asyncio
-async def test_fetch_aggregates(ethereum_account: Account):
+async def test_fetch_aggregates():
     mock_session = make_mock_session(
-        ethereum_account, {"data": {"corechannel": {"nodes": [], "resource_nodes": []}}}
+        {"data": {"corechannel": {"nodes": [], "resource_nodes": []}}}
     )
 
     response = await fetch_aggregates(
@@ -62,10 +60,8 @@ async def test_fetch_aggregates(ethereum_account: Account):
 
 
 @pytest.mark.asyncio
-async def test_get_posts(ethereum_account: Account):
-    async with UserSession(
-        account=ethereum_account, api_server=settings.API_HOST
-    ) as session:
+async def test_get_posts():
+    async with UserSession(api_server=settings.API_HOST) as session:
         response: MessagesResponse = await get_messages(
             session=session,
             pagination=2,
@@ -79,10 +75,8 @@ async def test_get_posts(ethereum_account: Account):
 
 
 @pytest.mark.asyncio
-async def test_get_messages(ethereum_account: Account):
-    async with UserSession(
-        account=ethereum_account, api_server=settings.API_HOST
-    ) as session:
+async def test_get_messages():
+    async with UserSession(api_server=settings.API_HOST) as session:
         response: MessagesResponse = await get_messages(
             session=session,
             pagination=2,
