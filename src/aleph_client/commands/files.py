@@ -5,7 +5,7 @@ from typing import Optional
 import typer
 from aleph_message.models import StoreMessage
 
-from aleph_client import synchronous
+from aleph_client import AuthenticatedUserSession
 from aleph_client.account import _load_account
 from aleph_client.commands import help_strings
 from aleph_client.commands.utils import setup_logging
@@ -34,16 +34,18 @@ def pin(
     setup_logging(debug)
 
     account: AccountFromPrivateKey = _load_account(private_key, private_key_file)
-
-    result: StoreMessage = synchronous.create_store(
-        account=account,
-        file_hash=hash,
-        storage_engine=StorageEnum.ipfs,
-        channel=channel,
-        ref=ref,
-    )
+    with AuthenticatedUserSession(
+        account=account, api_server=settings.API_HOST
+    ) as session:
+        message, _status = session.create_store(
+            file_hash=hash,
+            storage_engine=StorageEnum.ipfs,
+            channel=channel,
+            ref=ref,
+        )
     logger.debug("Upload finished")
-    typer.echo(f"{result.json(indent=4)}")
+    typer.echo(f"{message.json(indent=4)}")
+
 
 @app.command()
 def upload(
@@ -78,13 +80,15 @@ def upload(
             else StorageEnum.storage
         )
         logger.debug("Uploading file")
-        result: StoreMessage = synchronous.create_store(
-            account=account,
-            file_content=file_content,
-            storage_engine=storage_engine,
-            channel=channel,
-            guess_mime_type=True,
-            ref=ref,
-        )
+        with AuthenticatedUserSession(
+            account=account, api_server=settings.API_HOST
+        ) as session:
+            message, status = session.create_store(
+                file_content=file_content,
+                storage_engine=storage_engine,
+                channel=channel,
+                guess_mime_type=True,
+                ref=ref,
+            )
         logger.debug("Upload finished")
-        typer.echo(f"{result.json(indent=4)}")
+        typer.echo(f"{message.json(indent=4)}")
