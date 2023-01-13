@@ -1,11 +1,6 @@
 import pytest
-from aleph_message import Message
-from aleph_message.models import PostMessage, MessagesResponse
+from aleph_message.models import MessagesResponse
 
-from aleph_client.asynchronous import (
-    create_post,
-    get_messages,
-)
 from aleph_client.user_session import AuthenticatedUserSession
 from tests.integration.toolkit import try_until
 from .config import REFERENCE_NODE, TARGET_NODE
@@ -17,9 +12,10 @@ async def create_message_on_target(
     """
     Create a POST message on the target node, then fetch it from the reference node.
     """
-    async with AuthenticatedUserSession(account=fixture_account, api_server=emitter_node) as tx_session:
-        post_message, message_status = await create_post(
-            session=tx_session,
+    async with AuthenticatedUserSession(
+        account=fixture_account, api_server=emitter_node
+    ) as tx_session:
+        post_message, message_status = await tx_session.create_post(
             post_content=None,
             post_type="POST",
             channel="INTEGRATION_TESTS",
@@ -28,11 +24,12 @@ async def create_message_on_target(
     def response_contains_messages(response: MessagesResponse) -> bool:
         return len(response.messages) > 0
 
-    async with AuthenticatedUserSession(account=fixture_account, api_server=receiver_node) as rx_session:
+    async with AuthenticatedUserSession(
+        account=fixture_account, api_server=receiver_node
+    ) as rx_session:
         responses = await try_until(
-            get_messages,
+            rx_session.get_messages,
             response_contains_messages,
-            session=rx_session,
             timeout=5,
             hashes=[post_message.item_hash],
         )

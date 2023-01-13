@@ -1,10 +1,11 @@
 import typer
 from typing import Optional
+
+from aleph_client import UserSession
 from aleph_client.types import AccountFromPrivateKey
 from aleph_client.account import _load_account
 from aleph_client.conf import settings
 from pathlib import Path
-from aleph_client import synchronous
 from aleph_client.commands import help_strings
 
 from aleph_client.commands.message import forget_messages
@@ -37,10 +38,11 @@ def forget(
 
     account: AccountFromPrivateKey = _load_account(private_key, private_key_file)
 
-    message_response = synchronous.get_messages(
-        addresses=[account.get_address()],
-        message_type=MessageType.aggregate.value,
-        content_keys=[key],
-    )
+    with UserSession(api_server=settings.API_HOST) as session:
+        message_response = session.get_messages(
+            addresses=[account.get_address()],
+            message_type=MessageType.aggregate.value,
+            content_keys=[key],
+        )
     hash_list = [message["item_hash"] for message in message_response.messages]
     forget_messages(account, hash_list, reason, channel)

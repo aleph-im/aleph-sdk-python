@@ -2,23 +2,13 @@
 """
 # -*- coding: utf-8 -*-
 
-import os
-
-# import requests
-import platform
-
-# import socket
-import time
 import asyncio
+
 import click
-from aleph_client.asynchronous import create_post
-
-# from aleph_client.chains.nuls1 import NULSAccount, get_fallback_account
-from aleph_client.chains.ethereum import ETHAccount
-from aleph_client.chains.common import get_fallback_private_key
-
 from aiohttp import web
 
+from aleph_client.chains.common import get_fallback_private_key
+from aleph_client.chains.ethereum import ETHAccount
 from aleph_client.user_session import AuthenticatedUserSession
 
 app = web.Application()
@@ -45,8 +35,7 @@ async def source_post(request):
                 {"status": "error", "message": "unauthorized secret"}
             )
     async with AuthenticatedUserSession(account=app["account"], api_server="https://api2.aleph.im") as session:
-        message, _status = await create_post(
-            session=session,
+        message, _status = await session.create_post(
             post_content=data,
             post_type="event",
             channel=app["channel"],

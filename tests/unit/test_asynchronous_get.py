@@ -1,33 +1,37 @@
 import unittest
 from typing import Any, Dict
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock
 
 import pytest
 from aleph_message.models import MessageType, MessagesResponse
 
-from aleph_client.asynchronous import (
-    get_messages,
-    fetch_aggregates,
-    fetch_aggregate,
-)
 from aleph_client.conf import settings
 from aleph_client.user_session import UserSession
 
 
-def make_mock_session(get_return_value: Dict[str, Any]):
+def make_mock_session(get_return_value: Dict[str, Any]) -> UserSession:
+    class MockResponse:
+        async def __aenter__(self):
+            return self
 
-    mock_response = AsyncMock()
-    mock_response.status = 200
-    mock_response.json = AsyncMock(side_effect=lambda: get_return_value)
+        async def __aexit__(self, exc_type, exc_val, exc_tb):
+            ...
 
-    mock_get = AsyncMock()
-    mock_get.return_value = mock_response
+        @property
+        def status(self):
+            return 200
 
-    mock_session = MagicMock()
-    mock_session.get.return_value.__aenter__ = mock_get
+        async def json(self):
+            return get_return_value
 
-    user_session = AsyncMock()
-    user_session.http_session = mock_session
+    class MockHttpSession(AsyncMock):
+        def get(self, *_args, **_kwargs):
+            return MockResponse()
+
+    http_session = MockHttpSession()
+
+    user_session = UserSession(api_server="http://localhost")
+    user_session.http_session = http_session
 
     return user_session
 
@@ -37,12 +41,12 @@ async def test_fetch_aggregate():
     mock_session = make_mock_session(
         {"data": {"corechannel": {"nodes": [], "resource_nodes": []}}}
     )
+    async with mock_session:
 
-    response = await fetch_aggregate(
-        session=mock_session,
-        address="0xa1B3bb7d2332383D96b7796B908fB7f7F3c2Be10",
-        key="corechannel",
-    )
+        response = await mock_session.fetch_aggregate(
+            address="0xa1B3bb7d2332383D96b7796B908fB7f7F3c2Be10",
+            key="corechannel",
+        )
     assert response.keys() == {"nodes", "resource_nodes"}
 
 
@@ -52,19 +56,18 @@ async def test_fetch_aggregates():
         {"data": {"corechannel": {"nodes": [], "resource_nodes": []}}}
     )
 
-    response = await fetch_aggregates(
-        session=mock_session, address="0xa1B3bb7d2332383D96b7796B908fB7f7F3c2Be10"
-    )
-    assert response.keys() == {"corechannel"}
-    assert response["corechannel"].keys() == {"nodes", "resource_nodes"}
+    async with mock_session:
+        response = await mock_session.fetch_aggregates(
+            address="0xa1B3bb7d2332383D96b7796B908fB7f7F3c2Be10"
+        )
+        assert response.keys() == {"corechannel"}
+        assert response["corechannel"].keys() == {"nodes", "resource_nodes"}
 
 
 @pytest.mark.asyncio
 async def test_get_posts():
     async with UserSession(api_server=settings.API_HOST) as session:
-        response: MessagesResponse = await get_messages(
-            session=session,
-            pagination=2,
+        response: MessagesResponse = await session.get_messages(
             message_type=MessageType.post,
         )
 
@@ -77,8 +80,7 @@ async def test_get_posts():
 @pytest.mark.asyncio
 async def test_get_messages():
     async with UserSession(api_server=settings.API_HOST) as session:
-        response: MessagesResponse = await get_messages(
-            session=session,
+        response: MessagesResponse = await session.get_messages(
             pagination=2,
         )
 
