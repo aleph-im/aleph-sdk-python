@@ -9,4 +9,4 @@ warnings.warn(
     DeprecationWarning,
 )
 
-from .synchronous import *
+from .user_session import *

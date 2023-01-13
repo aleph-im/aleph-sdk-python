@@ -2,7 +2,6 @@ from typing import Callable, Dict
 
 import pytest
 
-from aleph_client.asynchronous import create_post, get_posts, get_messages, forget
 from aleph_client.types import Account
 from aleph_client.user_session import AuthenticatedUserSession
 from .config import REFERENCE_NODE, TARGET_NODE, TEST_CHANNEL
@@ -17,18 +16,20 @@ async def create_and_forget_post(
         condition: Callable[[Dict], bool],
         timeout: int = 5,
     ):
-        async with AuthenticatedUserSession(account=account, api_server=receiver_node) as rx_session:
+        async with AuthenticatedUserSession(
+            account=account, api_server=receiver_node
+        ) as rx_session:
             return await try_until(
-                get_posts,
+                rx_session.get_posts,
                 condition,
-                session=rx_session,
                 timeout=timeout,
                 hashes=[item_hash],
             )
 
-    async with AuthenticatedUserSession(account=account, api_server=emitter_node) as tx_session:
-        post_message, message_status = await create_post(
-            session=tx_session,
+    async with AuthenticatedUserSession(
+        account=account, api_server=emitter_node
+    ) as tx_session:
+        post_message, message_status = await tx_session.create_post(
             post_content="A considerate and politically correct post.",
             post_type="POST",
             channel="INTEGRATION_TESTS",
@@ -44,9 +45,10 @@ async def create_and_forget_post(
 
     post_hash = post_message.item_hash
     reason = "This well thought-out content offends me!"
-    async with AuthenticatedUserSession(account=account, api_server=emitter_node) as tx_session:
-        forget_message, forget_status = await forget(
-            session=tx_session,
+    async with AuthenticatedUserSession(
+        account=account, api_server=emitter_node
+    ) as tx_session:
+        forget_message, forget_status = await tx_session.forget(
             hashes=[post_hash],
             reason=reason,
             channel=channel,
@@ -100,14 +102,15 @@ async def test_forget_a_forget_message(fixture_account):
 
     # TODO: this test should be moved to the PyAleph API tests, once a framework is in place.
     post_hash = await create_and_forget_post(fixture_account, TARGET_NODE, TARGET_NODE)
-    async with AuthenticatedUserSession(account=fixture_account, api_server=TARGET_NODE) as session:
-        get_post_response = await get_posts(session=session, hashes=[post_hash])
+    async with AuthenticatedUserSession(
+        account=fixture_account, api_server=TARGET_NODE
+    ) as session:
+        get_post_response = await session.get_posts(hashes=[post_hash])
         assert len(get_post_response["posts"]) == 1
         post = get_post_response["posts"][0]
 
         forget_message_hash = post["forgotten_by"][0]
-        forget_message, forget_status = await forget(
-            session=session,
+        forget_message, forget_status = await session.forget(
             hashes=[forget_message_hash],
             reason="I want to remember this post. Maybe I can forget I forgot it?",
             channel=TEST_CHANNEL,
@@ -115,8 +118,7 @@ async def test_forget_a_forget_message(fixture_account):
 
         print(forget_message)
 
-        get_forget_message_response = await get_messages(
-            session=session,
+        get_forget_message_response = await session.get_messages(
             hashes=[forget_message_hash],
             channels=[TEST_CHANNEL],
         )

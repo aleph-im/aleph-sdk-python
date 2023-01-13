@@ -1,9 +1,8 @@
-import asyncio
 import json
 import logging
 from base64 import b32encode, b16decode
 from pathlib import Path
-from typing import Optional, Dict, List
+from typing import Optional, List, Mapping
 from zipfile import BadZipFile
 
 import typer
@@ -14,7 +13,7 @@ from aleph_message.models import (
     ProgramContent,
 )
 
-from aleph_client import synchronous
+from aleph_client import AuthenticatedUserSession
 from aleph_client.account import _load_account
 from aleph_client.commands import help_strings
 from aleph_client.commands.utils import (
@@ -135,7 +134,7 @@ def upload(
             immutable_volume_dict = volume_to_dict(volume=immutable_volume)
             volumes.append(immutable_volume_dict)
 
-    subscriptions: Optional[List[Dict]]
+    subscriptions: Optional[List[Mapping]]
     if beta and yes_no_input("Subscribe to messages ?", default=False):
         content_raw = input_multiline()
         try:
@@ -147,51 +146,52 @@ def upload(
         subscriptions = None
 
     # Upload the source code
-    with open(path_object, "rb") as fd:
-        logger.debug("Reading file")
-        # TODO: Read in lazy mode instead of copying everything in memory
-        file_content = fd.read()
-        storage_engine = (
-            StorageEnum.ipfs
-            if len(file_content) > 4 * 1024 * 1024
-            else StorageEnum.storage
-        )
-        logger.debug("Uploading file")
-        user_code: StoreMessage = synchronous.create_store(
-            account=account,
-            file_content=file_content,
-            storage_engine=storage_engine,
+    with AuthenticatedUserSession(
+        account=account, api_server=settings.API_HOST
+    ) as session:
+        with open(path_object, "rb") as fd:
+            logger.debug("Reading file")
+            # TODO: Read in lazy mode instead of copying everything in memory
+            file_content = fd.read()
+            storage_engine = (
+                StorageEnum.ipfs
+                if len(file_content) > 4 * 1024 * 1024
+                else StorageEnum.storage
+            )
+            logger.debug("Uploading file")
+            user_code, _status = session.create_store(
+                file_content=file_content,
+                storage_engine=storage_engine,
+                channel=channel,
+                guess_mime_type=True,
+                ref=None,
+            )
+            logger.debug("Upload finished")
+            if print_messages or print_code_message:
+                typer.echo(f"{user_code.json(indent=4)}")
+            program_ref = user_code.item_hash
+
+        # Register the program
+        message, status = session.create_program(
+            program_ref=program_ref,
+            entrypoint=entrypoint,
+            runtime=runtime,
+            storage_engine=StorageEnum.storage,
             channel=channel,
-            guess_mime_type=True,
-            ref=None,
+            memory=memory,
+            vcpus=vcpus,
+            timeout_seconds=timeout_seconds,
+            persistent=persistent,
+            encoding=encoding,
+            volumes=volumes,
+            subscriptions=subscriptions,
         )
         logger.debug("Upload finished")
-        if print_messages or print_code_message:
-            typer.echo(f"{user_code.json(indent=4)}")
-        program_ref = user_code.item_hash
+        if print_messages or print_program_message:
+            typer.echo(f"{message.json(indent=4)}")
 
-    # Register the program
-    message, status = synchronous.create_program(
-        account=account,
-        program_ref=program_ref,
-        entrypoint=entrypoint,
-        runtime=runtime,
-        storage_engine=StorageEnum.storage,
-        channel=channel,
-        memory=memory,
-        vcpus=vcpus,
-        timeout_seconds=timeout_seconds,
-        persistent=persistent,
-        encoding=encoding,
-        volumes=volumes,
-        subscriptions=subscriptions,
-    )
-    logger.debug("Upload finished")
-    if print_messages or print_program_message:
-        typer.echo(f"{message.json(indent=4)}")
-
-    hash: str = message.item_hash
-    hash_base32 = b32encode(b16decode(hash.upper())).strip(b"=").lower().decode()
+        hash: str = message.item_hash
+        hash_base32 = b32encode(b16decode(hash.upper())).strip(b"=").lower().decode()
 
     typer.echo(
         f"Your program has been uploaded on Aleph .\n\n"
@@ -219,47 +219,49 @@ def update(
     account = _load_account(private_key, private_key_file)
     path = path.absolute()
 
-    program_message: ProgramMessage = synchronous.get_message(
-        item_hash=hash, message_type=ProgramMessage
-    )
-    code_ref = program_message.content.code.ref
-    code_message: StoreMessage = synchronous.get_message(
-        item_hash=code_ref, message_type=StoreMessage
-    )
-
-    try:
-        path, encoding = create_archive(path)
-    except BadZipFile:
-        typer.echo("Invalid zip archive")
-        raise typer.Exit(3)
-    except FileNotFoundError:
-        typer.echo("No such file or directory")
-        raise typer.Exit(4)
-
-    if encoding != program_message.content.code.encoding:
-        logger.error(
-            f"Code must be encoded with the same encoding as the previous version "
-            f"('{encoding}' vs '{program_message.content.code.encoding}'"
+    with AuthenticatedUserSession(
+        account=account, api_server=settings.API_HOST
+    ) as session:
+        program_message: ProgramMessage = session.get_message(
+            item_hash=hash, message_type=ProgramMessage
         )
-        raise typer.Exit(1)
-
-    # Upload the source code
-    with open(path, "rb") as fd:
-        logger.debug("Reading file")
-        # TODO: Read in lazy mode instead of copying everything in memory
-        file_content = fd.read()
-        logger.debug("Uploading file")
-        message, status = synchronous.create_store(
-            account=account,
-            file_content=file_content,
-            storage_engine=code_message.content.item_type,
-            channel=code_message.channel,
-            guess_mime_type=True,
-            ref=code_message.item_hash,
+        code_ref = program_message.content.code.ref
+        code_message: StoreMessage = session.get_message(
+            item_hash=code_ref, message_type=StoreMessage
         )
-        logger.debug("Upload finished")
-        if print_message:
-            typer.echo(f"{message.json(indent=4)}")
+
+        try:
+            path, encoding = create_archive(path)
+        except BadZipFile:
+            typer.echo("Invalid zip archive")
+            raise typer.Exit(3)
+        except FileNotFoundError:
+            typer.echo("No such file or directory")
+            raise typer.Exit(4)
+
+        if encoding != program_message.content.code.encoding:
+            logger.error(
+                f"Code must be encoded with the same encoding as the previous version "
+                f"('{encoding}' vs '{program_message.content.code.encoding}'"
+            )
+            raise typer.Exit(1)
+
+        # Upload the source code
+        with open(path, "rb") as fd:
+            logger.debug("Reading file")
+            # TODO: Read in lazy mode instead of copying everything in memory
+            file_content = fd.read()
+            logger.debug("Uploading file")
+            message, status = session.create_store(
+                file_content=file_content,
+                storage_engine=code_message.content.item_type,
+                channel=code_message.channel,
+                guess_mime_type=True,
+                ref=code_message.item_hash,
+            )
+            logger.debug("Upload finished")
+            if print_message:
+                typer.echo(f"{message.json(indent=4)}")
 
 
 @app.command()
@@ -275,17 +277,19 @@ def unpersist(
 
     account = _load_account(private_key, private_key_file)
 
-    existing: MessagesResponse = synchronous.get_messages(hashes=[hash])
-    message: ProgramMessage = existing.messages[0]
-    content: ProgramContent = message.content.copy()
+    with AuthenticatedUserSession(
+        account=account, api_server=settings.API_HOST
+    ) as session:
+        existing: MessagesResponse = session.get_messages(hashes=[hash])
+        message: ProgramMessage = existing.messages[0]
+        content: ProgramContent = message.content.copy()
 
-    content.on.persistent = False
-    content.replaces = message.item_hash
+        content.on.persistent = False
+        content.replaces = message.item_hash
 
-    message, _status = synchronous.submit(
-        account=account,
-        content=content.dict(exclude_none=True),
-        message_type=message.type,
-        channel=message.channel,
-    )
-    typer.echo(f"{message.json(indent=4)}")
+        message, _status = session.submit(
+            content=content.dict(exclude_none=True),
+            message_type=message.type,
+            channel=message.channel,
+        )
+        typer.echo(f"{message.json(indent=4)}")
