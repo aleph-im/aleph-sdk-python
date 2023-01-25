@@ -36,6 +36,3 @@ ENV ALEPH_PRIVATE_KEY_FILE=/data/secret.key
 
 WORKDIR /home/user
 USER user
-RUN aleph --install-completion bash
-ENTRYPOINT ["aleph"]
-CMD ["--help"]
