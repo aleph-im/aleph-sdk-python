@@ -1,4 +1,4 @@
-FROM python:3.9-bullseye
+FROM python:3.11-bullseye
 MAINTAINER The aleph.im project
 
 RUN apt-get update && apt-get -y upgrade && apt-get install -y \
@@ -12,7 +12,7 @@ RUN chown user:user /opt/venv
 RUN chown user:user /opt/aleph-client
 
 USER user
-RUN python3.9 -m venv /opt/venv
+RUN python3 -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 ENV PATH="/opt/venv/bin:$PATH"
 
