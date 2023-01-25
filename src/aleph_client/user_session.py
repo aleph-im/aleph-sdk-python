@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import asyncio
 import hashlib
 import json
@@ -122,7 +124,7 @@ class UserSessionSync:
     >>>     return self._wrap(self.async_session.func)(*args, **kwargs)
     """
 
-    def __init__(self, async_session: "UserSession"):
+    def __init__(self, async_session: UserSession):
         self.async_session = async_session
 
     def _wrap(self, method: Callable[..., Awaitable[T]], *args, **kwargs):
@@ -273,9 +275,9 @@ class UserSessionSync:
 
 
 class AuthenticatedUserSessionSync(UserSessionSync):
-    async_session: "AuthenticatedUserSession"
+    async_session: AuthenticatedUserSession
 
-    def __init__(self, async_session: "AuthenticatedUserSession"):
+    def __init__(self, async_session: AuthenticatedUserSession):
         super().__init__(async_session=async_session)
 
     def ipfs_push(self, content: Mapping) -> str:
@@ -456,11 +458,13 @@ class UserSession:
         except RuntimeError:
             asyncio.run(close_fut)
 
-    async def __aenter__(self) -> "UserSession":
+    async def __aenter__(self) -> UserSession:
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
-        await self.http_session.close()
+        await self.http_session.__aexit__(
+            exc_type=exc_type, exc_val=exc_val, exc_tb=exc_tb
+        )
 
     async def fetch_aggregate(
         self,
@@ -827,10 +831,13 @@ class AuthenticatedUserSession(UserSession):
         super().__init__(api_server=api_server)
         self.account = account
 
-    def __enter__(self) -> "AuthenticatedUserSessionSync":
+    def __enter__(self) -> AuthenticatedUserSessionSync:
         return AuthenticatedUserSessionSync(async_session=self)
 
-    async def __aenter__(self) -> "AuthenticatedUserSession":
+    async def __aenter__(self) -> AuthenticatedUserSession:
+        if not self.http_session:
+            self.http_session = aiohttp.ClientSession(base_url=self.api_server)
+        await self.http_session.__aenter__()
         return self
 
     async def ipfs_push(self, content: Mapping) -> str:
