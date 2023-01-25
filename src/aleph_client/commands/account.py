@@ -4,12 +4,10 @@ from typing import Optional
 
 import typer
 
-from aleph_client.account import _load_account
 from aleph_client.chains.common import generate_key
 from aleph_client.commands import help_strings
 from aleph_client.commands.utils import setup_logging
 from aleph_client.conf import settings
-from aleph_client.types import AccountFromPrivateKey
 
 logger = logging.getLogger(__name__)
 app = typer.Typer()
@@ -35,7 +33,6 @@ def create(
 
     private_key = None
     if from_private_key is not None:
-        account: AccountFromPrivateKey = _load_account(private_key_str=from_private_key)
         private_key = from_private_key.encode()
     else:
         private_key = generate_key()

@@ -21,7 +21,7 @@ async def test_sign_data():
     assert type(sign.pub_key) == bytes
     assert type(sign.digest_bytes) == bytes
     assert type(sign.sig_ser) == bytes
-    assert sign.ecc_type == None
+    assert sign.ecc_type is None
 
 
 @pytest.mark.asyncio
@@ -38,9 +38,9 @@ async def test_sign_message():
 
     assert sign
     assert type(sign.pub_key) == bytes
-    assert sign.digest_bytes == None
+    assert sign.digest_bytes is None
     assert type(sign.sig_ser) == bytes
-    assert sign.ecc_type == None
+    assert sign.ecc_type is None
 
 
 @pytest.mark.asyncio

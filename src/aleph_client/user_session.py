@@ -792,7 +792,7 @@ class UserSession:
             params["endDate"] = end_date
 
         async with self.http_session.ws_connect(
-            f"/api/ws0/messages", params=params
+            "/api/ws0/messages", params=params
         ) as ws:
             logger.debug("Websocket connected")
             async for msg in ws:
