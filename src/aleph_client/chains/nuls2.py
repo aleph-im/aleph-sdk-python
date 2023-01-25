@@ -1,18 +1,10 @@
 import base64
 
-from nuls2.model.data import (
-    public_key_to_hash,
-    address_from_hash,
-    sign_recoverable_message,
-    NETWORKS,
-)
+from nuls2.model.data import (NETWORKS, address_from_hash, public_key_to_hash,
+                              sign_recoverable_message)
 
-from .common import (
-    get_public_key,
-    get_verification_buffer,
-    BaseAccount,
-    get_fallback_private_key,
-)
+from .common import (BaseAccount, get_fallback_private_key, get_public_key,
+                     get_verification_buffer)
 
 
 def get_address(public_key=None, private_key=None, chain_id=1, prefix="NULS"):

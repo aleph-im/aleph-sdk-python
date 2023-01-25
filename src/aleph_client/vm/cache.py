@@ -1,7 +1,7 @@
 import abc
 import fnmatch
 import re
-from typing import Union, Optional, Any, Dict, List, NewType
+from typing import Any, Dict, List, NewType, Optional, Union
 
 import aiohttp
 from pydantic import AnyHttpUrl
@@ -49,7 +49,9 @@ class VmCache(BaseVmCache):
     api_host: str
 
     def __init__(
-        self, session: Optional[aiohttp.ClientSession] = None, connector_url: Optional[AnyHttpUrl] = None
+        self,
+        session: Optional[aiohttp.ClientSession] = None,
+        connector_url: Optional[AnyHttpUrl] = None,
     ):
         self.session = session or aiohttp.ClientSession(base_url=connector_url)
         self.cache = {}

@@ -1,6 +1,6 @@
 from abc import abstractmethod
 from enum import Enum
-from typing import Protocol, Dict, TypeVar
+from typing import Dict, Protocol, TypeVar
 
 __all__ = ("StorageEnum", "Account", "AccountFromPrivateKey")
 

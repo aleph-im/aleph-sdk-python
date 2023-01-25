@@ -8,12 +8,8 @@ from typing import Optional
 
 from coincurve.keys import PrivateKey, PublicKey
 
-from .common import (
-    get_public_key,
-    get_verification_buffer,
-    BaseAccount,
-    get_fallback_private_key,
-)
+from .common import (BaseAccount, get_fallback_private_key, get_public_key,
+                     get_verification_buffer)
 
 LOGGER = logging.getLogger("NULS")
 

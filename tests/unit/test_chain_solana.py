@@ -1,11 +1,10 @@
 import json
+from dataclasses import asdict, dataclass
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 
 import base58
 import pytest
-from dataclasses import dataclass, asdict
-
 from nacl.signing import VerifyKey
 
 from aleph_client.chains.common import get_verification_buffer

@@ -3,7 +3,7 @@ import os.path
 import subprocess
 import tempfile
 from pathlib import Path
-from typing import Optional, Dict, List
+from typing import Dict, List, Optional
 
 import typer
 from aleph_message.models import AlephMessage
@@ -11,10 +11,7 @@ from aleph_message.models import AlephMessage
 from aleph_client import AuthenticatedUserSession, UserSession
 from aleph_client.account import _load_account
 from aleph_client.commands import help_strings
-from aleph_client.commands.utils import (
-    setup_logging,
-    input_multiline,
-)
+from aleph_client.commands.utils import input_multiline, setup_logging
 from aleph_client.conf import settings
 from aleph_client.types import AccountFromPrivateKey, StorageEnum
 

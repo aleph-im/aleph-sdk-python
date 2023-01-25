@@ -3,6 +3,7 @@ from aleph_message.models import MessagesResponse
 
 from aleph_client.user_session import AuthenticatedUserSession
 from tests.integration.toolkit import try_until
+
 from .config import REFERENCE_NODE, TARGET_NODE
 
 

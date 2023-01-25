@@ -2,11 +2,8 @@ import json
 
 from substrateinterface import Keypair
 
-from .common import (
-    BaseAccount,
-    get_verification_buffer,
-)
 from ..conf import settings
+from .common import BaseAccount, get_verification_buffer
 
 
 class DOTAccount(BaseAccount):

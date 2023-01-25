@@ -1,15 +1,15 @@
-import os
-import typer
 import logging
+import os
 from typing import Optional
-from aleph_client.types import AccountFromPrivateKey
-from aleph_client.chains.common import generate_key
-from aleph_client.account import _load_account
-from aleph_client.conf import settings
 
+import typer
+
+from aleph_client.account import _load_account
+from aleph_client.chains.common import generate_key
 from aleph_client.commands import help_strings
 from aleph_client.commands.utils import setup_logging
-
+from aleph_client.conf import settings
+from aleph_client.types import AccountFromPrivateKey
 
 logger = logging.getLogger(__name__)
 app = typer.Typer()

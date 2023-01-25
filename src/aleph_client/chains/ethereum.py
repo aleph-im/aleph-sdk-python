@@ -2,15 +2,11 @@ from pathlib import Path
 from typing import Dict, Optional
 
 from eth_account import Account
-from eth_account.signers.local import LocalAccount
 from eth_account.messages import encode_defunct
+from eth_account.signers.local import LocalAccount
 
-from .common import (
-    BaseAccount,
-    get_fallback_private_key,
-    get_verification_buffer,
-    get_public_key,
-)
+from .common import (BaseAccount, get_fallback_private_key, get_public_key,
+                     get_verification_buffer)
 
 
 class ETHAccount(BaseAccount):

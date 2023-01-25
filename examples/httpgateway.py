@@ -34,7 +34,9 @@ async def source_post(request):
             return web.json_response(
                 {"status": "error", "message": "unauthorized secret"}
             )
-    async with AuthenticatedUserSession(account=app["account"], api_server="https://api2.aleph.im") as session:
+    async with AuthenticatedUserSession(
+        account=app["account"], api_server="https://api2.aleph.im"
+    ) as session:
         message, _status = await session.create_post(
             post_content=data,
             post_type="event",

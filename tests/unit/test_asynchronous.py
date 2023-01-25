@@ -1,17 +1,12 @@
 import json
-from unittest.mock import patch, AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest as pytest
-from aleph_message.models import (
-    PostMessage,
-    AggregateMessage,
-    StoreMessage,
-    ProgramMessage,
-    ForgetMessage,
-)
+from aleph_message.models import (AggregateMessage, ForgetMessage, PostMessage,
+                                  ProgramMessage, StoreMessage)
 
 from aleph_client import AuthenticatedUserSession
-from aleph_client.types import StorageEnum, MessageStatus, Account
+from aleph_client.types import Account, MessageStatus, StorageEnum
 
 
 @pytest.fixture
@@ -58,7 +53,6 @@ def mock_session_with_post_success(
 
 @pytest.mark.asyncio
 async def test_create_post(mock_session_with_post_success):
-
     async with mock_session_with_post_success as session:
         content = {"Hello": "World"}
 
@@ -76,9 +70,7 @@ async def test_create_post(mock_session_with_post_success):
 
 @pytest.mark.asyncio
 async def test_create_aggregate(mock_session_with_post_success):
-
     async with mock_session_with_post_success as session:
-
         aggregate_message, message_status = await session.create_aggregate(
             key="hello",
             content={"Hello": "world"},
@@ -91,7 +83,6 @@ async def test_create_aggregate(mock_session_with_post_success):
 
 @pytest.mark.asyncio
 async def test_create_store(mock_session_with_post_success):
-
     mock_ipfs_push_file = AsyncMock()
     mock_ipfs_push_file.return_value = "QmRTV3h1jLcACW4FRfdisokkQAk4E4qDhUzGpgdrd4JAFy"
 
@@ -116,7 +107,6 @@ async def test_create_store(mock_session_with_post_success):
     )
     mock_session_with_post_success.storage_push_file = mock_storage_push_file
     async with mock_session_with_post_success as session:
-
         store_message, message_status = await session.create_store(
             file_content=b"HELLO",
             channel="TEST",
@@ -129,9 +119,7 @@ async def test_create_store(mock_session_with_post_success):
 
 @pytest.mark.asyncio
 async def test_create_program(mock_session_with_post_success):
-
     async with mock_session_with_post_success as session:
-
         program_message, message_status = await session.create_program(
             program_ref="FAKE-HASH",
             entrypoint="main:app",
@@ -145,7 +133,6 @@ async def test_create_program(mock_session_with_post_success):
 
 @pytest.mark.asyncio
 async def test_forget(mock_session_with_post_success):
-
     async with mock_session_with_post_success as session:
         forget_message, message_status = await session.forget(
             hashes=["QmRTV3h1jLcACW4FRfdisokkQAk4E4qDhUzGpgdrd4JAFy"],

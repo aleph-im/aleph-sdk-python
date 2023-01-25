@@ -1,6 +1,7 @@
 import logging
+from typing import Dict, List, Optional, Union
+
 from typer import echo
-from typing import Optional, List, Dict, Union
 
 
 def input_multiline() -> str:

@@ -3,7 +3,7 @@ from typing import Any, Dict
 from unittest.mock import AsyncMock
 
 import pytest
-from aleph_message.models import MessageType, MessagesResponse
+from aleph_message.models import MessagesResponse, MessageType
 
 from aleph_client.conf import settings
 from aleph_client.user_session import UserSession
@@ -42,7 +42,6 @@ async def test_fetch_aggregate():
         {"data": {"corechannel": {"nodes": [], "resource_nodes": []}}}
     )
     async with mock_session:
-
         response = await mock_session.fetch_aggregate(
             address="0xa1B3bb7d2332383D96b7796B908fB7f7F3c2Be10",
             key="corechannel",

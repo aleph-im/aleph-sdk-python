@@ -11,7 +11,6 @@ client = TestClient(app)
 
 @pytest.mark.asyncio
 async def test_app_event():
-
     # Call the app with an ASGI context
     scope = {
         "type": "aleph.message",
