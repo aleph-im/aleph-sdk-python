@@ -1,8 +1,8 @@
 ============
-aleph-client
+aleph-sdk-python
 ============
 
-This is the documentation of **aleph-client**.
+This is the documentation of **aleph-sdk-python**.
 
 Contents
 ========

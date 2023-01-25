@@ -8,7 +8,7 @@ PAPER         =
 BUILDDIR      = ../build/sphinx/
 AUTODOCDIR    = api
 AUTODOCBUILD  = sphinx-apidoc
-PROJECT       = aleph-client
+PROJECT       = aleph-sdk-python
 MODULEDIR     = ../src/aleph_client
 
 # User-friendly check for sphinx-build

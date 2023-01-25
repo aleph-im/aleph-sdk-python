@@ -5,7 +5,7 @@ Python SDK for the Aleph.im network, next generation network of decentralized bi
 Development follows the [Aleph Whitepaper](https://github.com/aleph-im/aleph-whitepaper).
 
 ## Documentation
-Documentation (albeit still vastly incomplete as it is a work in progress) can be found at [http://aleph-client.readthedocs.io/](http://aleph-client.readthedocs.io/) or built from this repo with:
+Documentation (albeit still vastly incomplete as it is a work in progress) can be found at [http://aleph-sdk-python.readthedocs.io/](http://aleph-sdk-python.readthedocs.io/) or built from this repo with:
 
 ```shell
 $ python setup.py docs

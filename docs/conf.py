@@ -83,7 +83,7 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'aleph-client'
+project = u'aleph-sdk-python'
 copyright = u'2019, Aleph.im'
 
 # The version info for the project you're documenting, acts as replacement for
@@ -148,7 +148,7 @@ html_theme_options = {
     'logo': 'logo.svg',
     'description': 'Aleph Network Client',
     'github_user': 'aleph-im',
-    'github_repo': 'aleph-client',
+    'github_repo': 'aleph-sdk-python',
     'github_button': True,
     'github_type': 'star',
     'github_banner': True,
@@ -253,7 +253,7 @@ latex_elements = {
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title, author, documentclass [howto/manual]).
 latex_documents = [
-  ('index', 'user_guide.tex', u'aleph-client Documentation',
+  ('index', 'user_guide.tex', u'aleph-sdk-python Documentation',
    u'Aleph.im', 'manual'),
 ]
 
