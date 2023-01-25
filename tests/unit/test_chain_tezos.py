@@ -1,10 +1,10 @@
+from dataclasses import asdict, dataclass
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 
 import pytest
 
 from aleph_client.chains.tezos import TezosAccount, get_fallback_account
-from dataclasses import dataclass, asdict
 
 
 @dataclass
@@ -26,7 +26,6 @@ def test_get_fallback_account(tezos_account: TezosAccount):
 
 @pytest.mark.asyncio
 async def test_tezos_account(tezos_account: TezosAccount):
-
     message = Message("TEZOS", tezos_account.get_address(), "SomeType", "ItemHash")
     signed = await tezos_account.sign_message(asdict(message))
     assert signed["signature"]

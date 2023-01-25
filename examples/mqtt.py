@@ -8,9 +8,9 @@ from typing import Dict
 import aiomqtt
 import click
 
+from aleph_client import AuthenticatedUserSession
 from aleph_client.chains.common import get_fallback_private_key
 from aleph_client.chains.ethereum import ETHAccount
-from aleph_client import AuthenticatedUserSession
 from aleph_client.conf import settings
 
 

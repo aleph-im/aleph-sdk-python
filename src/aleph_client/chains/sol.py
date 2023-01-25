@@ -7,11 +7,8 @@ import base58
 from nacl.public import PrivateKey, SealedBox
 from nacl.signing import SigningKey
 
-from .common import (
-    BaseAccount,
-    get_verification_buffer,
-)
 from ..conf import settings
+from .common import BaseAccount, get_verification_buffer
 
 
 def encode(item):

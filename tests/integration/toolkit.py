@@ -13,7 +13,6 @@ async def try_until(
     *args,
     **kwargs,
 ) -> T:
-
     start_time = time.monotonic()
 
     while time.monotonic() < start_time + timeout:

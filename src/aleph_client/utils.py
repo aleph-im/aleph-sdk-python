@@ -3,7 +3,7 @@ import os
 from pathlib import Path
 from shutil import make_archive
 from typing import Tuple, Type
-from zipfile import ZipFile, BadZipFile
+from zipfile import BadZipFile, ZipFile
 
 from aleph_message.models import MessageType
 from aleph_message.models.program import Encoding
@@ -12,7 +12,6 @@ from aleph_client.conf import settings
 from aleph_client.types import GenericMessage
 
 logger = logging.getLogger(__name__)
-
 
 try:
     import magic
