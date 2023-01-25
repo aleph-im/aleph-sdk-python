@@ -1,4 +1,3 @@
-import os
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 
@@ -8,9 +7,6 @@ import aleph_client.chains.ethereum as ethereum
 import aleph_client.chains.sol as solana
 import aleph_client.chains.tezos as tezos
 from aleph_client.chains.common import get_fallback_private_key
-from aleph_client.chains.ethereum import ETHAccount
-from aleph_client.conf import settings
-from aleph_client.types import Account
 
 
 @pytest.fixture

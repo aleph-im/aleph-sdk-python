@@ -1,4 +1,4 @@
-from aleph_message.models import MessageType, MessagesResponse
+from aleph_message.models import MessagesResponse, MessageType
 
 from aleph_client.conf import settings
 from aleph_client.user_session import UserSession

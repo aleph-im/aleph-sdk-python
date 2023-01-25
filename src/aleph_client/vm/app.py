@@ -1,13 +1,13 @@
 from dataclasses import dataclass
 from typing import (
-    List,
-    Dict,
-    Callable,
-    Awaitable,
-    Optional,
     Any,
-    MutableMapping,
+    Awaitable,
+    Callable,
+    Dict,
+    List,
     Mapping,
+    MutableMapping,
+    Optional,
 )
 
 AsgiApplication = Callable

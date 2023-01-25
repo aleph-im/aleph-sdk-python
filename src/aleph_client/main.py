@@ -8,5 +8,3 @@ warnings.warn(
     "Use `aleph_client.synchronous` instead.",
     DeprecationWarning,
 )
-
-from .user_session import *

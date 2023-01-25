@@ -1,12 +1,13 @@
-import pytest
 import json
 from typing import Dict
 
-from aleph_client.user_session import AuthenticatedUserSession
-from tests.integration.toolkit import try_until
-from .config import REFERENCE_NODE, TARGET_NODE
+import pytest
 
 from aleph_client.types import Account
+from aleph_client.user_session import AuthenticatedUserSession
+from tests.integration.toolkit import try_until
+
+from .config import REFERENCE_NODE, TARGET_NODE
 
 
 async def create_aggregate_on_target(

@@ -5,11 +5,7 @@ import json
 import ecdsa
 from cosmospy._wallet import privkey_to_address, privkey_to_pubkey
 
-from .common import (
-    BaseAccount,
-    get_fallback_private_key,
-    get_verification_buffer,
-)
+from .common import BaseAccount, get_fallback_private_key, get_verification_buffer
 
 DEFAULT_HRP = "cosmos"
 

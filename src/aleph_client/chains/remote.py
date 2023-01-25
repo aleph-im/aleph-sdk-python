@@ -8,8 +8,8 @@ import aiohttp.web
 from aiohttp import ClientSession
 from pydantic import BaseModel
 
-from .common import BaseAccount
 from ..conf import settings
+from .common import BaseAccount
 
 
 class AccountProperties(BaseModel):

@@ -1,7 +1,7 @@
 import abc
 import fnmatch
 import re
-from typing import Union, Optional, Any, Dict, List, NewType
+from typing import Any, Dict, List, NewType, Optional, Union
 
 import aiohttp
 from pydantic import AnyHttpUrl

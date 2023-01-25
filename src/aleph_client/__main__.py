@@ -3,16 +3,16 @@ Aleph Client command-line interface.
 """
 
 import os
-from typing import Optional
 from pathlib import Path
+from typing import Optional
 
 import typer
 
-from aleph_client.types import AccountFromPrivateKey
 from aleph_client.account import _load_account
 from aleph_client.conf import settings
-from .commands import files, message, program, help_strings, aggregate, account
+from aleph_client.types import AccountFromPrivateKey
 
+from .commands import account, aggregate, files, help_strings, message, program
 
 app = typer.Typer()
 

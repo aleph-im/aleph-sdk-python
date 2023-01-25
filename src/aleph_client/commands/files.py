@@ -3,7 +3,6 @@ from pathlib import Path
 from typing import Optional
 
 import typer
-from aleph_message.models import StoreMessage
 
 from aleph_client import AuthenticatedUserSession
 from aleph_client.account import _load_account

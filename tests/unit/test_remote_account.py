@@ -3,7 +3,7 @@ from unittest.mock import patch
 import pytest
 
 from aleph_client.chains.ethereum import ETHAccount
-from aleph_client.chains.remote import RemoteAccount, AccountProperties
+from aleph_client.chains.remote import AccountProperties, RemoteAccount
 
 
 @pytest.mark.asyncio

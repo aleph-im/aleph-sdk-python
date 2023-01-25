@@ -8,58 +8,60 @@ import time
 from datetime import datetime
 from pathlib import Path
 from typing import (
-    Optional,
-    Union,
     Any,
-    Dict,
-    List,
-    Iterable,
     AsyncIterable,
     Awaitable,
     Callable,
+    Dict,
+    Iterable,
+    List,
+    Mapping,
+    NoReturn,
+    Optional,
+    Tuple,
+    Type,
     TypeVar,
+    Union,
 )
-from typing import Type, Mapping, Tuple, NoReturn
 
 import aiohttp
 from aleph_message.models import (
-    ForgetContent,
-    MessageType,
     AggregateContent,
-    PostContent,
-    StoreContent,
-    PostMessage,
-    Message,
-    ForgetMessage,
-    AlephMessage,
     AggregateMessage,
-    StoreMessage,
-    ProgramMessage,
+    AlephMessage,
+    ForgetContent,
+    ForgetMessage,
     ItemType,
+    Message,
+    MessageType,
+    PostContent,
+    PostMessage,
+    ProgramMessage,
+    StoreContent,
+    StoreMessage,
 )
-from aleph_message.models.program import ProgramContent, Encoding
+from aleph_message.models.program import Encoding, ProgramContent
 from pydantic import ValidationError
 
-from aleph_client.types import Account, StorageEnum, GenericMessage, MessageStatus
+from aleph_client.types import Account, GenericMessage, MessageStatus, StorageEnum
+
 from .conf import settings
 from .exceptions import (
+    BroadcastError,
+    InvalidMessageError,
     MessageNotFoundError,
     MultipleMessagesError,
-    InvalidMessageError,
-    BroadcastError,
 )
 from .models import MessagesResponse
 from .utils import get_message_type_value
 
 logger = logging.getLogger(__name__)
 
-
 try:
     import magic
 except ImportError:
     logger.info("Could not import library 'magic', MIME type detection disabled")
     magic = None  # type:ignore
-
 
 T = TypeVar("T")
 
@@ -144,7 +146,6 @@ class UserSessionSync:
         ignore_invalid_messages: bool = True,
         invalid_messages_log_level: int = logging.NOTSET,
     ) -> MessagesResponse:
-
         return self._wrap(
             self.async_session.get_messages,
             pagination=pagination,
