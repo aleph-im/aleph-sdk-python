@@ -1,19 +1,19 @@
 name: Test using Pytest in Docker
 
 on:
-  push:
-    branches:
-      - "*"
   pull_request:
     branches:
-      - master
+      - main
 
 jobs:
   build:
-    runs-on: ubuntu-20.04
+    strategy:
+      matrix:
+        image: [ "python-3.9", "python-3.10", "ubuntu-20.04", "ubuntu-22.04" ]
+    runs-on: ubuntu-22.04
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       # Use GitHub's Docker registry to cache intermediate layers
       - run: echo ${{ secrets.GITHUB_TOKEN }} | docker login docker.pkg.github.com -u $GITHUB_ACTOR --password-stdin
@@ -22,7 +22,7 @@ jobs:
       - name: Build the Docker image
         run: |
           git fetch --prune --unshallow --tags
-          docker build . -t aleph-client:${GITHUB_REF##*/} -f docker/Dockerfile --cache-from=docker.pkg.github.com/$GITHUB_REPOSITORY/aleph-client-build-cache
+          docker build . -t aleph-client:${GITHUB_REF##*/} -f docker/${{matrix.image}}.dockerfile --cache-from=docker.pkg.github.com/$GITHUB_REPOSITORY/aleph-client-build-cache
 
       - name: Push the image on GitHub's repository
         run: docker tag aleph-client:${GITHUB_REF##*/} docker.pkg.github.com/$GITHUB_REPOSITORY/aleph-client:${GITHUB_REF##*/} && docker push docker.pkg.github.com/$GITHUB_REPOSITORY/aleph-client:${GITHUB_REF##*/} || true
@@ -30,15 +30,6 @@ jobs:
       - name: Cache the image on GitHub's repository
         run: docker tag aleph-client:${GITHUB_REF##*/} docker.pkg.github.com/$GITHUB_REPOSITORY/aleph-client-build-cache && docker push docker.pkg.github.com/$GITHUB_REPOSITORY/aleph-client-build-cache || true
 
-      - name: Black in the Docker image
-        run: |
-          docker run --entrypoint /opt/venv/bin/black aleph-client:${GITHUB_REF##*/} --check /opt/aleph-client/src
-
-      - name: MyPy in the Docker image
-        run: |
-          docker run --entrypoint /opt/venv/bin/mypy aleph-client:${GITHUB_REF##*/} --config-file /opt/aleph-client/mypy.ini /opt/aleph-client/src/ /opt/aleph-client/tests/ /opt/aleph-client/examples/
-
       - name: Pytest in the Docker image
         run: |
           docker run --entrypoint /opt/venv/bin/pytest aleph-client:${GITHUB_REF##*/} /opt/aleph-client/
-

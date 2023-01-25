@@ -1,0 +1,36 @@
+name: Test code quality
+
+on: push
+
+jobs:
+  code-quality:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Install required system packages only for Ubuntu Linux
+        run: |
+          sudo apt-get update
+          sudo apt-get -y upgrade
+          sudo apt-get install -y libsecp256k1-dev
+
+      - name: Install required Python packages
+        run: |
+          python3 -m pip install -e .[testing,ethereum]
+
+      - name: Test with Black
+        run: |
+          black --check ./src/ ./tests/ ./examples/
+
+      - name: Test with isort
+        run: |
+          isort --check-only ./src/ ./tests/ ./examples/
+
+      - name: Test with MyPy
+        run: |
+          mypy --config-file ./mypy.ini ./src/ ./tests/ ./examples/
+
+      - name: Test with flake8
+        run: |
+          flake8 ./src/ ./tests/ ./examples/
