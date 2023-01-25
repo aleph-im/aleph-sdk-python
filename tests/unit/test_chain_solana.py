@@ -33,7 +33,9 @@ def test_get_fallback_account():
 
 @pytest.mark.asyncio
 async def test_SOLAccount(solana_account):
-    message = asdict(Message("SOL", solana_account.get_address(), "SomeType", "ItemHash"))
+    message = asdict(
+        Message("SOL", solana_account.get_address(), "SomeType", "ItemHash")
+    )
     initial_message = message.copy()
     await solana_account.sign_message(message)
     assert message["signature"]

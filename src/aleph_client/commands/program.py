@@ -1,9 +1,8 @@
-import asyncio
 import json
 import logging
 from base64 import b32encode, b16decode
 from pathlib import Path
-from typing import Optional, Dict, List
+from typing import Optional, List, Mapping
 from zipfile import BadZipFile
 
 import typer
@@ -14,9 +13,8 @@ from aleph_message.models import (
     ProgramContent,
 )
 
-from aleph_client import synchronous
+from aleph_client import AuthenticatedUserSession
 from aleph_client.account import _load_account
-from aleph_client.asynchronous import get_fallback_session
 from aleph_client.commands import help_strings
 from aleph_client.commands.utils import (
     setup_logging,
@@ -136,7 +134,7 @@ def upload(
             immutable_volume_dict = volume_to_dict(volume=immutable_volume)
             volumes.append(immutable_volume_dict)
 
-    subscriptions: Optional[List[Dict]]
+    subscriptions: Optional[List[Mapping]]
     if beta and yes_no_input("Subscribe to messages ?", default=False):
         content_raw = input_multiline()
         try:
@@ -147,8 +145,10 @@ def upload(
     else:
         subscriptions = None
 
-    try:
-        # Upload the source code
+    # Upload the source code
+    with AuthenticatedUserSession(
+        account=account, api_server=settings.API_HOST
+    ) as session:
         with open(path_object, "rb") as fd:
             logger.debug("Reading file")
             # TODO: Read in lazy mode instead of copying everything in memory
@@ -159,8 +159,7 @@ def upload(
                 else StorageEnum.storage
             )
             logger.debug("Uploading file")
-            user_code: StoreMessage = synchronous.create_store(
-                account=account,
+            user_code, _status = session.create_store(
                 file_content=file_content,
                 storage_engine=storage_engine,
                 channel=channel,
@@ -173,8 +172,7 @@ def upload(
             program_ref = user_code.item_hash
 
         # Register the program
-        message, status = synchronous.create_program(
-            account=account,
+        message, status = session.create_program(
             program_ref=program_ref,
             entrypoint=entrypoint,
             runtime=runtime,
@@ -195,18 +193,14 @@ def upload(
         hash: str = message.item_hash
         hash_base32 = b32encode(b16decode(hash.upper())).strip(b"=").lower().decode()
 
-        typer.echo(
-            f"Your program has been uploaded on Aleph .\n\n"
-            "Available on:\n"
-            f"  {settings.VM_URL_PATH.format(hash=hash)}\n"
-            f"  {settings.VM_URL_HOST.format(hash_base32=hash_base32)}\n"
-            "Visualise on:\n  https://explorer.aleph.im/address/"
-            f"{message.chain}/{message.sender}/message/PROGRAM/{hash}\n"
-        )
-
-    finally:
-        # Prevent aiohttp unclosed connector warning
-        asyncio.run(get_fallback_session().close())
+    typer.echo(
+        f"Your program has been uploaded on Aleph .\n\n"
+        "Available on:\n"
+        f"  {settings.VM_URL_PATH.format(hash=hash)}\n"
+        f"  {settings.VM_URL_HOST.format(hash_base32=hash_base32)}\n"
+        "Visualise on:\n  https://explorer.aleph.im/address/"
+        f"{message.chain}/{message.sender}/message/PROGRAM/{hash}\n"
+    )
 
 
 @app.command()
@@ -225,12 +219,14 @@ def update(
     account = _load_account(private_key, private_key_file)
     path = path.absolute()
 
-    try:
-        program_message: ProgramMessage = synchronous.get_message(
+    with AuthenticatedUserSession(
+        account=account, api_server=settings.API_HOST
+    ) as session:
+        program_message: ProgramMessage = session.get_message(
             item_hash=hash, message_type=ProgramMessage
         )
         code_ref = program_message.content.code.ref
-        code_message: StoreMessage = synchronous.get_message(
+        code_message: StoreMessage = session.get_message(
             item_hash=code_ref, message_type=StoreMessage
         )
 
@@ -256,8 +252,7 @@ def update(
             # TODO: Read in lazy mode instead of copying everything in memory
             file_content = fd.read()
             logger.debug("Uploading file")
-            message, status = synchronous.create_store(
-                account=account,
+            message, status = session.create_store(
                 file_content=file_content,
                 storage_engine=code_message.content.item_type,
                 channel=code_message.channel,
@@ -267,9 +262,6 @@ def update(
             logger.debug("Upload finished")
             if print_message:
                 typer.echo(f"{message.json(indent=4)}")
-    finally:
-        # Prevent aiohttp unclosed connector warning
-        asyncio.run(get_fallback_session().close())
 
 
 @app.command()
@@ -285,17 +277,19 @@ def unpersist(
 
     account = _load_account(private_key, private_key_file)
 
-    existing: MessagesResponse = synchronous.get_messages(hashes=[hash])
-    message: ProgramMessage = existing.messages[0]
-    content: ProgramContent = message.content.copy()
+    with AuthenticatedUserSession(
+        account=account, api_server=settings.API_HOST
+    ) as session:
+        existing: MessagesResponse = session.get_messages(hashes=[hash])
+        message: ProgramMessage = existing.messages[0]
+        content: ProgramContent = message.content.copy()
 
-    content.on.persistent = False
-    content.replaces = message.item_hash
+        content.on.persistent = False
+        content.replaces = message.item_hash
 
-    message, _status = synchronous.submit(
-        account=account,
-        content=content.dict(exclude_none=True),
-        message_type=message.type,
-        channel=message.channel,
-    )
-    typer.echo(f"{message.json(indent=4)}")
+        message, _status = session.submit(
+            content=content.dict(exclude_none=True),
+            message_type=message.type,
+            channel=message.channel,
+        )
+        typer.echo(f"{message.json(indent=4)}")

@@ -10,7 +10,8 @@ import click
 
 from aleph_client.chains.common import get_fallback_private_key
 from aleph_client.chains.ethereum import ETHAccount
-from aleph_client.main import create_aggregate
+from aleph_client import AuthenticatedUserSession
+from aleph_client.conf import settings
 
 
 def get_input_data(value):
@@ -26,7 +27,12 @@ def get_input_data(value):
 
 
 def send_metrics(account, metrics):
-    return create_aggregate(account, "metrics", metrics, channel="SYSINFO")
+    with AuthenticatedUserSession(
+        account=account, api_server=settings.API_HOST
+    ) as session:
+        return session.create_aggregate(
+            key="metrics", content=metrics, channel="SYSINFO"
+        )
 
 
 def on_disconnect(client, userdata, rc):
@@ -95,10 +101,15 @@ async def gateway(
         if not userdata["received"]:
             await client.reconnect()
 
-        for key, value in state.items():
-            message, status = create_aggregate(account, key, value, channel="IOT_TEST")
-            print("sent", message.item_hash)
-            userdata["received"] = False
+        async with AuthenticatedUserSession(
+            account=account, api_server=settings.API_HOST
+        ) as session:
+            for key, value in state.items():
+                message, status = await session.create_aggregate(
+                    key=key, content=value, channel="IOT_TEST"
+                )
+                print("sent", message.item_hash)
+                userdata["received"] = False
 
 
 @click.command()

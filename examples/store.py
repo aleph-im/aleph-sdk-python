@@ -1,13 +1,13 @@
 import asyncio
 
-import aiohttp
 import click
 from aleph_message.models import StoreMessage
 
-from aleph_client.asynchronous import create_store
 from aleph_client.chains.common import get_fallback_private_key
 from aleph_client.chains.ethereum import ETHAccount
+from aleph_client.conf import settings
 from aleph_client.types import MessageStatus
+from aleph_client.user_session import AuthenticatedUserSession
 
 DEFAULT_SERVER = "https://api2.aleph.im"
 
@@ -23,7 +23,9 @@ async def print_output_hash(message: StoreMessage, status: MessageStatus):
 
 
 async def do_upload(account, engine, channel, filename=None, file_hash=None):
-    async with aiohttp.ClientSession() as session:
+    async with AuthenticatedUserSession(
+        account=account, api_server=settings.API_HOST
+    ) as session:
         print(filename, account.get_address())
         if filename:
             try:
@@ -33,24 +35,20 @@ async def do_upload(account, engine, channel, filename=None, file_hash=None):
                     if len(content) > 4 * 1024 * 1024 and engine == "STORAGE":
                         print("File too big for native STORAGE engine")
                         return
-                    message, status = await create_store(
-                        account,
+                    message, status = await session.create_store(
                         file_content=content,
                         channel=channel,
                         storage_engine=engine.lower(),
-                        session=session,
                     )
             except IOError:
                 print("File not accessible")
                 raise
 
         elif file_hash:
-            message, status = await create_store(
-                account,
+            message, status = await session.create_store(
                 file_hash=file_hash,
                 channel=channel,
                 storage_engine=engine.lower(),
-                session=session,
             )
 
         await print_output_hash(message, status)

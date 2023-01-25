@@ -1,13 +1,12 @@
-import re
-import fnmatch
 import abc
+import fnmatch
+import re
 from typing import Union, Optional, Any, Dict, List, NewType
 
-from aiohttp import ClientSession
+import aiohttp
+from pydantic import AnyHttpUrl
 
-from aleph_client.asynchronous import get_fallback_session
 from ..conf import settings
-
 
 CacheKey = NewType("CacheKey", str)
 
@@ -45,16 +44,18 @@ class BaseVmCache(abc.ABC):
 class VmCache(BaseVmCache):
     """Virtual Machines can use this cache to store temporary data in memory on the host."""
 
-    session: ClientSession
+    session: aiohttp.ClientSession
     cache: Dict[str, bytes]
     api_host: str
 
     def __init__(
-        self, session: Optional[ClientSession] = None, api_host: Optional[str] = None
+        self,
+        session: Optional[aiohttp.ClientSession] = None,
+        connector_url: Optional[AnyHttpUrl] = None,
     ):
-        self.session = session or get_fallback_session()
+        self.session = session or aiohttp.ClientSession(base_url=connector_url)
         self.cache = {}
-        self.api_host = api_host if api_host else settings.API_HOST
+        self.api_host = connector_url if connector_url else settings.API_HOST
 
     async def get(self, key: str) -> Optional[bytes]:
         sanitized_key = sanitize_cache_key(key)

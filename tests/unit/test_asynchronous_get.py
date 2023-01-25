@@ -1,64 +1,94 @@
+import unittest
+from typing import Any, Dict
+from unittest.mock import AsyncMock
+
 import pytest
 from aleph_message.models import MessageType, MessagesResponse
-import unittest
 
-from aleph_client.asynchronous import (
-    get_messages,
-    fetch_aggregates,
-    fetch_aggregate,
-    _get_fallback_session,
-)
+from aleph_client.conf import settings
+from aleph_client.user_session import UserSession
+
+
+def make_mock_session(get_return_value: Dict[str, Any]) -> UserSession:
+    class MockResponse:
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, exc_type, exc_val, exc_tb):
+            ...
+
+        @property
+        def status(self):
+            return 200
+
+        async def json(self):
+            return get_return_value
+
+    class MockHttpSession(AsyncMock):
+        def get(self, *_args, **_kwargs):
+            return MockResponse()
+
+    http_session = MockHttpSession()
+
+    user_session = UserSession(api_server="http://localhost")
+    user_session.http_session = http_session
+
+    return user_session
 
 
 @pytest.mark.asyncio
 async def test_fetch_aggregate():
-    _get_fallback_session.cache_clear()
-
-    response = await fetch_aggregate(
-        address="0xa1B3bb7d2332383D96b7796B908fB7f7F3c2Be10", key="corechannel"
+    mock_session = make_mock_session(
+        {"data": {"corechannel": {"nodes": [], "resource_nodes": []}}}
     )
+    async with mock_session:
+
+        response = await mock_session.fetch_aggregate(
+            address="0xa1B3bb7d2332383D96b7796B908fB7f7F3c2Be10",
+            key="corechannel",
+        )
     assert response.keys() == {"nodes", "resource_nodes"}
 
 
 @pytest.mark.asyncio
 async def test_fetch_aggregates():
-    _get_fallback_session.cache_clear()
-
-    response = await fetch_aggregates(
-        address="0xa1B3bb7d2332383D96b7796B908fB7f7F3c2Be10"
+    mock_session = make_mock_session(
+        {"data": {"corechannel": {"nodes": [], "resource_nodes": []}}}
     )
-    assert response.keys() == {"corechannel"}
-    assert response["corechannel"].keys() == {"nodes", "resource_nodes"}
+
+    async with mock_session:
+        response = await mock_session.fetch_aggregates(
+            address="0xa1B3bb7d2332383D96b7796B908fB7f7F3c2Be10"
+        )
+        assert response.keys() == {"corechannel"}
+        assert response["corechannel"].keys() == {"nodes", "resource_nodes"}
 
 
 @pytest.mark.asyncio
 async def test_get_posts():
-    _get_fallback_session.cache_clear()
+    async with UserSession(api_server=settings.API_HOST) as session:
+        response: MessagesResponse = await session.get_messages(
+            message_type=MessageType.post,
+        )
 
-    response: MessagesResponse = await get_messages(
-        pagination=2,
-        message_type=MessageType.post,
-    )
-
-    messages = response.messages
-    assert len(messages) > 1
-    for message in messages:
-        assert message.type == MessageType.post
+        messages = response.messages
+        assert len(messages) > 1
+        for message in messages:
+            assert message.type == MessageType.post
 
 
 @pytest.mark.asyncio
 async def test_get_messages():
-    _get_fallback_session.cache_clear()
+    async with UserSession(api_server=settings.API_HOST) as session:
+        response: MessagesResponse = await session.get_messages(
+            pagination=2,
+        )
 
-    response: MessagesResponse = await get_messages(
-        pagination=2,
-    )
-
-    messages = response.messages
-    assert len(messages) > 1
-    assert messages[0].type
-    assert messages[0].sender
+        messages = response.messages
+        assert len(messages) > 1
+        assert messages[0].type
+        assert messages[0].sender
 
 
-if __name__ == '__main __':
+if __name__ == "__main __":
     unittest.main()

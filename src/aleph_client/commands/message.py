@@ -1,4 +1,3 @@
-import asyncio
 import json
 import os.path
 import subprocess
@@ -7,15 +6,10 @@ from pathlib import Path
 from typing import Optional, Dict, List
 
 import typer
-from aleph_message.models import (
-    PostMessage,
-    ForgetMessage,
-    AlephMessage,
-)
+from aleph_message.models import AlephMessage
 
-from aleph_client import synchronous
+from aleph_client import AuthenticatedUserSession, UserSession
 from aleph_client.account import _load_account
-from aleph_client.asynchronous import get_fallback_session
 from aleph_client.commands import help_strings
 from aleph_client.commands.utils import (
     setup_logging,
@@ -49,7 +43,6 @@ def post(
     setup_logging(debug)
 
     account: AccountFromPrivateKey = _load_account(private_key, private_key_file)
-    storage_engine: str
     content: Dict
 
     if path:
@@ -78,9 +71,10 @@ def post(
             typer.echo("Not valid JSON")
             raise typer.Exit(code=2)
 
-    try:
-        result: PostMessage = synchronous.create_post(
-            account=account,
+    with AuthenticatedUserSession(
+        account=account, api_server=settings.API_HOST
+    ) as session:
+        message, status = session.create_post(
             post_content=content,
             post_type=type,
             ref=ref,
@@ -88,10 +82,7 @@ def post(
             inline=True,
             storage_engine=storage_engine,
         )
-        typer.echo(result.json(indent=4))
-    finally:
-        # Prevent aiohttp unclosed connector warning
-        asyncio.run(get_fallback_session().close())
+    typer.echo(message.json(indent=4))
 
 
 @app.command()
@@ -110,34 +101,35 @@ def amend(
     setup_logging(debug)
 
     account: AccountFromPrivateKey = _load_account(private_key, private_key_file)
+    with AuthenticatedUserSession(
+        account=account, api_server=settings.API_HOST
+    ) as session:
+        existing_message: AlephMessage = session.get_message(item_hash=hash)
 
-    existing_message: AlephMessage = synchronous.get_message(item_hash=hash)
+        editor: str = os.getenv("EDITOR", default="nano")
+        with tempfile.NamedTemporaryFile(suffix="json") as fd:
+            # Fill in message template
+            fd.write(existing_message.content.json(indent=4).encode())
+            fd.seek(0)
 
-    editor: str = os.getenv("EDITOR", default="nano")
-    with tempfile.NamedTemporaryFile(suffix="json") as fd:
-        # Fill in message template
-        fd.write(existing_message.content.json(indent=4).encode())
-        fd.seek(0)
+            # Launch editor
+            subprocess.run([editor, fd.name], check=True)
 
-        # Launch editor
-        subprocess.run([editor, fd.name], check=True)
+            # Read new message
+            fd.seek(0)
+            new_content_json = fd.read()
 
-        # Read new message
-        fd.seek(0)
-        new_content_json = fd.read()
-
-    content_type = type(existing_message).__annotations__["content"]
-    new_content_dict = json.loads(new_content_json)
-    new_content = content_type(**new_content_dict)
-    new_content.ref = existing_message.item_hash
-    typer.echo(new_content)
-    message, _status = synchronous.submit(
-        account=account,
-        content=new_content.dict(),
-        message_type=existing_message.type,
-        channel=existing_message.channel,
-    )
-    typer.echo(f"{message.json(indent=4)}")
+        content_type = type(existing_message).__annotations__["content"]
+        new_content_dict = json.loads(new_content_json)
+        new_content = content_type(**new_content_dict)
+        new_content.ref = existing_message.item_hash
+        typer.echo(new_content)
+        message, _status = session.submit(
+            content=new_content.dict(),
+            message_type=existing_message.type,
+            channel=existing_message.channel,
+        )
+        typer.echo(f"{message.json(indent=4)}")
 
 
 def forget_messages(
@@ -146,17 +138,15 @@ def forget_messages(
     reason: Optional[str],
     channel: str,
 ):
-    try:
-        result: ForgetMessage = synchronous.forget(
-            account=account,
+    with AuthenticatedUserSession(
+        account=account, api_server=settings.API_HOST
+    ) as session:
+        message, status = session.forget(
             hashes=hashes,
             reason=reason,
             channel=channel,
         )
-        typer.echo(f"{result.json(indent=4)}")
-    finally:
-        # Prevent aiohttp unclosed connector warning
-        asyncio.run(get_fallback_session().close())
+    typer.echo(f"{message.json(indent=4)}")
 
 
 @app.command()
@@ -196,9 +186,10 @@ def watch(
 
     setup_logging(debug)
 
-    original: AlephMessage = synchronous.get_message(item_hash=ref)
+    with UserSession(api_server=settings.API_HOST) as session:
+        original: AlephMessage = session.get_message(item_hash=ref)
 
-    for message in synchronous.watch_messages(
-        refs=[ref], addresses=[original.content.address]
-    ):
-        typer.echo(f"{message.json(indent=indent)}")
+        for message in session.watch_messages(
+            refs=[ref], addresses=[original.content.address]
+        ):
+            typer.echo(f"{message.json(indent=indent)}")

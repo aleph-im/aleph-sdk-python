@@ -1,4 +1,5 @@
-from unittest.mock import MagicMock, patch, AsyncMock
+import json
+from unittest.mock import patch, AsyncMock, MagicMock
 
 import pytest as pytest
 from aleph_message.models import (
@@ -9,168 +10,148 @@ from aleph_message.models import (
     ForgetMessage,
 )
 
-from aleph_client.types import StorageEnum, MessageStatus
-
-from aleph_client.asynchronous import (
-    create_post,
-    _get_fallback_session,
-    create_aggregate,
-    create_store,
-    create_program,
-    forget,
-)
+from aleph_client import AuthenticatedUserSession
+from aleph_client.types import StorageEnum, MessageStatus, Account
 
 
-def new_mock_session_with_post_success():
-    mock_response = AsyncMock()
-    mock_response.status = 200
-    mock_response.json.return_value = {
-        "message_status": "processed",
-        "publication_status": {"status": "success", "failed": []},
-    }
+@pytest.fixture
+def mock_session_with_post_success(
+    ethereum_account: Account,
+) -> AuthenticatedUserSession:
+    class MockResponse:
+        def __init__(self, sync: bool):
+            self.sync = sync
 
-    mock_post = AsyncMock()
-    mock_post.return_value = mock_response
+        async def __aenter__(self):
+            return self
 
-    mock_session = MagicMock()
-    mock_session.post.return_value.__aenter__ = mock_post
-    return mock_session
+        async def __aexit__(self, exc_type, exc_val, exc_tb):
+            ...
+
+        @property
+        def status(self):
+            return 200 if self.sync else 202
+
+        async def json(self):
+            message_status = "processed" if self.sync else "pending"
+            return {
+                "message_status": message_status,
+                "publication_status": {"status": "success", "failed": []},
+            }
+
+        async def text(self):
+            return json.dumps(await self.json())
+
+    http_session = AsyncMock()
+    http_session.post = MagicMock()
+    http_session.post.side_effect = lambda *args, **kwargs: MockResponse(
+        sync=kwargs.get("sync", False)
+    )
+
+    user_session = AuthenticatedUserSession(
+        account=ethereum_account, api_server="http://localhost"
+    )
+    user_session.http_session = http_session
+
+    return user_session
 
 
 @pytest.mark.asyncio
-async def test_create_post(ethereum_account):
-    _get_fallback_session.cache_clear()
+async def test_create_post(mock_session_with_post_success):
 
-    content = {"Hello": "World"}
+    async with mock_session_with_post_success as session:
+        content = {"Hello": "World"}
 
-    mock_session = new_mock_session_with_post_success()
+        post_message, message_status = await session.create_post(
+            post_content=content,
+            post_type="TEST",
+            channel="TEST",
+            sync=False,
+        )
 
-    post_message, message_status = await create_post(
-        account=ethereum_account,
-        post_content=content,
-        post_type="TEST",
-        channel="TEST",
-        session=mock_session,
-        api_server="https://example.org",
-        sync=True,
-    )
-
-    assert mock_session.post.called
+    assert mock_session_with_post_success.http_session.post.called_once
     assert isinstance(post_message, PostMessage)
-    assert message_status == MessageStatus.PROCESSED
+    assert message_status == MessageStatus.PENDING
 
 
 @pytest.mark.asyncio
-async def test_create_aggregate(ethereum_account):
-    _get_fallback_session.cache_clear()
+async def test_create_aggregate(mock_session_with_post_success):
 
-    content = {"Hello": "World"}
+    async with mock_session_with_post_success as session:
 
-    mock_session = new_mock_session_with_post_success()
+        aggregate_message, message_status = await session.create_aggregate(
+            key="hello",
+            content={"Hello": "world"},
+            channel="TEST",
+        )
 
-    _ = await create_aggregate(
-        account=ethereum_account,
-        key="hello",
-        content=content,
-        channel="TEST",
-        session=mock_session,
-    )
-
-    aggregate_message, message_status = await create_aggregate(
-        account=ethereum_account,
-        key="hello",
-        content="world",
-        channel="TEST",
-        session=mock_session,
-        api_server="https://example.org",
-    )
-
-    assert mock_session.post.called
+    assert mock_session_with_post_success.http_session.post.called_once
     assert isinstance(aggregate_message, AggregateMessage)
 
 
 @pytest.mark.asyncio
-async def test_create_store(ethereum_account):
-    _get_fallback_session.cache_clear()
-
-    mock_session = new_mock_session_with_post_success()
+async def test_create_store(mock_session_with_post_success):
 
     mock_ipfs_push_file = AsyncMock()
     mock_ipfs_push_file.return_value = "QmRTV3h1jLcACW4FRfdisokkQAk4E4qDhUzGpgdrd4JAFy"
 
-    with patch("aleph_client.asynchronous.ipfs_push_file", mock_ipfs_push_file):
-        _ = await create_store(
-            account=ethereum_account,
+    mock_session_with_post_success.ipfs_push_file = mock_ipfs_push_file
+
+    async with mock_session_with_post_success as session:
+        _ = await session.create_store(
             file_content=b"HELLO",
             channel="TEST",
             storage_engine=StorageEnum.ipfs,
-            session=mock_session,
-            api_server="https://example.org",
         )
 
-        _ = await create_store(
-            account=ethereum_account,
+        _ = await session.create_store(
             file_hash="QmRTV3h1jLcACW4FRfdisokkQAk4E4qDhUzGpgdrd4JAFy",
             channel="TEST",
             storage_engine=StorageEnum.ipfs,
-            session=mock_session,
-            api_server="https://example.org",
         )
 
     mock_storage_push_file = AsyncMock()
     mock_storage_push_file.return_value = (
         "QmRTV3h1jLcACW4FRfdisokkQAk4E4qDhUzGpgdrd4JAFy"
     )
+    mock_session_with_post_success.storage_push_file = mock_storage_push_file
+    async with mock_session_with_post_success as session:
 
-    with patch("aleph_client.asynchronous.storage_push_file", mock_storage_push_file):
-
-        store_message, message_status = await create_store(
-            account=ethereum_account,
+        store_message, message_status = await session.create_store(
             file_content=b"HELLO",
             channel="TEST",
             storage_engine=StorageEnum.storage,
-            session=mock_session,
-            api_server="https://example.org",
         )
 
-    assert mock_session.post.called
+    assert mock_session_with_post_success.http_session.post.called
     assert isinstance(store_message, StoreMessage)
 
 
 @pytest.mark.asyncio
-async def test_create_program(ethereum_account):
-    _get_fallback_session.cache_clear()
+async def test_create_program(mock_session_with_post_success):
 
-    mock_session = new_mock_session_with_post_success()
+    async with mock_session_with_post_success as session:
 
-    program_message, message_status = await create_program(
-        account=ethereum_account,
-        program_ref="FAKE-HASH",
-        entrypoint="main:app",
-        runtime="FAKE-HASH",
-        channel="TEST",
-        session=mock_session,
-        api_server="https://example.org",
-    )
+        program_message, message_status = await session.create_program(
+            program_ref="FAKE-HASH",
+            entrypoint="main:app",
+            runtime="FAKE-HASH",
+            channel="TEST",
+        )
 
-    assert mock_session.post.called
+    assert mock_session_with_post_success.http_session.post.called_once
     assert isinstance(program_message, ProgramMessage)
 
 
 @pytest.mark.asyncio
-async def test_forget(ethereum_account):
-    _get_fallback_session.cache_clear()
+async def test_forget(mock_session_with_post_success):
 
-    mock_session = new_mock_session_with_post_success()
+    async with mock_session_with_post_success as session:
+        forget_message, message_status = await session.forget(
+            hashes=["QmRTV3h1jLcACW4FRfdisokkQAk4E4qDhUzGpgdrd4JAFy"],
+            reason="GDPR",
+            channel="TEST",
+        )
 
-    forget_message, message_status = await forget(
-        account=ethereum_account,
-        hashes=["QmRTV3h1jLcACW4FRfdisokkQAk4E4qDhUzGpgdrd4JAFy"],
-        reason="GDPR",
-        channel="TEST",
-        session=mock_session,
-        api_server="https://example.org",
-    )
-
-    assert mock_session.post.called
+    assert mock_session_with_post_success.http_session.post.called_once
     assert isinstance(forget_message, ForgetMessage)
