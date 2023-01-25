@@ -2,8 +2,6 @@
 """
 # -*- coding: utf-8 -*-
 
-import asyncio
-
 import click
 from aiohttp import web
 
@@ -58,7 +56,6 @@ async def source_post(request):
 @click.option("--secret", default=None, help="Needed secret to be allowed to post")
 def main(host, port, channel, pkey=None, secret=None):
     app.add_routes(routes)
-    loop = asyncio.get_event_loop()
 
     app["secret"] = secret
     app["channel"] = channel

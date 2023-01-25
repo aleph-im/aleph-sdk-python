@@ -88,7 +88,6 @@ class VarInt:
     # //     * @return the minimal encoded bytes of the value
     # //     */
     def encode(self):
-        ob = bytes()
         size = self.sizeOf(self.value)
 
         if size == 1:
