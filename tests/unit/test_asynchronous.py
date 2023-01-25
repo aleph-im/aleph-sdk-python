@@ -126,9 +126,9 @@ async def test_create_store(mock_session_with_post_success):
 async def test_create_program(mock_session_with_post_success):
     async with mock_session_with_post_success as session:
         program_message, message_status = await session.create_program(
-            program_ref="FAKE-HASH",
+            program_ref="cafecafecafecafecafecafecafecafecafecafecafecafecafecafecafecafe",
             entrypoint="main:app",
-            runtime="FAKE-HASH",
+            runtime="facefacefacefacefacefacefacefacefacefacefacefacefacefacefaceface",
             channel="TEST",
         )
 
