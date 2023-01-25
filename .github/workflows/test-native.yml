@@ -1,0 +1,69 @@
+name: Test code quality
+
+on: push
+
+jobs:
+  code-quality:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Install required system packages only for Ubuntu Linux
+        run: |
+          sudo apt-get update
+          sudo apt-get -y upgrade
+          sudo apt-get install -y libsecp256k1-dev
+
+      - name: Install required Python packages
+        run: |
+          python3 -m pip install -e .[testing,ethereum]
+
+      - name: Test with Black
+        run: |
+          black --check ./src/ ./tests/ ./examples/
+
+      - name: Test with isort
+        run: |
+          isort --check-only ./src/ ./tests/ ./examples/
+
+      - name: Test with MyPy
+        run: |
+          mypy --config-file ./mypy.ini ./src/ ./tests/ ./examples/
+
+      - name: Test with flake8
+        run: |
+          flake8 ./src/ ./tests/ ./examples/
+
+  tests-latest:
+    needs: "code-quality"
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ "ubuntu-latest", "macos-latest", "windows-latest" ]
+        python-version: [ "3.9", "3.10" ]
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Install required system packages for macOS
+        if: startsWith(matrix.os, 'macos-')
+        run: |
+          brew update
+          brew tap cuber/homebrew-libsecp256k1
+          brew install libsecp256k1
+
+      - name: Install required system packages only for Ubuntu Linux
+        if: startsWith(matrix.os, 'ubuntu-')
+        run: |
+          sudo apt-get update
+          sudo apt-get -y upgrade
+          sudo apt-get install -y libsecp256k1-dev
+
+      - name: Install required Python packages
+        run: |
+          python3 -m pip install -e .[testing,ethereum]
+
+      - name: Run Pytest
+        run: |
+          pytest
