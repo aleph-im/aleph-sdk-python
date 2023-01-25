@@ -3,11 +3,11 @@ import logging
 from pathlib import Path
 from typing import Optional, Type, TypeVar
 
-from aleph_client.chains.common import get_fallback_private_key
-from aleph_client.chains.ethereum import ETHAccount
-from aleph_client.chains.remote import RemoteAccount
-from aleph_client.conf import settings
-from aleph_client.types import AccountFromPrivateKey
+from aleph.sdk.chains.common import get_fallback_private_key
+from aleph.sdk.chains.ethereum import ETHAccount
+from aleph.sdk.chains.remote import RemoteAccount
+from aleph.sdk.conf import settings
+from aleph.sdk.types import AccountFromPrivateKey
 
 logger = logging.getLogger(__name__)
 

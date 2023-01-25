@@ -43,7 +43,7 @@ from aleph_message.models import (
 from aleph_message.models.program import Encoding, ProgramContent
 from pydantic import ValidationError
 
-from aleph_client.types import Account, GenericMessage, MessageStatus, StorageEnum
+from aleph.sdk.types import Account, GenericMessage, MessageStatus, StorageEnum
 
 from .conf import settings
 from .exceptions import (

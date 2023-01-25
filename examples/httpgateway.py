@@ -5,9 +5,9 @@
 import click
 from aiohttp import web
 
-from aleph_client.chains.common import get_fallback_private_key
-from aleph_client.chains.ethereum import ETHAccount
-from aleph_client.user_session import AuthenticatedUserSession
+from aleph.sdk.chains.common import get_fallback_private_key
+from aleph.sdk.chains.ethereum import ETHAccount
+from aleph.sdk.user_session import AuthenticatedUserSession
 
 app = web.Application()
 routes = web.RouteTableDef()

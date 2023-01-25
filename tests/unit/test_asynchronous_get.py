@@ -5,8 +5,8 @@ from unittest.mock import AsyncMock
 import pytest
 from aleph_message.models import MessagesResponse, MessageType
 
-from aleph_client.conf import settings
-from aleph_client.user_session import UserSession
+from aleph.sdk.conf import settings
+from aleph.sdk.user_session import UserSession
 
 
 def make_mock_session(get_return_value: Dict[str, Any]) -> UserSession:

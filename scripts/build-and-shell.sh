@@ -10,5 +10,5 @@ else
   DOCKER_COMMAND=docker
 fi
 
-$DOCKER_COMMAND build -t aleph-client -f docker/Dockerfile .
-$DOCKER_COMMAND run -ti --rm --entrypoint /bin/bash -v "$(pwd)":/opt/aleph-client aleph-client
+$DOCKER_COMMAND build -t aleph-sdk-python -f docker/Dockerfile .
+$DOCKER_COMMAND run -ti --rm --entrypoint /bin/bash -v "$(pwd)":/opt/aleph-sdk-python aleph-sdk-python

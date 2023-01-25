@@ -3,8 +3,8 @@ from typing import Dict
 
 import pytest
 
-from aleph_client.types import Account
-from aleph_client.user_session import AuthenticatedUserSession
+from aleph.sdk.types import Account
+from aleph.sdk.user_session import AuthenticatedUserSession
 from tests.integration.toolkit import try_until
 
 from .config import REFERENCE_NODE, TARGET_NODE

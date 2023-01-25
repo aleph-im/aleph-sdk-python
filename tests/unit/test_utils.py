@@ -7,7 +7,7 @@ from aleph_message.models import (
     StoreMessage,
 )
 
-from aleph_client.utils import get_message_type_value
+from aleph.sdk.utils import get_message_type_value
 
 
 def test_get_message_type_value():

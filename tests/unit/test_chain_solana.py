@@ -7,8 +7,8 @@ import base58
 import pytest
 from nacl.signing import VerifyKey
 
-from aleph_client.chains.common import get_verification_buffer
-from aleph_client.chains.sol import SOLAccount, get_fallback_account
+from aleph.sdk.chains.common import get_verification_buffer
+from aleph.sdk.chains.sol import SOLAccount, get_fallback_account
 
 
 @dataclass
