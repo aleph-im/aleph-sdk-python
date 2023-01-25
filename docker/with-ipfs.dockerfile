@@ -1,4 +1,4 @@
-FROM python:3.9
+FROM python:3.10
 
 # === Install IPFS ===
 RUN apt-get install -y wget
