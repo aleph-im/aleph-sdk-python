@@ -38,3 +38,10 @@ jobs:
       - name: Install the Python wheel
         run: |
           python3 -m pip install dist/aleph_sdk_python-*.whl
+
+      - name: Import and use the package
+        # macos tests fail this step because they use Python 3.11, which is not yet supported by our dependencies
+        if: startsWith(matrix.os, 'ubuntu-')
+        run: |
+          python3 -c "import aleph.sdk"
+          python3 -c "from aleph.sdk.chains.ethereum import get_fallback_account; get_fallback_account()"
