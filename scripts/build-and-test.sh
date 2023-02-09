@@ -10,6 +10,6 @@ else
   DOCKER_COMMAND=docker
 fi
 
-$DOCKER_COMMAND build -t aleph-client -f docker/Dockerfile .
-$DOCKER_COMMAND run -ti --rm --entrypoint /opt/venv/bin/pytest aleph-client /opt/aleph-client/ "$@"
-$DOCKER_COMMAND run -ti --rm --entrypoint /opt/venv/bin/mypy aleph-client /opt/aleph-client/src/ --ignore-missing-imports
+$DOCKER_COMMAND build -t aleph-sdk-python -f docker/Dockerfile .
+$DOCKER_COMMAND run -ti --rm --entrypoint /opt/venv/bin/pytest aleph-sdk-python /opt/aleph-sdk-python/ "$@"
+$DOCKER_COMMAND run -ti --rm --entrypoint /opt/venv/bin/mypy aleph-sdk-python /opt/aleph-sdk-python/src/ --ignore-missing-imports

@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 
-from aleph_client.vm.app import AlephApp
+from aleph.sdk.vm.app import AlephApp
 
 # Create a test app
 http_app = FastAPI()

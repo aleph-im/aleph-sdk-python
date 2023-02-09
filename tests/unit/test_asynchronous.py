@@ -10,8 +10,8 @@ from aleph_message.models import (
     StoreMessage,
 )
 
-from aleph_client import AuthenticatedUserSession
-from aleph_client.types import Account, MessageStatus, StorageEnum
+from aleph.sdk.types import Account, MessageStatus, StorageEnum
+from aleph.sdk.user_session import AuthenticatedUserSession
 
 
 @pytest.fixture

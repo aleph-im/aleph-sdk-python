@@ -6,7 +6,7 @@ from typing import Dict, Optional
 from coincurve.keys import PrivateKey
 from ecies import decrypt, encrypt
 
-from aleph_client.conf import settings
+from aleph.sdk.conf import settings
 
 
 def get_verification_buffer(message):

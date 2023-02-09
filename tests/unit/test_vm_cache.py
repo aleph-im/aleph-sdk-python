@@ -1,6 +1,6 @@
 import pytest
 
-from aleph_client.vm.cache import TestVmCache, sanitize_cache_key
+from aleph.sdk.vm.cache import TestVmCache, sanitize_cache_key
 
 
 @pytest.mark.asyncio

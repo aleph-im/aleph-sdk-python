@@ -4,7 +4,7 @@ from tempfile import NamedTemporaryFile
 
 import pytest
 
-from aleph_client.chains.ethereum import get_fallback_account
+from aleph.sdk.chains.ethereum import get_fallback_account
 
 
 @dataclass

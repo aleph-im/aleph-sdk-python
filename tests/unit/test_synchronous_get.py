@@ -1,7 +1,7 @@
 from aleph_message.models import MessagesResponse, MessageType
 
-from aleph_client.conf import settings
-from aleph_client.user_session import UserSession
+from aleph.sdk.conf import settings
+from aleph.sdk.user_session import UserSession
 
 
 def test_get_posts():

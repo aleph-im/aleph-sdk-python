@@ -2,8 +2,8 @@ from typing import Callable, Dict
 
 import pytest
 
-from aleph_client.types import Account
-from aleph_client.user_session import AuthenticatedUserSession
+from aleph.sdk.types import Account
+from aleph.sdk.user_session import AuthenticatedUserSession
 
 from .config import REFERENCE_NODE, TARGET_NODE, TEST_CHANNEL
 from .toolkit import try_until

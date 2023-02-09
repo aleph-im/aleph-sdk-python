@@ -13,9 +13,9 @@ fi
 mkdir -p ./dist
 chmod 0777 ./dist
 
-$DOCKER_COMMAND build -t aleph-client -f docker/Dockerfile .
+$DOCKER_COMMAND build -t aleph-sdk-python -f docker/Dockerfile .
 $DOCKER_COMMAND run -ti --rm \
-  -w /opt/aleph-client \
-  -v "$(pwd)/dist":/opt/aleph-client/dist \
+  -w /opt/aleph-sdk-python \
+  -v "$(pwd)/dist":/opt/aleph-sdk-python/dist \
   --entrypoint /bin/bash \
-  aleph-client
+  aleph-sdk-python

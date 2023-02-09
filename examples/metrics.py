@@ -10,11 +10,13 @@ from typing import Tuple
 import psutil
 from aleph_message.models import AlephMessage
 
-from aleph_client import AuthenticatedUserSession
-from aleph_client.chains.ethereum import get_fallback_account
-from aleph_client.conf import settings
-from aleph_client.types import MessageStatus
-from aleph_client.user_session import AuthenticatedUserSessionSync
+from aleph.sdk.chains.ethereum import get_fallback_account
+from aleph.sdk.conf import settings
+from aleph.sdk.types import MessageStatus
+from aleph.sdk.user_session import (
+    AuthenticatedUserSession,
+    AuthenticatedUserSessionSync,
+)
 
 
 def get_sysinfo():
