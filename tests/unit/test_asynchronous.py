@@ -131,6 +131,7 @@ async def test_create_program(mock_session_with_post_success):
             entrypoint="main:app",
             runtime="facefacefacefacefacefacefacefacefacefacefacefacefacefacefaceface",
             channel="TEST",
+            metadata={"tags": ["test"]},
         )
 
     assert mock_session_with_post_success.http_session.post.called_once
