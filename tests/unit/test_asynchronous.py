@@ -10,14 +10,14 @@ from aleph_message.models import (
     StoreMessage,
 )
 
+from aleph.sdk.client import AuthenticatedAlephClient
 from aleph.sdk.types import Account, MessageStatus, StorageEnum
-from aleph.sdk.user_session import AuthenticatedUserSession
 
 
 @pytest.fixture
 def mock_session_with_post_success(
     ethereum_account: Account,
-) -> AuthenticatedUserSession:
+) -> AuthenticatedAlephClient:
     class MockResponse:
         def __init__(self, sync: bool):
             self.sync = sync
@@ -48,12 +48,12 @@ def mock_session_with_post_success(
         sync=kwargs.get("sync", False)
     )
 
-    user_session = AuthenticatedUserSession(
+    client = AuthenticatedAlephClient(
         account=ethereum_account, api_server="http://localhost"
     )
-    user_session.http_session = http_session
+    client.http_session = http_session
 
-    return user_session
+    return client
 
 
 @pytest.mark.asyncio
