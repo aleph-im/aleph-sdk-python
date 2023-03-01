@@ -11,12 +11,9 @@ import psutil
 from aleph_message.models import AlephMessage
 
 from aleph.sdk.chains.ethereum import get_fallback_account
+from aleph.sdk.client import AuthenticatedAlephClient, AuthenticatedUserSessionSync
 from aleph.sdk.conf import settings
 from aleph.sdk.types import MessageStatus
-from aleph.sdk.user_session import (
-    AuthenticatedUserSession,
-    AuthenticatedUserSessionSync,
-)
 
 
 def get_sysinfo():
@@ -73,7 +70,7 @@ def collect_metrics():
 
 def main():
     account = get_fallback_account()
-    with AuthenticatedUserSession(
+    with AuthenticatedAlephClient(
         account=account, api_server=settings.API_HOST
     ) as session:
         while True:

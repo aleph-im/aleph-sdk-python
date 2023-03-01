@@ -1,11 +1,11 @@
 from aleph_message.models import MessagesResponse, MessageType
 
+from aleph.sdk.client import AlephClient
 from aleph.sdk.conf import settings
-from aleph.sdk.user_session import UserSession
 
 
 def test_get_posts():
-    with UserSession(api_server=settings.API_HOST) as session:
+    with AlephClient(api_server=settings.API_HOST) as session:
         response: MessagesResponse = session.get_messages(
             pagination=2,
             message_type=MessageType.post,

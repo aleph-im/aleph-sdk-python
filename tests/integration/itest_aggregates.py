@@ -3,8 +3,8 @@ from typing import Dict
 
 import pytest
 
+from aleph.sdk.client import AuthenticatedAlephClient
 from aleph.sdk.types import Account
-from aleph.sdk.user_session import AuthenticatedUserSession
 from tests.integration.toolkit import try_until
 
 from .config import REFERENCE_NODE, TARGET_NODE
@@ -18,7 +18,7 @@ async def create_aggregate_on_target(
     receiver_node: str,
     channel="INTEGRATION_TESTS",
 ):
-    async with AuthenticatedUserSession(
+    async with AuthenticatedAlephClient(
         account=account, api_server=emitter_node
     ) as tx_session:
         aggregate_message, message_status = await tx_session.create_aggregate(
@@ -38,7 +38,7 @@ async def create_aggregate_on_target(
     assert aggregate_message.content.address == account.get_address()
     assert aggregate_message.content.content == content
 
-    async with AuthenticatedUserSession(
+    async with AuthenticatedAlephClient(
         account=account, api_server=receiver_node
     ) as rx_session:
         aggregate_from_receiver = await try_until(

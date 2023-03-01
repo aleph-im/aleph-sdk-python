@@ -5,11 +5,11 @@ from unittest.mock import AsyncMock
 import pytest
 from aleph_message.models import MessagesResponse, MessageType
 
+from aleph.sdk.client import AlephClient
 from aleph.sdk.conf import settings
-from aleph.sdk.user_session import UserSession
 
 
-def make_mock_session(get_return_value: Dict[str, Any]) -> UserSession:
+def make_mock_session(get_return_value: Dict[str, Any]) -> AlephClient:
     class MockResponse:
         async def __aenter__(self):
             return self
@@ -30,10 +30,10 @@ def make_mock_session(get_return_value: Dict[str, Any]) -> UserSession:
 
     http_session = MockHttpSession()
 
-    user_session = UserSession(api_server="http://localhost")
-    user_session.http_session = http_session
+    client = AlephClient(api_server="http://localhost")
+    client.http_session = http_session
 
-    return user_session
+    return client
 
 
 @pytest.mark.asyncio
@@ -65,7 +65,7 @@ async def test_fetch_aggregates():
 
 @pytest.mark.asyncio
 async def test_get_posts():
-    async with UserSession(api_server=settings.API_HOST) as session:
+    async with AlephClient(api_server=settings.API_HOST) as session:
         response: MessagesResponse = await session.get_messages(
             message_type=MessageType.post,
         )
@@ -78,7 +78,7 @@ async def test_get_posts():
 
 @pytest.mark.asyncio
 async def test_get_messages():
-    async with UserSession(api_server=settings.API_HOST) as session:
+    async with AlephClient(api_server=settings.API_HOST) as session:
         response: MessagesResponse = await session.get_messages(
             pagination=2,
         )

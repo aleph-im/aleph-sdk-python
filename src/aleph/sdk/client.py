@@ -71,7 +71,7 @@ def async_wrapper(f):
     Copies the docstring of wrapped functions.
     """
 
-    wrapped = getattr(AuthenticatedUserSession, f.__name__)
+    wrapped = getattr(AuthenticatedAlephClient, f.__name__)
     f.__doc__ = wrapped.__doc__
 
 
@@ -95,7 +95,7 @@ def wrap_async(func: Callable[..., Awaitable[T]]) -> Callable[..., T]:
 async def run_async_watcher(
     *args, output_queue: queue.Queue, api_server: str, **kwargs
 ):
-    async with UserSession(api_server=api_server) as session:
+    async with AlephClient(api_server=api_server) as session:
         async for message in session.watch_messages(*args, **kwargs):
             output_queue.put(message)
 
@@ -122,7 +122,7 @@ class UserSessionSync:
     >>>     return self._wrap(self.async_session.func)(*args, **kwargs)
     """
 
-    def __init__(self, async_session: "UserSession"):
+    def __init__(self, async_session: "AlephClient"):
         self.async_session = async_session
 
     def _wrap(self, method: Callable[..., Awaitable[T]], *args, **kwargs):
@@ -272,9 +272,9 @@ class UserSessionSync:
 
 
 class AuthenticatedUserSessionSync(UserSessionSync):
-    async_session: "AuthenticatedUserSession"
+    async_session: "AuthenticatedAlephClient"
 
-    def __init__(self, async_session: "AuthenticatedUserSession"):
+    def __init__(self, async_session: "AuthenticatedAlephClient"):
         super().__init__(async_session=async_session)
 
     def ipfs_push(self, content: Mapping) -> str:
@@ -436,7 +436,7 @@ class AuthenticatedUserSessionSync(UserSessionSync):
         )
 
 
-class UserSession:
+class AlephClient:
     api_server: str
     http_session: aiohttp.ClientSession
 
@@ -455,7 +455,7 @@ class UserSession:
         except RuntimeError:
             asyncio.run(close_fut)
 
-    async def __aenter__(self) -> "UserSession":
+    async def __aenter__(self) -> "AlephClient":
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
@@ -807,7 +807,7 @@ class UserSession:
                     break
 
 
-class AuthenticatedUserSession(UserSession):
+class AuthenticatedAlephClient(AlephClient):
     account: Account
 
     BROADCAST_MESSAGE_FIELDS = {
@@ -829,7 +829,7 @@ class AuthenticatedUserSession(UserSession):
     def __enter__(self) -> "AuthenticatedUserSessionSync":
         return AuthenticatedUserSessionSync(async_session=self)
 
-    async def __aenter__(self) -> "AuthenticatedUserSession":
+    async def __aenter__(self) -> "AuthenticatedAlephClient":
         return self
 
     async def ipfs_push(self, content: Mapping) -> str:

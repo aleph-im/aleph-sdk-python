@@ -1,6 +1,6 @@
 from pkg_resources import DistributionNotFound, get_distribution
 
-from aleph.sdk.user_session import AuthenticatedUserSession, UserSession
+from aleph.sdk.client import AlephClient, AuthenticatedAlephClient
 
 try:
     # Change here if project is renamed and does not equal the package name
@@ -11,4 +11,4 @@ except DistributionNotFound:
 finally:
     del get_distribution, DistributionNotFound
 
-__all__ = ["AuthenticatedUserSession", "UserSession"]
+__all__ = ["AlephClient", "AuthenticatedAlephClient"]
