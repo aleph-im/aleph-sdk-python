@@ -930,7 +930,6 @@ class AuthenticatedUserSession(UserSession):
             self._log_publication_status(publication_status)
 
     async def _broadcast_deprecated(self, message_dict: Mapping[str, Any]) -> None:
-
         """
         Broadcast a message on the Aleph network using the deprecated
         /ipfs/pubsub/pub/ endpoint.
@@ -1312,7 +1311,6 @@ class AuthenticatedUserSession(UserSession):
         allow_inlining: bool = True,
         storage_engine: StorageEnum = StorageEnum.storage,
     ) -> AlephMessage:
-
         message_dict: Dict[str, Any] = {
             "sender": self.account.get_address(),
             "chain": self.account.CHAIN,
@@ -1353,7 +1351,6 @@ class AuthenticatedUserSession(UserSession):
         allow_inlining: bool = True,
         sync: bool = False,
     ) -> Tuple[AlephMessage, MessageStatus]:
-
         message = await self._prepare_aleph_message(
             message_type=message_type,
             content=content,
