@@ -377,6 +377,7 @@ class AuthenticatedUserSessionSync(UserSessionSync):
         encoding: Encoding = Encoding.zip,
         volumes: Optional[List[Mapping]] = None,
         subscriptions: Optional[List[Mapping]] = None,
+        metadata: Optional[Mapping[str, Any]] = None,
     ) -> Tuple[ProgramMessage, MessageStatus]:
         return self._wrap(
             self.async_session.create_program,
@@ -395,6 +396,7 @@ class AuthenticatedUserSessionSync(UserSessionSync):
             encoding=encoding,
             volumes=volumes,
             subscriptions=subscriptions,
+            metadata=metadata,
         )
 
     def forget(
@@ -1170,6 +1172,7 @@ class AuthenticatedAlephClient(AlephClient):
         encoding: Encoding = Encoding.zip,
         volumes: Optional[List[Mapping]] = None,
         subscriptions: Optional[List[Mapping]] = None,
+        metadata: Optional[Mapping[str, Any]] = None,
     ) -> Tuple[ProgramMessage, MessageStatus]:
         """
         Post a (create) PROGRAM message.
@@ -1243,6 +1246,7 @@ class AuthenticatedAlephClient(AlephClient):
                 },
                 "volumes": volumes,
                 "time": time.time(),
+                "metadata": metadata,
             }
         )
 
