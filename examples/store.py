@@ -2,12 +2,12 @@ import asyncio
 
 import click
 from aleph_message.models import StoreMessage
+from aleph_message.status import MessageStatus
 
 from aleph.sdk.chains.common import get_fallback_private_key
 from aleph.sdk.chains.ethereum import ETHAccount
 from aleph.sdk.client import AuthenticatedAlephClient
 from aleph.sdk.conf import settings
-from aleph.sdk.types import MessageStatus
 
 DEFAULT_SERVER = "https://api2.aleph.im"
 

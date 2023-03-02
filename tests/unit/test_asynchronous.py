@@ -9,9 +9,10 @@ from aleph_message.models import (
     ProgramMessage,
     StoreMessage,
 )
+from aleph_message.status import MessageStatus
 
 from aleph.sdk.client import AuthenticatedAlephClient
-from aleph.sdk.types import Account, MessageStatus, StorageEnum
+from aleph.sdk.types import Account, StorageEnum
 
 
 @pytest.fixture

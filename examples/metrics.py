@@ -9,11 +9,11 @@ from typing import Tuple
 
 import psutil
 from aleph_message.models import AlephMessage
+from aleph_message.status import MessageStatus
 
 from aleph.sdk.chains.ethereum import get_fallback_account
 from aleph.sdk.client import AuthenticatedAlephClient, AuthenticatedUserSessionSync
 from aleph.sdk.conf import settings
-from aleph.sdk.types import MessageStatus
 
 
 def get_sysinfo():

@@ -41,9 +41,10 @@ from aleph_message.models import (
     StoreMessage,
 )
 from aleph_message.models.program import Encoding, ProgramContent
+from aleph_message.status import MessageStatus
 from pydantic import ValidationError
 
-from aleph.sdk.types import Account, GenericMessage, MessageStatus, StorageEnum
+from aleph.sdk.types import Account, GenericMessage, StorageEnum
 
 from .conf import settings
 from .exceptions import (
