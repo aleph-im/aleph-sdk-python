@@ -28,6 +28,7 @@ COPY . .
 USER root
 RUN chown -R user:user /opt/aleph-sdk-python
 
+RUN git config --global --add safe.directory /opt/aleph-sdk-python
 RUN pip install -e .[testing,ethereum,solana,tezos]
 
 RUN mkdir /data
