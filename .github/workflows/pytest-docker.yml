@@ -9,7 +9,7 @@ jobs:
   build:
     strategy:
       matrix:
-        image: [ "python-3.9", "python-3.10", "ubuntu-20.04", "ubuntu-22.04" ]
+        image: [ "python-3.9", "python-3.10", "python-3.11", "ubuntu-20.04", "ubuntu-22.04" ]
     runs-on: ubuntu-22.04
 
     steps:
