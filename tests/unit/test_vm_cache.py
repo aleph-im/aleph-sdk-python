@@ -7,7 +7,7 @@ from aleph.sdk.vm.cache import TestVmCache, sanitize_cache_key
 async def test_local_vm_cache():
     cache = TestVmCache()
     assert (await cache.get("doesnotexist")) is None
-    assert len(await (cache.keys())) == 0
+    assert len(await cache.keys()) == 0
     key = "thisdoesexist"
     value = "yay, I exist!"
     await cache.set(key, value)
@@ -18,7 +18,7 @@ async def test_local_vm_cache():
     assert (await cache.keys("*exist"))[0] == key
     await cache.delete(key)
     assert (await cache.get(key)) is None
-    assert len(await (cache.keys())) == 0
+    assert len(await cache.keys()) == 0
 
 
 def test_sanitize_cache_keys():

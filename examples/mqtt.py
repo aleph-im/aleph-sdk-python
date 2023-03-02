@@ -76,7 +76,6 @@ async def gateway(
     transport="tcp",
     auth=None,
 ):
-
     if pkey is None:
         pkey = get_fallback_private_key()
 
