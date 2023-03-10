@@ -443,9 +443,11 @@ class AlephClient:
     api_server: str
     http_session: aiohttp.ClientSession
 
-    def __init__(self, api_server: str):
+    def __init__(
+        self, api_server: str, timeout: Optional[aiohttp.ClientTimeout] = None
+    ):
         self.api_server = api_server
-        self.http_session = aiohttp.ClientSession(base_url=api_server)
+        self.http_session = aiohttp.ClientSession(base_url=api_server, timeout=timeout)
 
     def __enter__(self) -> UserSessionSync:
         return UserSessionSync(async_session=self)
