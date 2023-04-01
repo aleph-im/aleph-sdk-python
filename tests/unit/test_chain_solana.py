@@ -75,11 +75,18 @@ async def test_decrypt_curve25516(solana_account):
 @pytest.mark.asyncio
 async def test_verify_signature(solana_account):
     message = asdict(
-        Message("SOL", solana_account.get_address(), "POST", "0b63f44cdab8eec51d7f6f120787962609b0da8729b6020b8c45ca0748f674de")
+        Message(
+            "SOL",
+            solana_account.get_address(),
+            "POST",
+            "SomeHash",
+        )
     )
     await solana_account.sign_message(message)
     assert message["signature"]
     raw_signature = json.loads(message["signature"])["signature"]
     assert type(raw_signature) == str
 
-    assert verify_signature(raw_signature, message["sender"], get_verification_buffer(message))
+    assert verify_signature(
+        raw_signature, message["sender"], get_verification_buffer(message)
+    )

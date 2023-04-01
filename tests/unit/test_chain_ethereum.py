@@ -48,12 +48,19 @@ async def test_verify_signature(ethereum_account):
     account = ethereum_account
 
     message = asdict(
-        Message("ETH", account.get_address(), "POST", "0b63f44cdab8eec51d7f6f120787962609b0da8729b6020b8c45ca0748f674de")
+        Message(
+            "ETH",
+            account.get_address(),
+            "POST",
+            "SomeHash",
+        )
     )
     await account.sign_message(message)
     assert message["signature"]
 
-    assert verify_signature(message["signature"], message["sender"], get_verification_buffer(message))
+    assert verify_signature(
+        message["signature"], message["sender"], get_verification_buffer(message)
+    )
 
 
 @pytest.mark.asyncio
