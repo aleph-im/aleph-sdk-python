@@ -1,11 +1,12 @@
 import json
 import os
 from pathlib import Path
-from typing import Dict, Optional
+from typing import Dict, Optional, Union
 
 import base58
+from nacl.exceptions import BadSignatureError
 from nacl.public import PrivateKey, SealedBox
-from nacl.signing import SigningKey
+from nacl.signing import SigningKey, VerifyKey
 
 from ..conf import settings
 from .common import BaseAccount, get_verification_buffer
@@ -81,3 +82,28 @@ def get_fallback_private_key(path: Optional[Path] = None) -> bytes:
             # Create a symlink to use this key by default
             os.symlink(path, default_key_path)
     return private_key
+
+
+def verify_signature(
+    signature: Union[bytes, str],
+    public_key: Union[bytes, str],
+    message: Union[bytes, str],
+) -> bool:
+    """
+    Verifies a signature.
+    Args:
+        signature: The signature to verify. Can be a base58 encoded string or bytes.
+        public_key: The public key to use for verification. Can be a base58 encoded string or bytes.
+        message: The message to verify. Can be an utf-8 string or bytes.
+    """
+    if isinstance(signature, str):
+        signature = base58.b58decode(signature)
+    if isinstance(message, str):
+        message = message.encode("utf-8")
+    if isinstance(public_key, str):
+        public_key = base58.b58decode(public_key)
+    try:
+        VerifyKey(public_key).verify(message, signature)
+        return True
+    except BadSignatureError:
+        return False

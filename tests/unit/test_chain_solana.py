@@ -8,7 +8,7 @@ import pytest
 from nacl.signing import VerifyKey
 
 from aleph.sdk.chains.common import get_verification_buffer
-from aleph.sdk.chains.sol import SOLAccount, get_fallback_account
+from aleph.sdk.chains.sol import SOLAccount, get_fallback_account, verify_signature
 
 
 @dataclass
@@ -49,7 +49,6 @@ async def test_SOLAccount(solana_account):
     assert type(pubkey) == bytes
     assert len(pubkey) == 32
 
-    # modeled according to https://github.com/aleph-im/pyaleph/blob/master/src/aleph/chains/solana.py
     verify_key = VerifyKey(pubkey)
     verification_buffer = get_verification_buffer(message)
     assert get_verification_buffer(initial_message) == verification_buffer
@@ -71,3 +70,16 @@ async def test_decrypt_curve25516(solana_account):
     decrypted = await solana_account.decrypt(encrypted)
     assert type(decrypted) == bytes
     assert content == decrypted
+
+
+@pytest.mark.asyncio
+async def test_verify_signature(solana_account):
+    message = asdict(
+        Message("SOL", solana_account.get_address(), "POST", "0b63f44cdab8eec51d7f6f120787962609b0da8729b6020b8c45ca0748f674de")
+    )
+    await solana_account.sign_message(message)
+    assert message["signature"]
+    raw_signature = json.loads(message["signature"])["signature"]
+    assert type(raw_signature) == str
+
+    assert verify_signature(raw_signature, message["sender"], get_verification_buffer(message))

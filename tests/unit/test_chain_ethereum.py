@@ -4,7 +4,8 @@ from tempfile import NamedTemporaryFile
 
 import pytest
 
-from aleph.sdk.chains.ethereum import get_fallback_account
+from aleph.sdk.chains.common import get_verification_buffer
+from aleph.sdk.chains.ethereum import get_fallback_account, verify_signature
 
 
 @dataclass
@@ -40,6 +41,19 @@ async def test_ETHAccount(ethereum_account):
     pubkey = account.get_public_key()
     assert type(pubkey) == str
     assert len(pubkey) == 68
+
+
+@pytest.mark.asyncio
+async def test_verify_signature(ethereum_account):
+    account = ethereum_account
+
+    message = asdict(
+        Message("ETH", account.get_address(), "POST", "0b63f44cdab8eec51d7f6f120787962609b0da8729b6020b8c45ca0748f674de")
+    )
+    await account.sign_message(message)
+    assert message["signature"]
+
+    assert verify_signature(message["signature"], message["sender"], get_verification_buffer(message))
 
 
 @pytest.mark.asyncio

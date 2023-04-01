@@ -1,4 +1,5 @@
 import base64
+from typing import Union
 
 from nuls2.model.data import (
     NETWORKS,
@@ -60,3 +61,12 @@ class NULSAccount(BaseAccount):
 def get_fallback_account(chain_id=1):
     acc = NULSAccount(private_key=get_fallback_private_key(), chain_id=chain_id)
     return acc
+
+
+def verify_signature(
+    signature: Union[bytes, str],
+    public_key: Union[bytes, str],
+    message: Union[bytes, str],
+) -> bool:
+    """TODO: Implement this"""
+    raise NotImplementedError("Not implemented yet")

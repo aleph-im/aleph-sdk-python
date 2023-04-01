@@ -1,6 +1,6 @@
 import json
 from pathlib import Path
-from typing import Dict, Optional
+from typing import Dict, Optional, Union
 
 from aleph_pytezos.crypto.key import Key
 from nacl.public import SealedBox
@@ -48,3 +48,12 @@ class TezosAccount(BaseAccount):
 
 def get_fallback_account(path: Optional[Path] = None) -> TezosAccount:
     return TezosAccount(private_key=get_fallback_private_key(path=path))
+
+
+def verify_signature(
+    signature: Union[bytes, str],
+    public_key: Union[bytes, str],
+    message: Union[bytes, str],
+) -> bool:
+    """TODO: Implement this"""
+    raise NotImplementedError("Not implemented yet")
