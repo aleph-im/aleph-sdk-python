@@ -6,8 +6,8 @@ import pytest
 from aleph.sdk.chains.cosmos import (
     CSDKAccount,
     get_fallback_account,
-    verify_signature,
     get_verification_string,
+    verify_signature,
 )
 
 
