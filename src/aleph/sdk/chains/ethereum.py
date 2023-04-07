@@ -75,5 +75,5 @@ def verify_signature(
             return True
         else:
             return False
-    except Exception as e:
+    except Exception:
         return False
