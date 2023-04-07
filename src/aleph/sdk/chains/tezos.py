@@ -55,5 +55,17 @@ def verify_signature(
     public_key: Union[bytes, str],
     message: Union[bytes, str],
 ) -> bool:
-    """TODO: Implement this"""
-    raise NotImplementedError("Not implemented yet")
+    """
+    Verify a signature using the public key (hash) of a tezos account.
+
+    Note: It requires the public key hash (sp, p2, ed-prefix), not the address (tz1, tz2 prefix)!
+    Args:
+        signature: The signature to verify. Can be a base58 encoded string or bytes.
+        public_key: The public key (hash) of the account. Can be a base58 encoded string or bytes.
+        message: The message that was signed. Is a sequence of bytes in raw format or hexadecimal notation.
+    """
+    key = Key.from_encoded_key(public_key)
+    try:
+        return key.verify(signature, message)
+    except ValueError:
+        return False

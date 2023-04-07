@@ -1,10 +1,12 @@
+import json
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 
 import pytest
 
-from aleph.sdk.chains.tezos import TezosAccount, get_fallback_account
+from aleph.sdk.chains.common import get_verification_buffer
+from aleph.sdk.chains.tezos import TezosAccount, get_fallback_account, verify_signature
 
 
 @dataclass
@@ -39,6 +41,24 @@ async def test_tezos_account(tezos_account: TezosAccount):
     pubkey = tezos_account.get_public_key()
     assert isinstance(pubkey, str)
     assert len(pubkey) == 55
+
+
+@pytest.mark.asyncio
+async def test_verify_signature(tezos_account: TezosAccount):
+    message = asdict(
+        Message(
+            "TEZOS",
+            tezos_account.get_address(),
+            "POST",
+            "SomeHash",
+        )
+    )
+    await tezos_account.sign_message(message)
+    assert message["signature"]
+    raw_signature = json.loads(message["signature"])["signature"]
+    public_key = tezos_account.get_public_key()
+
+    assert verify_signature(raw_signature, public_key, get_verification_buffer(message))
 
 
 @pytest.mark.asyncio
