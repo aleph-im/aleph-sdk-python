@@ -61,7 +61,7 @@ class CSDKAccount(BaseAccount):
             sigencode=ecdsa.util.sigencode_string_canonize,
         )
         signature_base64_str = base64.b64encode(signature_compact).decode("utf-8")
-        base64_pubkey = base64.b64encode(self.get_public_key().encode()).decode("utf-8")
+        base64_pubkey = self.get_public_key()
 
         sig = {
             "signature": signature_base64_str,
@@ -76,7 +76,7 @@ class CSDKAccount(BaseAccount):
         return privkey_to_address(self.private_key)
 
     def get_public_key(self) -> str:
-        return privkey_to_pubkey(self.private_key).decode()
+        return base64.b64encode(privkey_to_pubkey(self.private_key)).decode("utf-8")
 
 
 def get_fallback_account(hrp=DEFAULT_HRP):
@@ -88,5 +88,13 @@ def verify_signature(
     public_key: Union[bytes, str],
     message: Union[bytes, str],
 ) -> bool:
-    """TODO: Implement this"""
-    raise NotImplementedError("Not implemented yet")
+    """ """
+    if isinstance(signature, str):
+        signature = base64.b64decode(signature)
+    if isinstance(public_key, str):
+        public_key = base64.b64decode(public_key)
+    if isinstance(message, str):
+        message = message.encode("utf-8")
+
+    vk = ecdsa.VerifyingKey.from_string(public_key, curve=ecdsa.SECP256k1)
+    return vk.verify(signature, message, hashfunc=hashlib.sha256)
