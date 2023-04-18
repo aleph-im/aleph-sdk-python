@@ -34,3 +34,11 @@ class InvalidMessageError(BroadcastError):
     """
 
     pass
+
+
+class BadSignatureError(Exception):
+    """
+    The signature of a message is invalid.
+    """
+
+    pass

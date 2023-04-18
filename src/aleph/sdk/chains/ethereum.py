@@ -4,7 +4,9 @@ from typing import Dict, Optional, Union
 from eth_account import Account
 from eth_account.messages import encode_defunct
 from eth_account.signers.local import LocalAccount
+from eth_keys.exceptions import BadSignature as EthBadSignatureError
 
+from ..exceptions import BadSignatureError
 from .common import (
     BaseAccount,
     get_fallback_private_key,
@@ -47,13 +49,15 @@ def verify_signature(
     signature: Union[bytes, str],
     public_key: Union[bytes, str],
     message: Union[bytes, str],
-) -> bool:
+):
     """
     Verifies a signature.
     Args:
         signature: The signature to verify. Can be a hex encoded string or bytes.
         public_key: The sender's public key to use for verification. Can be a checksummed, hex encoded string or bytes.
         message: The message to verify. Can be an utf-8 string or bytes.
+    Raises:
+        BadSignatureError: If the signature is invalid.
     """
     if isinstance(signature, str):
         if signature.startswith("0x"):
@@ -71,9 +75,7 @@ def verify_signature(
     message_hash = encode_defunct(text=message)
     try:
         address = Account.recover_message(message_hash, signature=signature)
-        if address == public_key:
-            return True
-        else:
-            return False
-    except Exception:
-        return False
+        if address != public_key:
+            raise BadSignatureError
+    except (EthBadSignatureError, BadSignatureError) as e:
+        raise BadSignatureError from e

@@ -9,6 +9,7 @@ from nacl.signing import VerifyKey
 
 from aleph.sdk.chains.common import get_verification_buffer
 from aleph.sdk.chains.sol import SOLAccount, get_fallback_account, verify_signature
+from aleph.sdk.exceptions import BadSignatureError
 
 
 @dataclass
@@ -87,6 +88,23 @@ async def test_verify_signature(solana_account):
     raw_signature = json.loads(message["signature"])["signature"]
     assert type(raw_signature) == str
 
-    assert verify_signature(
-        raw_signature, message["sender"], get_verification_buffer(message)
+    verify_signature(raw_signature, message["sender"], get_verification_buffer(message))
+
+
+@pytest.mark.asyncio
+async def test_verify_signature_with_forged_signature(solana_account):
+    message = asdict(
+        Message(
+            "SOL",
+            solana_account.get_address(),
+            "POST",
+            "SomeHash",
+        )
     )
+    await solana_account.sign_message(message)
+    assert message["signature"]
+    # create forged 64 bit signature from random bytes
+    forged = base58.b58encode(bytes(64)).decode("utf-8")
+
+    with pytest.raises(BadSignatureError):
+        verify_signature(forged, message["sender"], get_verification_buffer(message))

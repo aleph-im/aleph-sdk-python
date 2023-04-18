@@ -4,11 +4,12 @@ from pathlib import Path
 from typing import Dict, Optional, Union
 
 import base58
-from nacl.exceptions import BadSignatureError
+from nacl.exceptions import BadSignatureError as NaclBadSignatureError
 from nacl.public import PrivateKey, SealedBox
 from nacl.signing import SigningKey, VerifyKey
 
 from ..conf import settings
+from ..exceptions import BadSignatureError
 from .common import BaseAccount, get_verification_buffer
 
 
@@ -88,13 +89,15 @@ def verify_signature(
     signature: Union[bytes, str],
     public_key: Union[bytes, str],
     message: Union[bytes, str],
-) -> bool:
+):
     """
     Verifies a signature.
     Args:
         signature: The signature to verify. Can be a base58 encoded string or bytes.
         public_key: The public key to use for verification. Can be a base58 encoded string or bytes.
         message: The message to verify. Can be an utf-8 string or bytes.
+    Raises:
+        BadSignatureError: If the signature is invalid.
     """
     if isinstance(signature, str):
         signature = base58.b58decode(signature)
@@ -104,6 +107,5 @@ def verify_signature(
         public_key = base58.b58decode(public_key)
     try:
         VerifyKey(public_key).verify(message, signature)
-        return True
-    except BadSignatureError:
-        return False
+    except NaclBadSignatureError as e:
+        raise BadSignatureError from e

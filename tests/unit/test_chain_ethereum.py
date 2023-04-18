@@ -6,6 +6,7 @@ import pytest
 
 from aleph.sdk.chains.common import get_verification_buffer
 from aleph.sdk.chains.ethereum import get_fallback_account, verify_signature
+from aleph.sdk.exceptions import BadSignatureError
 
 
 @dataclass
@@ -58,9 +59,31 @@ async def test_verify_signature(ethereum_account):
     await account.sign_message(message)
     assert message["signature"]
 
-    assert verify_signature(
+    verify_signature(
         message["signature"], message["sender"], get_verification_buffer(message)
     )
+
+
+@pytest.mark.asyncio
+async def test_verify_signature_with_forged_signature(ethereum_account):
+    account = ethereum_account
+
+    message = asdict(
+        Message(
+            "ETH",
+            account.get_address(),
+            "POST",
+            "SomeHash",
+        )
+    )
+    await account.sign_message(message)
+    assert message["signature"]
+
+    forged_signature = "0x" + "0" * 130
+    with pytest.raises(BadSignatureError):
+        verify_signature(
+            forged_signature, message["sender"], get_verification_buffer(message)
+        )
 
 
 @pytest.mark.asyncio
