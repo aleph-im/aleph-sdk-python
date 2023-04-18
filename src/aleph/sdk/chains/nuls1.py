@@ -4,7 +4,7 @@ import hashlib
 import logging
 import struct
 from binascii import hexlify, unhexlify
-from typing import Optional
+from typing import Optional, Union
 
 from coincurve.keys import PrivateKey, PublicKey
 
@@ -324,3 +324,12 @@ class NULSAccount(BaseAccount):
 
 def get_fallback_account(chain_id=8964):
     return NULSAccount(private_key=get_fallback_private_key(), chain_id=chain_id)
+
+
+def verify_signature(
+    signature: Union[bytes, str],
+    public_key: Union[bytes, str],
+    message: Union[bytes, str],
+) -> bool:
+    """TODO: Implement this"""
+    raise NotImplementedError("Not implemented yet")

@@ -1,10 +1,12 @@
 from pathlib import Path
-from typing import Dict, Optional
+from typing import Dict, Optional, Union
 
 from eth_account import Account
 from eth_account.messages import encode_defunct
 from eth_account.signers.local import LocalAccount
+from eth_keys.exceptions import BadSignature as EthBadSignatureError
 
+from ..exceptions import BadSignatureError
 from .common import (
     BaseAccount,
     get_fallback_private_key,
@@ -41,3 +43,39 @@ class ETHAccount(BaseAccount):
 
 def get_fallback_account(path: Optional[Path] = None) -> ETHAccount:
     return ETHAccount(private_key=get_fallback_private_key(path=path))
+
+
+def verify_signature(
+    signature: Union[bytes, str],
+    public_key: Union[bytes, str],
+    message: Union[bytes, str],
+):
+    """
+    Verifies a signature.
+    Args:
+        signature: The signature to verify. Can be a hex encoded string or bytes.
+        public_key: The sender's public key to use for verification. Can be a checksummed, hex encoded string or bytes.
+        message: The message to verify. Can be an utf-8 string or bytes.
+    Raises:
+        BadSignatureError: If the signature is invalid.
+    """
+    if isinstance(signature, str):
+        if signature.startswith("0x"):
+            signature = signature[2:]
+        signature = bytes.fromhex(signature)
+    else:
+        if signature.startswith(b"0x"):
+            signature = signature[2:]
+        signature = bytes.fromhex(signature.decode("utf-8"))
+    if isinstance(public_key, bytes):
+        public_key = "0x" + public_key.hex()
+    if isinstance(message, bytes):
+        message = message.decode("utf-8")
+
+    message_hash = encode_defunct(text=message)
+    try:
+        address = Account.recover_message(message_hash, signature=signature)
+        if address != public_key:
+            raise BadSignatureError
+    except (EthBadSignatureError, BadSignatureError) as e:
+        raise BadSignatureError from e

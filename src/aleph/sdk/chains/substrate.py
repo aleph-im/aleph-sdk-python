@@ -1,4 +1,5 @@
 import json
+from typing import Union
 
 from substrateinterface import Keypair
 
@@ -45,3 +46,12 @@ def get_fallback_mnemonics():
             prvfile.write(mnemonic)
 
     return mnemonic
+
+
+def verify_signature(
+    signature: Union[bytes, str],
+    public_key: Union[bytes, str],
+    message: Union[bytes, str],
+) -> bool:
+    """TODO: Implement this"""
+    raise NotImplementedError("Not implemented yet")

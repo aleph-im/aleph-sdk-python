@@ -1,6 +1,7 @@
 import base64
 import hashlib
 import json
+from typing import Union
 
 import ecdsa
 from cosmospy._wallet import privkey_to_address, privkey_to_pubkey
@@ -80,3 +81,12 @@ class CSDKAccount(BaseAccount):
 
 def get_fallback_account(hrp=DEFAULT_HRP):
     return CSDKAccount(private_key=get_fallback_private_key(), hrp=hrp)
+
+
+def verify_signature(
+    signature: Union[bytes, str],
+    public_key: Union[bytes, str],
+    message: Union[bytes, str],
+) -> bool:
+    """TODO: Implement this"""
+    raise NotImplementedError("Not implemented yet")
