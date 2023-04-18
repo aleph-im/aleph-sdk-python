@@ -44,7 +44,7 @@ async def test_CSDKAccount(cosmos_account):
 
     pubkey = account.get_public_key()
     assert type(pubkey) == str
-    assert len(pubkey) == 66
+    assert len(pubkey) == 44
 
 
 @pytest.mark.asyncio

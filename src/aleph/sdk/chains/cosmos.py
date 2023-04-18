@@ -5,6 +5,7 @@ from typing import Union
 
 import ecdsa
 from cosmospy._wallet import privkey_to_address, privkey_to_pubkey
+from ecies import encrypt
 
 from .common import BaseAccount, get_fallback_private_key, get_verification_buffer
 
@@ -78,6 +79,12 @@ class CSDKAccount(BaseAccount):
     def get_public_key(self) -> str:
         return base64.b64encode(privkey_to_pubkey(self.private_key)).decode("utf-8")
 
+    async def encrypt(self, content: bytes) -> bytes:
+        value: bytes = encrypt(
+            base64.b64decode(self.get_public_key().encode("utf-8")), content
+        )
+        return value
+
 
 def get_fallback_account(hrp=DEFAULT_HRP):
     return CSDKAccount(private_key=get_fallback_private_key(), hrp=hrp)
@@ -88,7 +95,14 @@ def verify_signature(
     public_key: Union[bytes, str],
     message: Union[bytes, str],
 ) -> bool:
-    """ """
+    """
+    Verifies a signature of a message, return True if verified, false if not.
+
+    Args:
+        signature: The signature to verify. Can be a base64 encoded string or bytes.
+        public_key: The public key to use for verification. Can be a base64 encoded string or bytes.
+        message: The message to verify. Can be a string or bytes.
+    """
     if isinstance(signature, str):
         signature = base64.b64decode(signature)
     if isinstance(public_key, str):
