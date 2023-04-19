@@ -79,6 +79,10 @@ class AlephApp:
                             raise ValueError("No send method specified")
 
                     return send_handler_result()
+        elif scope["type"] == "lifespan":
+            # Call the lifespan handler
+            if self.http_app:
+                await self.http_app(scope=scope, receive=receive, send=send)
         else:
             raise ValueError(f"Unknown scope type '{scope['type']}'")
 
