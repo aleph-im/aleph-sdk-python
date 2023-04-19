@@ -62,7 +62,7 @@ class AlephApp:
         receive: Optional[Callable[[], Awaitable[Any]]] = None,
         send: Optional[Callable[[Dict[Any, Any]], Awaitable[Any]]] = None,
     ):
-        if scope["type"] in ("http", "websocket"):
+        if scope["type"] in ("http", "websocket", "lifespan"):
             if self.http_app:
                 await self.http_app(scope=scope, receive=receive, send=send)
             else:
@@ -79,10 +79,6 @@ class AlephApp:
                             raise ValueError("No send method specified")
 
                     return send_handler_result()
-        elif scope["type"] == "lifespan":
-            # Call the lifespan handler
-            if self.http_app:
-                await self.http_app(scope=scope, receive=receive, send=send)
         else:
             raise ValueError(f"Unknown scope type '{scope['type']}'")
 
