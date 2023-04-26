@@ -96,6 +96,4 @@ async def test_verify_signature_with_forged_signature(cosmos_account):
 
     forged_signature = base64.b64encode(bytes(64)).decode("utf-8")
     with pytest.raises(BadSignatureError):
-        verify_signature(
-            forged_signature, public_key, get_verification_string(message)
-        )
+        verify_signature(forged_signature, public_key, get_verification_string(message))
