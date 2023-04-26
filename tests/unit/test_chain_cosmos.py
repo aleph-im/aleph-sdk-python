@@ -1,3 +1,4 @@
+import base64
 import json
 from dataclasses import asdict, dataclass
 
@@ -9,6 +10,7 @@ from aleph.sdk.chains.cosmos import (
     get_verification_string,
     verify_signature,
 )
+from aleph.sdk.exceptions import BadSignatureError
 
 
 @dataclass
@@ -71,7 +73,29 @@ async def test_verify_signature(cosmos_account):
     )
     await cosmos_account.sign_message(message)
     assert message["signature"]
-    raw_signature = json.loads(message["signature"])["signature"]
-    public_key = cosmos_account.get_public_key()
+    signature_json = json.loads(message["signature"])
+    raw_signature = signature_json["signature"]
+    public_key = signature_json["pub_key"]["value"]
 
-    assert verify_signature(raw_signature, public_key, get_verification_string(message))
+    verify_signature(raw_signature, public_key, get_verification_string(message))
+
+
+@pytest.mark.asyncio
+async def test_verify_signature_with_forged_signature(cosmos_account):
+    message = asdict(
+        Message(
+            "CSDK",
+            cosmos_account.get_address(),
+            "POST",
+            "SomeHash",
+        )
+    )
+    await cosmos_account.sign_message(message)
+    assert message["signature"]
+    public_key = json.loads(message["signature"])["pub_key"]["value"]
+
+    forged_signature = base64.b64encode(bytes(64)).decode("utf-8")
+    with pytest.raises(BadSignatureError):
+        verify_signature(
+            forged_signature, public_key, get_verification_string(message)
+        )

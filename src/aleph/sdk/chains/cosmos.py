@@ -4,10 +4,12 @@ import json
 from typing import Union
 
 import ecdsa
+from ecdsa.keys import BadSignatureError as ECDSABadSignatureError
 from cosmospy._wallet import privkey_to_address, privkey_to_pubkey
 from ecies import encrypt
 
 from .common import BaseAccount, get_fallback_private_key, get_verification_buffer
+from ..exceptions import BadSignatureError
 
 DEFAULT_HRP = "cosmos"
 
@@ -94,7 +96,7 @@ def verify_signature(
     signature: Union[bytes, str],
     public_key: Union[bytes, str],
     message: Union[bytes, str],
-) -> bool:
+):
     """
     Verifies a signature of a message, return True if verified, false if not.
 
@@ -111,4 +113,8 @@ def verify_signature(
         message = message.encode("utf-8")
 
     vk = ecdsa.VerifyingKey.from_string(public_key, curve=ecdsa.SECP256k1)
-    return vk.verify(signature, message, hashfunc=hashlib.sha256)
+    try:
+        if not vk.verify(signature, message, hashfunc=hashlib.sha256):
+            raise BadSignatureError
+    except (ECDSABadSignatureError, BadSignatureError) as e:
+        raise BadSignatureError from e
