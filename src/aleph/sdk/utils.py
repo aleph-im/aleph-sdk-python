@@ -1,3 +1,4 @@
+import errno
 import logging
 import os
 from pathlib import Path
@@ -59,3 +60,19 @@ def get_message_type_value(message_type: Type[GenericMessage]) -> MessageType:
     """Returns the value of the 'type' field of a message type class."""
     type_literal = message_type.__annotations__["type"]
     return type_literal.__args__[0]  # Get the value from a Literal
+
+
+def check_unix_socket_valid(unix_socket_path: str) -> bool:
+    """Check that a unix socket exists at the given path, or raise a FileNotFoundError."""
+    path = Path(unix_socket_path)
+    if not path.exists():
+        raise FileNotFoundError(
+            errno.ENOENT, os.strerror(errno.ENOENT), unix_socket_path
+        )
+    if not path.is_socket():
+        raise FileNotFoundError(
+            errno.ENOTSOCK,
+            os.strerror(errno.ENOENT),
+            unix_socket_path,
+        )
+    return True
