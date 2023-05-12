@@ -15,6 +15,7 @@ from typing import (
     Dict,
     Iterable,
     List,
+    Literal,
     Mapping,
     NoReturn,
     Optional,
@@ -443,9 +444,30 @@ class AlephClient:
     api_server: str
     http_session: aiohttp.ClientSession
 
-    def __init__(self, api_server: str):
-        self.api_server = api_server
-        self.http_session = aiohttp.ClientSession(base_url=api_server)
+    def __init__(
+        self,
+        api_server: Optional[str],
+        timeout: Optional[aiohttp.ClientTimeout] = None,
+        api_unix_socket: Union[None, str, Literal[False]] = None,
+    ):
+        self.api_server = api_server if api_server else settings.API_HOST
+
+        connector: Optional[aiohttp.UnixConnector]
+        if api_unix_socket:
+            connector = aiohttp.UnixConnector(path=api_unix_socket)
+        elif api_unix_socket is None and settings.API_UNIX_SOCKET:
+            connector = aiohttp.UnixConnector(path=settings.API_UNIX_SOCKET)
+        else:
+            connector = None
+
+        if timeout:
+            self.http_session = aiohttp.ClientSession(
+                base_url=api_server, timeout=timeout, connector=connector
+            )
+        else:
+            self.http_session = aiohttp.ClientSession(
+                base_url=api_server, connector=connector
+            )
 
     def __enter__(self) -> UserSessionSync:
         return UserSessionSync(async_session=self)
@@ -825,8 +847,16 @@ class AuthenticatedAlephClient(AlephClient):
         "channel",
     }
 
-    def __init__(self, account: Account, api_server: str):
-        super().__init__(api_server=api_server)
+    def __init__(
+        self,
+        account: Account,
+        api_server: Optional[str],
+        timeout: Optional[aiohttp.ClientTimeout] = None,
+        api_unix_socket: Union[None, str, Literal[False]] = None,
+    ):
+        super().__init__(
+            api_server=api_server, timeout=timeout, api_unix_socket=api_unix_socket
+        )
         self.account = account
 
     def __enter__(self) -> "AuthenticatedUserSessionSync":
