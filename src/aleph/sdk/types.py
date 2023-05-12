@@ -2,7 +2,7 @@ from abc import abstractmethod
 from enum import Enum
 from typing import Dict, Protocol, TypeVar
 
-__all__ = ("StorageEnum", "Account", "AccountFromPrivateKey")
+__all__ = ("StorageEnum", "Account", "AccountFromPrivateKey", "GenericMessage")
 
 from aleph_message.models import AlephMessage
 
