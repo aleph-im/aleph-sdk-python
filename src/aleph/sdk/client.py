@@ -1118,7 +1118,7 @@ class AuthenticatedAlephClient(AlephClient):
                         "Please specify at least a file_content, a file_hash or a file_path"
                     )
                 else:
-                    file_content = open(file_path, "rb").read()
+                    file_content = Path(file_path).read_bytes()
 
             if storage_engine == StorageEnum.storage:
                 file_hash = await self.storage_push_file(file_content=file_content)
