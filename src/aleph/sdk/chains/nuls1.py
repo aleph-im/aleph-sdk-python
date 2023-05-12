@@ -275,6 +275,8 @@ class NulsSignature(BaseNulsData):
             return output
 
     def verify(self, message):
+        if not self.pub_key:
+            raise ValueError("Missing public key ")
         pub = PublicKey(self.pub_key)
         message = VarInt(len(message)).encode() + message
         # LOGGER.debug("Comparing with %r" % (MESSAGE_TEMPLATE.format(message).encode()))
