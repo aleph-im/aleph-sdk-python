@@ -24,7 +24,6 @@ class Settings(BaseSettings):
     REMOTE_CRYPTO_UNIX_SOCKET: Optional[str] = None
     ADDRESS_TO_USE: Optional[str] = None
 
-    DEFAULT_CHANNEL: str = "TEST"
     DEFAULT_RUNTIME_ID: str = (
         "bd79839bf96e595a06da5ac0b6ba51dea6f7e2591bb913deccded04d831d29f4"
     )
@@ -33,9 +32,6 @@ class Settings(BaseSettings):
     DEFAULT_VM_TIMEOUT: float = 30.0
 
     CODE_USES_SQUASHFS: bool = which("mksquashfs") is not None  # True if command exists
-
-    VM_URL_PATH = "https://aleph.sh/vm/{hash}"
-    VM_URL_HOST = "https://{hash_base32}.aleph.sh"
 
     class Config:
         env_prefix = "ALEPH_"
