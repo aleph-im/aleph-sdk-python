@@ -42,3 +42,11 @@ class BadSignatureError(Exception):
     """
 
     pass
+
+
+class RejectedMessageError(ValueError):
+    """
+    The processing of a message was rejected.
+    """
+
+    pass

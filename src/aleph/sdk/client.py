@@ -52,6 +52,7 @@ from .exceptions import (
     InvalidMessageError,
     MessageNotFoundError,
     MultipleMessagesError,
+    RejectedMessageError,
 )
 from .models import MessagesResponse
 from .utils import get_message_type_value
@@ -1364,4 +1365,6 @@ class AuthenticatedAlephClient(AlephClient):
             storage_engine=storage_engine,
         )
         message_status = await self._broadcast(message=message, sync=sync)
+        if message_status == MessageStatus.REJECTED:
+            raise RejectedMessageError("This message was rejected")
         return message, message_status
