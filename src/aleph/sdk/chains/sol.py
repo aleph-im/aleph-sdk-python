@@ -1,5 +1,4 @@
 import json
-import os
 from pathlib import Path
 from typing import Dict, Optional, Union
 
@@ -8,9 +7,8 @@ from nacl.exceptions import BadSignatureError as NaclBadSignatureError
 from nacl.public import PrivateKey, SealedBox
 from nacl.signing import SigningKey, VerifyKey
 
-from ..conf import settings
 from ..exceptions import BadSignatureError
-from .common import BaseAccount, get_verification_buffer
+from .common import BaseAccount, get_fallback_private_key, get_verification_buffer
 
 
 def encode(item):
@@ -61,28 +59,6 @@ def get_fallback_account(path: Optional[Path] = None) -> SOLAccount:
 def generate_key() -> bytes:
     privkey = bytes(SigningKey.generate())
     return privkey
-
-
-def get_fallback_private_key(path: Optional[Path] = None) -> bytes:
-    path = path or settings.PRIVATE_KEY_FILE
-    private_key: bytes
-    if path.exists() and path.stat().st_size > 0:
-        with open(path, "rb") as prvfile:
-            private_key = prvfile.read()
-    else:
-        private_key = generate_key()
-        os.makedirs(path.parent, exist_ok=True)
-        with open(path, "wb") as prvfile:
-            prvfile.write(private_key)
-
-        with open(path, "rb") as prvfile:
-            print(prvfile.read())
-
-        default_key_path = path.parent / "default.key"
-        if not default_key_path.is_symlink():
-            # Create a symlink to use this key by default
-            os.symlink(path, default_key_path)
-    return private_key
 
 
 def verify_signature(

@@ -21,8 +21,7 @@ def account_from_hex_string(private_key_str: str, account_type: Type[T]) -> T:
 
 
 def account_from_file(private_key_path: Path, account_type: Type[T]) -> T:
-    with open(private_key_path, "rb") as pk_fd:
-        private_key: bytes = pk_fd.read()
+    private_key = private_key_path.read_bytes()
     return account_type(private_key)
 
 

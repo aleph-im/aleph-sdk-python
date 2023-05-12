@@ -1,4 +1,3 @@
-import os
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Dict, Optional
@@ -114,19 +113,14 @@ def get_fallback_private_key(path: Optional[Path] = None) -> bytes:
     path = path or settings.PRIVATE_KEY_FILE
     private_key: bytes
     if path.exists() and path.stat().st_size > 0:
-        with open(path, "rb") as prvfile:
-            private_key = prvfile.read()
+        private_key = path.read_bytes()
     else:
         private_key = generate_key()
-        os.makedirs(path.parent, exist_ok=True)
-        with open(path, "wb") as prvfile:
-            prvfile.write(private_key)
-
-        with open(path, "rb") as prvfile:
-            print(prvfile.read())
+        path.parent.mkdir(exist_ok=True, parents=True)
+        path.write_bytes(private_key)
 
         default_key_path = path.parent / "default.key"
-        if not default_key_path.is_symlink():
+        if not default_key_path.exists():
             # Create a symlink to use this key by default
-            os.symlink(path, default_key_path)
+            default_key_path.symlink_to(path)
     return private_key

@@ -38,12 +38,10 @@ def get_fallback_account():
 
 def get_fallback_mnemonics():
     try:
-        with open(settings.PRIVATE_KEY_FILE, "r") as prvfile:
-            mnemonic = prvfile.read()
+        mnemonic = settings.PRIVATE_KEY_FILE.read_text()
     except OSError:
         mnemonic = Keypair.generate_mnemonic()
-        with open(settings.PRIVATE_KEY_FILE, "w") as prvfile:
-            prvfile.write(mnemonic)
+        settings.PRIVATE_KEY_FILE.write_text(mnemonic)
 
     return mnemonic
 
