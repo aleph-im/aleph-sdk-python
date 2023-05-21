@@ -63,6 +63,23 @@ async def test_verify_signature(ethereum_account):
         message["signature"], message["sender"], get_verification_buffer(message)
     )
 
+    # cover all branching options
+    verify_signature(
+        message["signature"][2:],
+        message["sender"],
+        get_verification_buffer(message),
+    )
+    verify_signature(
+        bytes(message["signature"], "utf-8"),
+        bytes.fromhex(message["sender"][2:]),
+        get_verification_buffer(message).decode("utf-8"),
+    )
+    verify_signature(
+        bytes(message["signature"], "utf-8")[2:],
+        message["sender"],
+        get_verification_buffer(message),
+    )
+
 
 @pytest.mark.asyncio
 async def test_verify_signature_with_forged_signature(ethereum_account):
@@ -98,3 +115,26 @@ async def test_decrypt_secp256k1(ethereum_account):
     decrypted = await account.decrypt(encrypted)
     assert type(decrypted) == bytes
     assert content == decrypted
+
+
+@pytest.mark.asyncio
+async def test_verify_signature_wrong_public_key(ethereum_account):
+    account = ethereum_account
+
+    message = asdict(
+        Message(
+            "ETH",
+            account.get_address(),
+            "POST",
+            "SomeHash",
+        )
+    )
+
+    await account.sign_message(message)
+    assert message["signature"]
+
+    wrong_public_key: str = "0x" + "0" * 130
+    with pytest.raises(BadSignatureError):
+        verify_signature(
+            message["signature"], wrong_public_key, get_verification_buffer(message)
+        )
