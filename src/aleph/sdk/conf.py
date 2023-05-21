@@ -40,6 +40,11 @@ class Settings(BaseSettings):
     DNS_ROOT_DOMAIN = "static.public.aleph.sh"
     DNS_RESOLVERS = ["1.1.1.1", "1.0.0.1"]
 
+    CACHE_DB_PATH: Path = Field(
+        default=Path("cache.db"),
+        description="Path to the cache database",
+    )
+
     class Config:
         env_prefix = "ALEPH_"
         case_sensitive = False
