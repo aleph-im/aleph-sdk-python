@@ -60,6 +60,10 @@ async def test_SOLAccount(solana_account):
     assert verif == verification_buffer
     assert message["sender"] == signature["publicKey"]
 
+    pubkey = solana_account.get_public_key()
+    assert type(pubkey) == str
+    assert len(pubkey) == 64
+
 
 @pytest.mark.asyncio
 async def test_decrypt_curve25516(solana_account):
@@ -89,6 +93,13 @@ async def test_verify_signature(solana_account):
     assert type(raw_signature) == str
 
     verify_signature(raw_signature, message["sender"], get_verification_buffer(message))
+
+    # as bytes
+    verify_signature(
+        base58.b58decode(raw_signature),
+        base58.b58decode(message["sender"]),
+        get_verification_buffer(message).decode("utf-8"),
+    )
 
 
 @pytest.mark.asyncio

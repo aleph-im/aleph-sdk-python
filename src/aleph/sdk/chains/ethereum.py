@@ -54,7 +54,7 @@ def verify_signature(
     Verifies a signature.
     Args:
         signature: The signature to verify. Can be a hex encoded string or bytes.
-        public_key: The sender's public key to use for verification. Can be a checksummed, hex encoded string or bytes.
+        public_key: The sender's public key to use for verification. Can be a checksum, hex encoded string or bytes.
         message: The message to verify. Can be an utf-8 string or bytes.
     Raises:
         BadSignatureError: If the signature is invalid.
@@ -75,7 +75,7 @@ def verify_signature(
     message_hash = encode_defunct(text=message)
     try:
         address = Account.recover_message(message_hash, signature=signature)
-        if address != public_key:
+        if address.casefold() != public_key.casefold():
             raise BadSignatureError
     except (EthBadSignatureError, BadSignatureError) as e:
         raise BadSignatureError from e
