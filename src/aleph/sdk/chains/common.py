@@ -6,6 +6,7 @@ from coincurve.keys import PrivateKey
 from ecies import decrypt, encrypt
 
 from aleph.sdk.conf import settings
+from aleph.sdk.utils import enum_as_str
 
 
 def get_verification_buffer(message: Dict) -> bytes:
@@ -19,7 +20,16 @@ def get_verification_buffer(message: Dict) -> bytes:
     Returns:
         bytes: Verification buffer
     """
-    return "{chain}\n{sender}\n{type}\n{item_hash}".format(**message).encode("utf-8")
+
+    # Convert Enum values to strings
+    return "\n".join(
+        (
+            enum_as_str(message["chain"]),
+            message["sender"],
+            enum_as_str(message["type"]),
+            message["item_hash"],
+        )
+    ).encode()
 
 
 def get_public_key(private_key):
