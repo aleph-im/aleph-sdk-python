@@ -1,5 +1,18 @@
 import json
-from typing import Any, Dict, Generic, List, Optional, TypeVar, Union
+import logging
+from datetime import datetime
+from typing import (
+    Any,
+    Dict,
+    Generic,
+    List,
+    Optional,
+    TypeVar,
+    Union,
+    AsyncIterable,
+    Coroutine,
+    Iterable,
+)
 
 from aleph_message.models import (
     AggregateMessage,
@@ -185,11 +198,6 @@ class MessageCache:
     def __iter__(self):
         return iter(MessageCacheDBModel.select())
 
-    def __delitem__(self, item_hash):
-        MessageCacheDBModel.delete().where(
-            MessageCacheDBModel.item_hash == item_hash
-        ).execute()
-
     def __repr__(self):
         return f"<MessageCache: {db}>"
 
@@ -207,12 +215,37 @@ class MessageCache:
 
     def get_many(
         self, item_hashes: Union[Union[ItemHash, str], List[Union[ItemHash, str]]]
-    ) -> Optional[AlephMessage]:
+    ) -> List[AlephMessage]:
+        """
+        Get many messages from the cache by their item hash.
+        """
         if not isinstance(item_hashes, list):
             item_hashes = [item_hashes]
         items = (
             MessageCacheDBModel.select()
             .where(MessageCacheDBModel.item_hash.in_(item_hashes))
+            .execute()
+        )
+        return [self.model_to_message(item) for item in items]
+
+    def listen_to(self, message_stream: AsyncIterable[AlephMessage]) -> Coroutine:
+        """
+        Listen to a stream of messages and add them to the cache.
+        """
+        async def _listen():
+            async for message in message_stream:
+                self.add_many(message)
+                print(f"Added message {message.item_hash} to cache")
+
+        return _listen()
+
+    def since(self, since: float) -> List[AlephMessage]:
+        """
+        Get all messages since a given timestamp.
+        """
+        items = (
+            MessageCacheDBModel.select()
+            .where(MessageCacheDBModel.time >= since)
             .execute()
         )
         return [self.model_to_message(item) for item in items]
