@@ -1,9 +1,10 @@
 import errno
 import logging
 import os
+from enum import Enum
 from pathlib import Path
 from shutil import make_archive
-from typing import Tuple, Type
+from typing import Tuple, Type, Union
 from zipfile import BadZipFile, ZipFile
 
 from aleph_message.models import MessageType
@@ -76,3 +77,18 @@ def check_unix_socket_valid(unix_socket_path: str) -> bool:
             unix_socket_path,
         )
     return True
+
+
+def enum_as_str(obj: Union[str, Enum]) -> str:
+    """Returns the value of an Enum, or the string itself when passing a string.
+
+    Python 3.11 adds a new formatting of string enums.
+    `str(MyEnum.value)` becomes `MyEnum.value` instead of `value`.
+    """
+    if not isinstance(obj, str):
+        raise TypeError(f"Unsupported enum type: {type(obj)}")
+
+    if isinstance(obj, Enum):
+        return obj.value
+
+    return obj
