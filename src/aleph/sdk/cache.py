@@ -1,11 +1,11 @@
 import json
-from typing import Generic, List, Optional, TypeVar, Union
+from typing import Any, Dict, Generic, List, Optional, TypeVar, Union
 
 from aleph_message.models import (
     AggregateMessage,
     AlephMessage,
-    BaseContent,
     ForgetMessage,
+    ItemHash,
     MessageConfirmation,
     MessageType,
     PostMessage,
@@ -19,7 +19,8 @@ from peewee import (
     FloatField,
     IntegerField,
     Model,
-    SqliteDatabase
+    SqliteDatabase,
+    chunked,
 )
 from playhouse.shortcuts import model_to_dict
 from pydantic import BaseModel
@@ -89,7 +90,9 @@ class MessageCacheDBModel(Model):
     type = CharField(9)
     sender = CharField()
     channel = CharField(null=True)
-    confirmations: PydanticField[MessageConfirmation] = PydanticField(type=MessageConfirmation, null=True)
+    confirmations: PydanticField[MessageConfirmation] = PydanticField(
+        type=MessageConfirmation, null=True
+    )
     confirmed = BooleanField(null=True)
     signature = CharField(null=True)
     size = IntegerField(null=True)
@@ -108,21 +111,40 @@ class MessageCache:
     """
     A wrapper around an sqlite3 database for storing AlephMessage objects.
     """
+
     def __init__(self):
-        print("init cache")
         db.connect()
         db.create_tables([MessageCacheDBModel])
 
     def __del__(self):
         db.close()
 
-    def __getitem__(self, item_hash) -> Optional[AlephMessage]:
-        try:
-            item = MessageCacheDBModel.get(MessageCacheDBModel.item_hash == str(item_hash))
-            item.confirmations = [item.confirmations] if item.confirmations else []
-            item.forgotten_by = [item.forgotten_by] if item.forgotten_by else None
-        except MessageCacheDBModel.DoesNotExist:
-            return None
+    @staticmethod
+    def message_to_model(message: AlephMessage) -> Dict:
+        return {
+            "item_hash": str(message.item_hash),
+            "chain": message.chain,
+            "type": message.type,
+            "sender": message.sender,
+            "channel": message.channel,
+            "confirmations": message.confirmations[0]
+            if message.confirmations
+            else None,
+            "confirmed": message.confirmed,
+            "signature": message.signature,
+            "size": message.size,
+            "time": message.time,
+            "item_type": message.item_type,
+            "item_content": message.item_content,
+            "hash_type": message.hash_type,
+            "content": message.content,
+            "forgotten_by": message.forgotten_by[0] if message.forgotten_by else None,
+        }
+
+    @staticmethod
+    def model_to_message(item: Any) -> AlephMessage:
+        item.confirmations = [item.confirmations] if item.confirmations else []
+        item.forgotten_by = [item.forgotten_by] if item.forgotten_by else None
         if item.type == MessageType.post.value:
             return PostMessage.parse_obj(model_to_dict(item))
         elif item.type == MessageType.aggregate.value:
@@ -136,27 +158,26 @@ class MessageCache:
         else:
             raise ValueError(f"Unknown message type {item.type}")
 
+    def __getitem__(self, item_hash) -> Optional[AlephMessage]:
+        try:
+            item = MessageCacheDBModel.get(
+                MessageCacheDBModel.item_hash == str(item_hash)
+            )
+        except MessageCacheDBModel.DoesNotExist:
+            return None
+        return self.model_to_message(item)
+
     def __setitem__(self, item_hash, message: AlephMessage):
         MessageCacheDBModel.insert(
-            item_hash=str(message.item_hash),
-            chain=message.chain.value,
-            type=message.type.value,
-            sender=message.sender,
-            channel=message.channel,
-            confirmations=message.confirmations[0] if message.confirmations else None,
-            confirmed=message.confirmed,
-            signature=message.signature,
-            size=message.size,
-            time=message.time,
-            item_type=message.item_type,
-            item_content=message.item_content,
-            hash_type=message.hash_type,
-            content=message.content,
-            forgotten_by=message.forgotten_by[0] if message.forgotten_by else None,
+            **self.message_to_model(message)
         ).on_conflict_replace().execute()
 
     def __contains__(self, item_hash):
-        return MessageCacheDBModel.select().where(MessageCacheDBModel.item_hash == item_hash).exists()
+        return (
+            MessageCacheDBModel.select()
+            .where(MessageCacheDBModel.item_hash == item_hash)
+            .exists()
+        )
 
     def __len__(self):
         return MessageCacheDBModel.select().count()
@@ -165,7 +186,9 @@ class MessageCache:
         return iter(MessageCacheDBModel.select())
 
     def __delitem__(self, item_hash):
-        MessageCacheDBModel.delete().where(MessageCacheDBModel.item_hash == item_hash).execute()
+        MessageCacheDBModel.delete().where(
+            MessageCacheDBModel.item_hash == item_hash
+        ).execute()
 
     def __repr__(self):
         return f"<MessageCache: {db}>"
@@ -173,8 +196,23 @@ class MessageCache:
     def __str__(self):
         return repr(self)
 
-    def add(self, message: AlephMessage):
-        self[message.item_hash] = message
+    def add_many(self, messages: Union[AlephMessage, List[AlephMessage]]):
+        if not isinstance(messages, list):
+            messages = [messages]
 
-    def get(self, item_hash) -> Optional[AlephMessage]:
-        return self[item_hash]
+        data_source = (self.message_to_model(message) for message in messages)
+        with db.atomic():
+            for batch in chunked(data_source, 100):
+                MessageCacheDBModel.insert_many(batch).on_conflict_replace().execute()
+
+    def get_many(
+        self, item_hashes: Union[Union[ItemHash, str], List[Union[ItemHash, str]]]
+    ) -> Optional[AlephMessage]:
+        if not isinstance(item_hashes, list):
+            item_hashes = [item_hashes]
+        items = (
+            MessageCacheDBModel.select()
+            .where(MessageCacheDBModel.item_hash.in_(item_hashes))
+            .execute()
+        )
+        return [self.model_to_message(item) for item in items]
