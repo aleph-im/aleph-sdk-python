@@ -3,8 +3,8 @@ import asyncio
 import pytest
 
 from aleph.sdk.cache import MessageCache
-from aleph.sdk.client import AlephClient, UserSessionSync, AuthenticatedAlephClient
 from aleph.sdk.chains.ethereum import get_fallback_account
+from aleph.sdk.client import AlephClient, AuthenticatedAlephClient, UserSessionSync
 from aleph.sdk.conf import settings
 
 

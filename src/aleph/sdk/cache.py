@@ -3,15 +3,15 @@ import logging
 from datetime import datetime
 from typing import (
     Any,
+    AsyncIterable,
+    Coroutine,
     Dict,
     Generic,
+    Iterable,
     List,
     Optional,
     TypeVar,
     Union,
-    AsyncIterable,
-    Coroutine,
-    Iterable,
 )
 
 from aleph_message.models import (
@@ -232,6 +232,7 @@ class MessageCache:
         """
         Listen to a stream of messages and add them to the cache.
         """
+
         async def _listen():
             async for message in message_stream:
                 self.add_many(message)
