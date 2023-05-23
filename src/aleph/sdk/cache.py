@@ -1,4 +1,5 @@
 import json
+from datetime import datetime
 from typing import (
     Any,
     AsyncIterable,
@@ -9,6 +10,7 @@ from typing import (
     Optional,
     TypeVar,
     Union,
+    Iterable,
 )
 
 from aleph_message.models import (
@@ -72,7 +74,7 @@ class PydanticField(Field, Generic[T]):
         return self.type.parse_raw(value)
 
 
-class DictJsonField(Field):
+class JsonField(Field):
     """
     A field for storing dicts as JSON in a database. Uses json for serialization.
     """
@@ -110,8 +112,9 @@ class MessageCacheDBModel(Model):
     item_type = CharField(7)
     item_content = CharField(null=True)
     hash_type = CharField(6, null=True)
-    content = DictJsonField()
+    content = JsonField()
     forgotten_by = CharField(null=True)
+    tags = JsonField()
 
     class Meta:
         database = db
@@ -123,8 +126,9 @@ class MessageCache:
     """
 
     def __init__(self):
-        db.connect()
-        db.create_tables([MessageCacheDBModel])
+        if db.is_closed():
+            db.connect()
+            db.create_tables([MessageCacheDBModel])
 
     def __del__(self):
         db.close()
@@ -149,22 +153,26 @@ class MessageCache:
             "hash_type": message.hash_type,
             "content": message.content,
             "forgotten_by": message.forgotten_by[0] if message.forgotten_by else None,
+            "tags": message.content.content.get("tags", []),
         }
 
     @staticmethod
     def model_to_message(item: Any) -> AlephMessage:
         item.confirmations = [item.confirmations] if item.confirmations else []
         item.forgotten_by = [item.forgotten_by] if item.forgotten_by else None
+        item_dict = model_to_dict(item)
+        del item_dict["tags"]
+
         if item.type == MessageType.post.value:
-            return PostMessage.parse_obj(model_to_dict(item))
+            return PostMessage.parse_obj(item_dict)
         elif item.type == MessageType.aggregate.value:
-            return AggregateMessage.parse_obj(model_to_dict(item))
+            return AggregateMessage.parse_obj(item_dict)
         elif item.type == MessageType.store.value:
-            return StoreMessage.parse_obj(model_to_dict(item))
+            return StoreMessage.parse_obj(item_dict)
         elif item.type == MessageType.forget.value:
-            return ForgetMessage.parse_obj(model_to_dict(item))
+            return ForgetMessage.parse_obj(item_dict)
         elif item.type == MessageType.program.value:
-            raise ProgramMessage.parse_obj(model_to_dict(item))
+            raise ProgramMessage.parse_obj(item_dict)
         else:
             raise ValueError(f"Unknown message type {item.type}")
 
@@ -247,3 +255,54 @@ class MessageCache:
             .execute()
         )
         return [self.model_to_message(item) for item in items]
+
+    def query(
+        self,
+        pagination: int = 200,
+        page: int = 1,
+        message_type: Optional[MessageType] = None,
+        content_types: Optional[Iterable[str]] = None,
+        content_keys: Optional[Iterable[str]] = None,
+        refs: Optional[Iterable[str]] = None,
+        addresses: Optional[Iterable[str]] = None,
+        tags: Optional[Iterable[str]] = None,
+        hashes: Optional[Iterable[str]] = None,
+        channels: Optional[Iterable[str]] = None,
+        chains: Optional[Iterable[str]] = None,
+        start_date: Optional[Union[datetime, float]] = None,
+        end_date: Optional[Union[datetime, float]] = None,
+    ) -> List[AlephMessage]:
+        query = MessageCacheDBModel.select()
+
+        conditions = []
+
+        if message_type:
+            conditions.append(MessageCacheDBModel.type == message_type.value)
+        if content_types:
+            conditions.append(MessageCacheDBModel.item_type.in_(content_types))
+        if content_keys:
+            conditions.append(MessageCacheDBModel.content.in_(content_keys))
+        if refs:
+            conditions.append(MessageCacheDBModel.item_content.in_(refs))
+        if addresses:
+            conditions.append(MessageCacheDBModel.sender.in_(addresses))
+        if tags:
+            for tag in tags:
+                conditions.append(MessageCacheDBModel.tags.contains(tag))
+        if hashes:
+            conditions.append(MessageCacheDBModel.item_hash.in_(hashes))
+        if channels:
+            conditions.append(MessageCacheDBModel.channel.in_(channels))
+        if chains:
+            conditions.append(MessageCacheDBModel.chain.in_(chains))
+        if start_date:
+            conditions.append(MessageCacheDBModel.time >= start_date)
+        if end_date:
+            conditions.append(MessageCacheDBModel.time <= end_date)
+
+        if conditions:
+            query = query.where(*conditions)
+
+        query = query.paginate(page, pagination)
+
+        return [self.model_to_message(item) for item in list(query)]

@@ -29,12 +29,18 @@ def test_message_cache():
     for message in messages:
         assert message.item_hash in cache
 
+    # test query with senders
+    senders = set(message.sender for message in messages)
+    items = cache.query(addresses=senders)
+    assert len(items) == len(messages)
+    # with tags
+    items = cache.query(addresses=senders, tags=["thistagwillprobablyneverexist"])
+    assert len(items) == 0
+
 
 @pytest.mark.asyncio
 async def test_message_cache_listener():
     auth_session = AuthenticatedAlephClient(get_fallback_account(), settings.API_HOST)
-
-    # test add_many
     cache = MessageCache()
 
     # test listen until first message
