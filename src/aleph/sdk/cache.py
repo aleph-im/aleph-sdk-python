@@ -6,11 +6,11 @@ from typing import (
     Coroutine,
     Dict,
     Generic,
+    Iterable,
     List,
     Optional,
     TypeVar,
     Union,
-    Iterable,
 )
 
 from aleph_message.models import (
