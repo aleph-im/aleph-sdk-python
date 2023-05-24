@@ -4,13 +4,14 @@ import pytest
 
 from aleph.sdk.cache import MessageCache
 from aleph.sdk.chains.ethereum import get_fallback_account
-from aleph.sdk.client import AlephClient, AuthenticatedAlephClient, UserSessionSync
+from aleph.sdk.client import AlephClient, AuthenticatedAlephClient
 from aleph.sdk.conf import settings
 
 
-def test_message_cache():
-    session = UserSessionSync(AlephClient(settings.API_HOST))
-    messages = session.get_messages().messages
+@pytest.mark.asyncio
+async def test_message_cache():
+    session = AlephClient(settings.API_HOST)
+    messages = (await session.get_messages()).messages
 
     # test add_many
     cache = MessageCache()
@@ -31,10 +32,14 @@ def test_message_cache():
 
     # test query with senders
     senders = set(message.sender for message in messages)
-    items = cache.query(addresses=senders)
+    items = (await cache.get_messages(addresses=senders)).messages
     assert len(items) == len(messages)
     # with tags
-    items = cache.query(addresses=senders, tags=["thistagwillprobablyneverexist"])
+    items = (
+        await cache.get_messages(
+            addresses=senders, tags=["thistagwillprobablyneverexist"]
+        )
+    ).messages
     assert len(items) == 0
 
 
