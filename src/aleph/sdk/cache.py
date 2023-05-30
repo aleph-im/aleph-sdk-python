@@ -152,6 +152,9 @@ class MessageCache(AlephClientInterface):
     def __setitem__(self, item_hash, message: AlephMessage):
         MessageModel.insert(**message_to_model(message)).on_conflict_replace().execute()
 
+    def __delitem__(self, item_hash):
+        MessageModel.delete().where(MessageModel.item_hash == item_hash).execute()
+
     def __contains__(self, item_hash):
         return MessageModel.select().where(MessageModel.item_hash == item_hash).exists()
 

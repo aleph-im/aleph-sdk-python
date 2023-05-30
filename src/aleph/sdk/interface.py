@@ -17,7 +17,12 @@ from typing import (
     Union,
 )
 
-from aleph_message.models import AlephMessage, MessagesResponse, MessageType
+from aleph_message.models import (
+    AlephMessage,
+    MessagesResponse,
+    MessageType,
+    PostMessage,
+)
 from aleph_message.models.program import Encoding
 from aleph_message.status import MessageStatus
 
@@ -89,6 +94,53 @@ class AlephClientInterface(ABC):
         """
         pass
 
+    async def get_posts_iterator(
+        self,
+        types: Optional[Iterable[str]] = None,
+        refs: Optional[Iterable[str]] = None,
+        addresses: Optional[Iterable[str]] = None,
+        tags: Optional[Iterable[str]] = None,
+        hashes: Optional[Iterable[str]] = None,
+        channels: Optional[Iterable[str]] = None,
+        chains: Optional[Iterable[str]] = None,
+        start_date: Optional[Union[datetime, float]] = None,
+        end_date: Optional[Union[datetime, float]] = None,
+    ) -> AsyncIterable[PostMessage]:
+        """
+        Fetch all filtered posts, returning an async iterator and fetching them page by page. Might return duplicates
+        but will always return all posts.
+
+        :param types: Types of posts to fetch (Default: all types)
+        :param refs: If set, only fetch posts that reference these hashes (in the "refs" field)
+        :param addresses: Addresses of the posts to fetch (Default: all addresses)
+        :param tags: Tags of the posts to fetch (Default: all tags)
+        :param hashes: Specific item_hashes to fetch
+        :param channels: Channels of the posts to fetch (Default: all channels)
+        :param chains: Chains of the posts to fetch (Default: all chains)
+        :param start_date: Earliest date to fetch messages from
+        :param end_date: Latest date to fetch messages from
+        """
+        total_items = None
+        per_page = self.get_posts.__kwdefaults__["pagination"]
+        page = 1
+        while total_items is None or page * per_page < total_items:
+            resp = await self.get_posts(
+                page=page,
+                types=types,
+                refs=refs,
+                addresses=addresses,
+                tags=tags,
+                hashes=hashes,
+                channels=channels,
+                chains=chains,
+                start_date=start_date,
+                end_date=end_date,
+            )
+            total_items = resp["pagination_total"]
+            page += 1
+            for post in resp["posts"]:
+                yield post
+
     @abstractmethod
     async def download_file(
         self,
@@ -143,6 +195,59 @@ class AlephClientInterface(ABC):
         """
         pass
 
+    async def get_messages_iterator(
+        self,
+        message_type: Optional[MessageType] = None,
+        content_types: Optional[Iterable[str]] = None,
+        content_keys: Optional[Iterable[str]] = None,
+        refs: Optional[Iterable[str]] = None,
+        addresses: Optional[Iterable[str]] = None,
+        tags: Optional[Iterable[str]] = None,
+        hashes: Optional[Iterable[str]] = None,
+        channels: Optional[Iterable[str]] = None,
+        chains: Optional[Iterable[str]] = None,
+        start_date: Optional[Union[datetime, float]] = None,
+        end_date: Optional[Union[datetime, float]] = None,
+    ) -> AsyncIterable[AlephMessage]:
+        """
+        Fetch all filtered messages, returning an async iterator and fetching them page by page. Might return duplicates
+        but will always return all messages.
+
+        :param message_type: Filter by message type, can be "AGGREGATE", "POST", "PROGRAM", "VM", "STORE" or "FORGET"
+        :param content_types: Filter by content type
+        :param content_keys: Filter by content key
+        :param refs: If set, only fetch posts that reference these hashes (in the "refs" field)
+        :param addresses: Addresses of the posts to fetch (Default: all addresses)
+        :param tags: Tags of the posts to fetch (Default: all tags)
+        :param hashes: Specific item_hashes to fetch
+        :param channels: Channels of the posts to fetch (Default: all channels)
+        :param chains: Filter by sender address chain
+        :param start_date: Earliest date to fetch messages from
+        :param end_date: Latest date to fetch messages from
+        """
+        total_items = None
+        per_page = self.get_messages.__kwdefaults__["pagination"]
+        page = 1
+        while total_items is None or page * per_page < total_items:
+            resp = await self.get_messages(
+                page=page,
+                message_type=message_type,
+                content_types=content_types,
+                content_keys=content_keys,
+                refs=refs,
+                addresses=addresses,
+                tags=tags,
+                hashes=hashes,
+                channels=channels,
+                chains=chains,
+                start_date=start_date,
+                end_date=end_date,
+            )
+            total_items = resp.pagination_total
+            page += 1
+            for message in resp.messages:
+                yield message
+
     @abstractmethod
     async def get_message(
         self,
@@ -191,40 +296,6 @@ class AlephClientInterface(ABC):
 
 
 class AuthenticatedAlephClientInterface(AlephClientInterface):
-    @abstractmethod
-    async def ipfs_push(self, content: Mapping) -> str:
-        """
-        Push arbitrary content as JSON to the IPFS service.
-
-        :param content: The dict-like content to upload
-        """
-        pass
-
-    @abstractmethod
-    async def storage_push(self, content: Mapping) -> str:
-        """
-        Push arbitrary content as JSON to the storage service.
-
-        :param content: The dict-like content to upload
-        """
-        pass
-
-    @abstractmethod
-    async def ipfs_push_file(self, file_content: Union[str, bytes]) -> str:
-        """
-        Push a file to the IPFS service.
-
-        :param file_content: The file content to upload
-        """
-        pass
-
-    @abstractmethod
-    async def storage_push_file(self, file_content: Union[str, bytes]) -> str:
-        """
-        Push a file to the storage service.
-        """
-        pass
-
     @abstractmethod
     async def create_post(
         self,

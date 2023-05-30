@@ -898,6 +898,11 @@ class AuthenticatedAlephClient(AlephClient, AuthenticatedAlephClientInterface):
         return self
 
     async def ipfs_push(self, content: Mapping) -> str:
+        """
+        Push arbitrary content as JSON to the IPFS service.
+
+        :param content: The dict-like content to upload
+        """
         url = "/api/v0/ipfs/add_json"
         logger.debug(f"Pushing to IPFS on {url}")
 
@@ -906,6 +911,11 @@ class AuthenticatedAlephClient(AlephClient, AuthenticatedAlephClientInterface):
             return (await resp.json()).get("hash")
 
     async def storage_push(self, content: Mapping) -> str:
+        """
+        Push arbitrary content as JSON to the storage service.
+
+        :param content: The dict-like content to upload
+        """
         url = "/api/v0/storage/add_json"
         logger.debug(f"Pushing to storage on {url}")
 
@@ -914,6 +924,11 @@ class AuthenticatedAlephClient(AlephClient, AuthenticatedAlephClientInterface):
             return (await resp.json()).get("hash")
 
     async def ipfs_push_file(self, file_content: Union[str, bytes]) -> str:
+        """
+        Push a file to the IPFS service.
+
+        :param file_content: The file content to upload
+        """
         data = aiohttp.FormData()
         data.add_field("file", file_content)
 
@@ -925,6 +940,9 @@ class AuthenticatedAlephClient(AlephClient, AuthenticatedAlephClientInterface):
             return (await resp.json()).get("hash")
 
     async def storage_push_file(self, file_content) -> str:
+        """
+        Push a file to the storage service.
+        """
         data = aiohttp.FormData()
         data.add_field("file", file_content)
 
