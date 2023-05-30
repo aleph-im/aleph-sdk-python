@@ -160,7 +160,7 @@ class AlephClientInterface(ABC):
         pass
 
     @abstractmethod
-    async def watch_messages(
+    def watch_messages(
         self,
         message_type: Optional[MessageType] = None,
         content_types: Optional[Iterable[str]] = None,
