@@ -436,7 +436,9 @@ def message_to_model(message: AlephMessage) -> Dict:
         "hash_type": message.hash_type,
         "content": message.content,
         "forgotten_by": message.forgotten_by[0] if message.forgotten_by else None,
-        "tags": message.content.content.get("tags", None) if hasattr(message.content, "content") else None,
+        "tags": message.content.content.get("tags", None)
+        if hasattr(message.content, "content")
+        else None,
         "key": message.key if hasattr(message, "key") else None,
         "ref": message.content.ref if hasattr(message.content, "ref") else None,
         "post_type": message.content.type if hasattr(message.content, "type") else None,
