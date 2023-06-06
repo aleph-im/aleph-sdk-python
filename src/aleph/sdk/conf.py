@@ -40,7 +40,7 @@ class Settings(BaseSettings):
     DNS_ROOT_DOMAIN = "static.public.aleph.sh"
     DNS_RESOLVERS = ["1.1.1.1", "1.0.0.1"]
 
-    CACHE_DB_PATH: Path = Field(
+    CACHE_DATABASE_PATH: Path = Field(
         default=Path(":memory:"),  # can also be :memory: for in-memory caching
         description="Path to the cache database",
     )
