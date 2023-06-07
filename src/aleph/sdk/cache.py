@@ -145,7 +145,10 @@ class MessageCache(AlephClientBase):
         return MessageModel.select().count()
 
     def __iter__(self) -> Iterable[AlephMessage]:
-        for item in iter(MessageModel.select().order_by(MessageModel.time)):
+        """
+        Iterate over all messages in the cache, the latest first.
+        """
+        for item in iter(MessageModel.select().order_by(-MessageModel.time)):
             yield model_to_message(item)
 
     def __repr__(self) -> str:
@@ -154,15 +157,15 @@ class MessageCache(AlephClientBase):
     def __str__(self) -> str:
         return repr(self)
 
-    def add(self, messages: Union[AlephMessage, List[AlephMessage]]):
-        if not isinstance(messages, list):
+    def add(self, messages: Union[AlephMessage, Iterable[AlephMessage]]):
+        if not isinstance(messages, Iterable):
             messages = [messages]
 
         data_source = (message_to_model(message) for message in messages)
         MessageModel.insert_many(data_source).on_conflict_replace().execute()
 
     def get(
-        self, item_hashes: Union[Union[ItemHash, str], List[Union[ItemHash, str]]]
+        self, item_hashes: Union[Union[ItemHash, str], Iterable[Union[ItemHash, str]]]
     ) -> List[AlephMessage]:
         """
         Get many messages from the cache by their item hash.
