@@ -58,7 +58,6 @@ from .exceptions import (
     MessageNotFoundError,
     MultipleMessagesError,
 )
-from .base import AlephClientBase, AuthenticatedAlephClientBase
 from .models import MessagesResponse
 from .utils import check_unix_socket_valid, get_message_type_value
 

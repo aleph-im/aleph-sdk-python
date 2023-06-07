@@ -21,7 +21,7 @@ from aleph_message.models import (
     AlephMessage,
     MessagesResponse,
     MessageType,
-    PostMessage, StoreMessage, AggregateMessage, ProgramMessage,
+    PostMessage,
 )
 from aleph_message.models.program import Encoding
 from aleph_message.status import MessageStatus

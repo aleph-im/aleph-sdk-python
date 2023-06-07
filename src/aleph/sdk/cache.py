@@ -40,9 +40,9 @@ from playhouse.shortcuts import model_to_dict
 from playhouse.sqlite_ext import JSONField
 from pydantic import BaseModel
 
+from aleph.sdk.base import AlephClientBase
 from aleph.sdk.conf import settings
 from aleph.sdk.exceptions import MessageNotFoundError
-from aleph.sdk.base import AlephClientBase
 from aleph.sdk.types import GenericMessage
 
 db = SqliteDatabase(settings.CACHE_DB_PATH)
@@ -135,7 +135,11 @@ class MessageCache(AlephClientBase):
         MessageModel.delete().where(MessageModel.item_hash == str(item_hash)).execute()
 
     def __contains__(self, item_hash: Union[ItemHash, str]) -> bool:
-        return MessageModel.select().where(MessageModel.item_hash == str(item_hash)).exists()
+        return (
+            MessageModel.select()
+            .where(MessageModel.item_hash == str(item_hash))
+            .exists()
+        )
 
     def __len__(self):
         return MessageModel.select().count()

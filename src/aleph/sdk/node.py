@@ -14,8 +14,8 @@ from aleph_message.models.program import Encoding
 from aleph_message.status import MessageStatus
 
 from aleph.sdk import AuthenticatedAlephClient
-from aleph.sdk.cache import MessageCache
 from aleph.sdk.base import AuthenticatedAlephClientBase
+from aleph.sdk.cache import MessageCache
 from aleph.sdk.types import StorageEnum
 
 
@@ -132,7 +132,7 @@ class DomainNode(MessageCache, AuthenticatedAlephClientBase):
         )
         # TODO: This can cause inconsistencies, if the message is rejected by the aleph node
         if status in [MessageStatus.PENDING, MessageStatus.PROCESSED]:
-            self[resp.item_hash] = resp
+            self.add(resp)
         return resp, status
 
     async def create_aggregate(
@@ -153,7 +153,7 @@ class DomainNode(MessageCache, AuthenticatedAlephClientBase):
             sync=sync,
         )
         if status in [MessageStatus.PENDING, MessageStatus.PROCESSED]:
-            self[resp.item_hash] = resp
+            self.add(resp)
         return resp, status
 
     async def create_store(
@@ -182,7 +182,7 @@ class DomainNode(MessageCache, AuthenticatedAlephClientBase):
             sync=sync,
         )
         if status in [MessageStatus.PENDING, MessageStatus.PROCESSED]:
-            self[resp.item_hash] = resp
+            self.add(resp)
         return resp, status
 
     async def create_program(
@@ -223,7 +223,7 @@ class DomainNode(MessageCache, AuthenticatedAlephClientBase):
             metadata=metadata,
         )
         if status in [MessageStatus.PENDING, MessageStatus.PROCESSED]:
-            self[resp.item_hash] = resp
+            self.add(resp)
         return resp, status
 
     async def forget(
@@ -265,5 +265,5 @@ class DomainNode(MessageCache, AuthenticatedAlephClientBase):
         )
         # TODO: this can cause inconsistencies if the message is dropped
         if status in [MessageStatus.PROCESSED, MessageStatus.PENDING]:
-            self[resp.item_hash] = resp["message"]
+            self.add(resp["message"])
         return resp, status
