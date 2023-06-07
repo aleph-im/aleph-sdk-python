@@ -16,11 +16,11 @@ async def test_message_cache():
 
     # test add_many
     cache = MessageCache()
-    cache.add_many(messages)
+    cache.add(messages)
 
     # test get_many
     item_hashes = [message.item_hash for message in messages]
-    cached_messages = cache.get_many(item_hashes)
+    cached_messages = cache.get(item_hashes)
     assert len(cached_messages) == len(messages)
 
     # test __getitem__
@@ -48,7 +48,6 @@ async def test_message_cache():
 async def test_message_cache_listener():
     auth_session = AuthenticatedAlephClient(get_fallback_account(), settings.API_HOST)
     cache = MessageCache()
-
     # test listen until first message
     coro = cache.listen_to(auth_session.watch_messages())
     task = asyncio.create_task(coro)

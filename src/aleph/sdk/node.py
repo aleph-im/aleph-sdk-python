@@ -15,11 +15,11 @@ from aleph_message.status import MessageStatus
 
 from aleph.sdk import AuthenticatedAlephClient
 from aleph.sdk.cache import MessageCache
-from aleph.sdk.interface import AuthenticatedAlephClientInterface
+from aleph.sdk.base import AuthenticatedAlephClientBase
 from aleph.sdk.types import StorageEnum
 
 
-class DomainNode(MessageCache, AuthenticatedAlephClientInterface):
+class DomainNode(MessageCache, AuthenticatedAlephClientBase):
     def __init__(
         self,
         session: AuthenticatedAlephClient,
@@ -87,10 +87,10 @@ class DomainNode(MessageCache, AuthenticatedAlephClientInterface):
         ):
             messages.append(message)
             if len(messages) >= chunk_size:
-                self.add_many(messages)
+                self.add(messages)
                 messages = []
         if messages:
-            self.add_many(messages)
+            self.add(messages)
 
     async def download_file(self, file_hash: str) -> bytes:
         """

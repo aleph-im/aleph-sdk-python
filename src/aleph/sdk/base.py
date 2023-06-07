@@ -21,7 +21,7 @@ from aleph_message.models import (
     AlephMessage,
     MessagesResponse,
     MessageType,
-    PostMessage,
+    PostMessage, StoreMessage, AggregateMessage, ProgramMessage,
 )
 from aleph_message.models.program import Encoding
 from aleph_message.status import MessageStatus
@@ -29,7 +29,7 @@ from aleph_message.status import MessageStatus
 from aleph.sdk.types import GenericMessage, StorageEnum
 
 
-class AlephClientInterface(ABC):
+class AlephClientBase(ABC):
     @abstractmethod
     async def fetch_aggregate(
         self,
@@ -295,7 +295,7 @@ class AlephClientInterface(ABC):
         pass
 
 
-class AuthenticatedAlephClientInterface(AlephClientInterface):
+class AuthenticatedAlephClientBase(AlephClientBase):
     @abstractmethod
     async def create_post(
         self,
@@ -414,6 +414,7 @@ class AuthenticatedAlephClientInterface(AlephClientInterface):
         :param encoding: Encoding to use (Default: Encoding.zip)
         :param volumes: Volumes to mount
         :param subscriptions: Patterns of Aleph messages to forward to the program's event receiver
+        :param metadata: Metadata to attach to the message
         """
         pass
 

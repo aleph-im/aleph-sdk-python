@@ -58,7 +58,7 @@ from .exceptions import (
     MessageNotFoundError,
     MultipleMessagesError,
 )
-from .interface import AlephClientInterface, AuthenticatedAlephClientInterface
+from .base import AlephClientBase, AuthenticatedAlephClientBase
 from .models import MessagesResponse
 from .utils import check_unix_socket_valid, get_message_type_value
 
@@ -469,7 +469,7 @@ class AuthenticatedUserSessionSync(UserSessionSync):
         )
 
 
-class AlephClient(AlephClientInterface):
+class AlephClient(AlephClientBase):
     api_server: str
     http_session: aiohttp.ClientSession
 
@@ -860,7 +860,7 @@ class AlephClient(AlephClientInterface):
                     break
 
 
-class AuthenticatedAlephClient(AlephClient, AuthenticatedAlephClientInterface):
+class AuthenticatedAlephClient(AlephClient, AuthenticatedAlephClientBase):
     account: Account
 
     BROADCAST_MESSAGE_FIELDS = {

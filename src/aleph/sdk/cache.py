@@ -1,6 +1,7 @@
 import json
 import logging
 from datetime import datetime
+from functools import partial
 from typing import (
     Any,
     AsyncIterable,
@@ -30,19 +31,18 @@ from aleph_message.models import (
 from peewee import (
     BooleanField,
     CharField,
-    Field,
     FloatField,
     IntegerField,
     Model,
     SqliteDatabase,
-    chunked,
 )
 from playhouse.shortcuts import model_to_dict
+from playhouse.sqlite_ext import JSONField
 from pydantic import BaseModel
 
 from aleph.sdk.conf import settings
 from aleph.sdk.exceptions import MessageNotFoundError
-from aleph.sdk.interface import AlephClientInterface
+from aleph.sdk.base import AlephClientBase
 from aleph.sdk.types import GenericMessage
 
 db = SqliteDatabase(settings.CACHE_DB_PATH)
@@ -57,12 +57,14 @@ class JSONDictEncoder(json.JSONEncoder):
         return json.JSONEncoder.default(self, obj)
 
 
-class PydanticField(Field, Generic[T]):
+pydantic_json_dumps = partial(json.dumps, cls=JSONDictEncoder)
+
+
+class PydanticField(JSONField, Generic[T]):
     """
     A field for storing pydantic model types as JSON in a database. Uses json for serialization.
     """
 
-    field_type = "text"
     type: T
 
     def __init__(self, *args, **kwargs):
@@ -78,24 +80,6 @@ class PydanticField(Field, Generic[T]):
         if value is None:
             return None
         return self.type.parse_raw(value)
-
-
-class JsonField(Field):
-    """
-    A field for storing dicts as JSON in a database. Uses json for serialization.
-    """
-
-    field_type = "text"
-
-    def db_value(self, value: Optional[dict]) -> Optional[str]:
-        if value is None:
-            return None
-        return json.dumps(value, cls=JSONDictEncoder)
-
-    def python_value(self, value: Optional[str]) -> Optional[dict]:
-        if value is None:
-            return None
-        return json.loads(value)
 
 
 class MessageModel(Model):
@@ -118,9 +102,9 @@ class MessageModel(Model):
     item_type = CharField(7)
     item_content = CharField(null=True)
     hash_type = CharField(6, null=True)
-    content = JsonField()
+    content = JSONField(json_dumps=pydantic_json_dumps)
     forgotten_by = CharField(null=True)
-    tags = JsonField(null=True)
+    tags = JSONField(json_dumps=pydantic_json_dumps, null=True)
     key = CharField(null=True)
     ref = CharField(null=True)
     post_type = CharField(null=True)
@@ -129,7 +113,7 @@ class MessageModel(Model):
         database = db
 
 
-class MessageCache(AlephClientInterface):
+class MessageCache(AlephClientBase):
     """
     A wrapper around an sqlite3 database for storing AlephMessage objects.
     """
@@ -137,49 +121,43 @@ class MessageCache(AlephClientInterface):
     def __init__(self):
         if db.is_closed():
             db.connect()
-            db.create_tables([MessageModel])
+            if not MessageModel.table_exists():
+                db.create_tables([MessageModel])
 
-    def __del__(self):
-        db.close()
-
-    def __getitem__(self, item_hash) -> Optional[AlephMessage]:
+    def __getitem__(self, item_hash: Union[ItemHash, str]) -> Optional[AlephMessage]:
         try:
             item = MessageModel.get(MessageModel.item_hash == str(item_hash))
         except MessageModel.DoesNotExist:
             return None
         return model_to_message(item)
 
-    def __setitem__(self, item_hash, message: AlephMessage):
-        MessageModel.insert(**message_to_model(message)).on_conflict_replace().execute()
+    def __delitem__(self, item_hash: Union[ItemHash, str]):
+        MessageModel.delete().where(MessageModel.item_hash == str(item_hash)).execute()
 
-    def __delitem__(self, item_hash):
-        MessageModel.delete().where(MessageModel.item_hash == item_hash).execute()
-
-    def __contains__(self, item_hash):
-        return MessageModel.select().where(MessageModel.item_hash == item_hash).exists()
+    def __contains__(self, item_hash: Union[ItemHash, str]) -> bool:
+        return MessageModel.select().where(MessageModel.item_hash == str(item_hash)).exists()
 
     def __len__(self):
         return MessageModel.select().count()
 
-    def __iter__(self):
-        return iter(MessageModel.select())
+    def __iter__(self) -> Iterable[AlephMessage]:
+        for item in iter(MessageModel.select().order_by(MessageModel.time)):
+            yield model_to_message(item)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"<MessageCache: {db}>"
 
-    def __str__(self):
+    def __str__(self) -> str:
         return repr(self)
 
-    def add_many(self, messages: Union[AlephMessage, List[AlephMessage]]):
+    def add(self, messages: Union[AlephMessage, List[AlephMessage]]):
         if not isinstance(messages, list):
             messages = [messages]
 
         data_source = (message_to_model(message) for message in messages)
-        with db.atomic():
-            for batch in chunked(data_source, 100):
-                MessageModel.insert_many(batch).on_conflict_replace().execute()
+        MessageModel.insert_many(data_source).on_conflict_replace().execute()
 
-    def get_many(
+    def get(
         self, item_hashes: Union[Union[ItemHash, str], List[Union[ItemHash, str]]]
     ) -> List[AlephMessage]:
         """
@@ -187,6 +165,7 @@ class MessageCache(AlephClientInterface):
         """
         if not isinstance(item_hashes, list):
             item_hashes = [item_hashes]
+        item_hashes = [str(item_hash) for item_hash in item_hashes]
         items = (
             MessageModel.select()
             .where(MessageModel.item_hash.in_(item_hashes))
@@ -201,7 +180,7 @@ class MessageCache(AlephClientInterface):
 
         async def _listen():
             async for message in message_stream:
-                self.add_many(message)
+                self.add(message)
                 print(f"Added message {message.item_hash} to cache")
 
         return _listen()
