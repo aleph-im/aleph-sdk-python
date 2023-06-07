@@ -45,7 +45,7 @@ from aleph.sdk.conf import settings
 from aleph.sdk.exceptions import MessageNotFoundError
 from aleph.sdk.types import GenericMessage
 
-db = SqliteDatabase(settings.CACHE_DB_PATH)
+db = SqliteDatabase(settings.CACHE_DATABASE_PATH)
 
 T = TypeVar("T", bound=BaseModel)
 
