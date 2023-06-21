@@ -115,14 +115,24 @@ class MessageModel(Model):
 
 class MessageCache(AlephClientBase):
     """
-    A wrapper around an sqlite3 database for storing AlephMessage objects.
+    A wrapper around a sqlite3 database for storing AlephMessage objects.
     """
+
+    _instance_count = 0  # Class-level counter for active instances
 
     def __init__(self):
         if db.is_closed():
             db.connect()
             if not MessageModel.table_exists():
                 db.create_tables([MessageModel])
+
+        MessageCache._instance_count += 1
+
+    def __del__(self):
+        MessageCache._instance_count -= 1
+
+        if MessageCache._instance_count == 0:
+            db.close()
 
     def __getitem__(self, item_hash: Union[ItemHash, str]) -> Optional[AlephMessage]:
         try:
