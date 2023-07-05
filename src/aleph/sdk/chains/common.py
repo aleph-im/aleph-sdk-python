@@ -120,7 +120,11 @@ def get_fallback_private_key(path: Optional[Path] = None) -> bytes:
         path.write_bytes(private_key)
 
         default_key_path = path.parent / "default.key"
+
+        # We check if the symlink exist but dead to remove it
+        if default_key_path.is_symlink() and not default_key_path.resolve().exists():
+            default_key_path.unlink()
+
+        # We create the symlink if symlink not exist
         if not default_key_path.exists():
-            # Create a symlink to use this key by default
             default_key_path.symlink_to(path)
-    return private_key
