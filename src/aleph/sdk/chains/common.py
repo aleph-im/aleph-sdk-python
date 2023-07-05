@@ -128,3 +128,4 @@ def get_fallback_private_key(path: Optional[Path] = None) -> bytes:
         # We create the symlink if symlink not exist
         if not default_key_path.exists():
             default_key_path.symlink_to(path)
+    return private_key
