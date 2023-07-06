@@ -7,6 +7,7 @@ import aiohttp
 from pydantic import AnyHttpUrl
 
 from ..conf import settings
+from ..utils import check_unix_socket_valid
 
 CacheKey = NewType("CacheKey", str)
 
@@ -52,8 +53,22 @@ class VmCache(BaseVmCache):
         self,
         session: Optional[aiohttp.ClientSession] = None,
         connector_url: Optional[AnyHttpUrl] = None,
+        unix_socket: Optional[str] = None,
     ):
-        self.session = session or aiohttp.ClientSession(base_url=connector_url)
+        if session:
+            self.session = session
+        else:
+            unix_socket_path = unix_socket or settings.API_UNIX_SOCKET
+            if unix_socket_path:
+                check_unix_socket_valid(unix_socket_path)
+                connector = aiohttp.UnixConnector(path=unix_socket_path)
+            else:
+                connector = None
+
+            self.session = aiohttp.ClientSession(
+                base_url=connector_url, connector=connector
+            )
+
         self.cache = {}
         self.api_host = connector_url if connector_url else settings.API_HOST
 
