@@ -127,10 +127,9 @@ def get_fallback_private_key(path: Optional[Path] = None) -> bytes:
         # If the symlink exists but does not point to a file, delete it.
         if default_key_path.is_symlink() and not default_key_path.resolve().exists():
             default_key_path.unlink()
-            logger.debug("Removed dead symlink")
+            logger.warning("The symlink to the private key is broken")
 
         # Create a symlink to use this key by default
         if not default_key_path.exists():
             default_key_path.symlink_to(path)
-            logger.debug("Create symlink")
     return private_key
