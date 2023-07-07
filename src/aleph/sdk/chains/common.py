@@ -7,6 +7,9 @@ from ecies import decrypt, encrypt
 
 from aleph.sdk.conf import settings
 
+import logging
+
+logger = logging.getLogger(__name__)
 
 def get_verification_buffer(message: Dict) -> bytes:
     """
@@ -120,7 +123,13 @@ def get_fallback_private_key(path: Optional[Path] = None) -> bytes:
         path.write_bytes(private_key)
 
         default_key_path = path.parent / "default.key"
+
+        # If the symlink exists but does not point to a file, delete it.
+        if default_key_path.is_symlink() and not default_key_path.resolve().exists():
+            default_key_path.unlink()
+            logger.warning("The symlink to the private key is broken")
+
+        # Create a symlink to use this key by default
         if not default_key_path.exists():
-            # Create a symlink to use this key by default
             default_key_path.symlink_to(path)
     return private_key
