@@ -54,7 +54,7 @@ def create_archive(path: Path) -> Tuple[Path, Encoding]:
             return archive_path, Encoding.zip
     elif os.path.isfile(path):
         if path.suffix == ".squashfs" or (
-            magic and magic.from_file(path).startswith("Squashfs filesystem")
+                magic and magic.from_file(path).startswith("Squashfs filesystem")
         ):
             return path, Encoding.squashfs
         else:
@@ -85,6 +85,7 @@ def check_unix_socket_valid(unix_socket_path: str) -> bool:
         )
     return True
 
+
 T = TypeVar("T", str, bytes, covariant=True)
 U = TypeVar("U", str, bytes, contravariant=True)
 
@@ -100,7 +101,7 @@ class Writable(Protocol[U]):
 
 
 async def copy_async_readable_to_buffer(
-    readable: AsyncReadable[T], buffer: Writable[T], chunk_size: int
+        readable: AsyncReadable[T], buffer: Writable[T], chunk_size: int
 ):
     while True:
         chunk = await readable.read(chunk_size)
