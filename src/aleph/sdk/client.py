@@ -627,7 +627,7 @@ class AlephClient:
         :param chunk_size: Size of the chunk to download.
         """
         async with aiohttp.ClientSession() as session:
-            async with session.get(f"https://api1.aleph.im/api/v0/storage/raw/{file_hash}") as response:
+            async with session.get(f"https://official.aleph.im/api/v0/storage/raw/{file_hash}") as response:
                 response.raise_for_status()
 
                 while True:
