@@ -53,7 +53,19 @@ class VmCache(BaseVmCache):
         session: Optional[aiohttp.ClientSession] = None,
         connector_url: Optional[AnyHttpUrl] = None,
     ):
-        self.session = session or aiohttp.ClientSession(base_url=connector_url)
+        """Initialize a connection to the cache.
+        Requests use HTTP and default to using `settings.API_UNIX_SOCKET` with the
+        hostname `settings.API_HOST`.
+        Pass a custom `session` object for development and custom deployments.
+        """
+        if settings.API_UNIX_SOCKET:
+            connector = aiohttp.UnixConnector(path=settings.API_UNIX_SOCKET)
+        else:
+            connector = None
+
+        self.session = session or aiohttp.ClientSession(
+            base_url=connector_url, connector=connector
+        )
         self.cache = {}
         self.api_host = connector_url if connector_url else settings.API_HOST
 
