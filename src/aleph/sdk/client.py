@@ -623,7 +623,7 @@ class AlephClient:
         Download a file from the storage engine and write it to the specified output buffer.
         :param self: The current instance of the class.
         :param file_hash: The hash of the file to retrieve.
-        :param output_buffer: The binary output buffer to write the file data to.
+        :param output_buffer: Writable binary buffer. The file will be written to this buffer.
         :param chunk_size: Size of the chunk to download.
         """
         async with aiohttp.ClientSession() as session:
