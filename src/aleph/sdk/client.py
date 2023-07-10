@@ -32,15 +32,16 @@ from aleph_message.models import (
     ForgetContent,
     ForgetMessage,
     ItemType,
-    Message,
     MessageType,
     PostContent,
     PostMessage,
+    ProgramContent,
     ProgramMessage,
     StoreContent,
     StoreMessage,
+    parse_message,
 )
-from aleph_message.models.program import Encoding, ProgramContent
+from aleph_message.models.execution.base import Encoding
 from aleph_message.status import MessageStatus
 from pydantic import ValidationError
 
@@ -713,7 +714,7 @@ class AlephClient:
             messages: List[AlephMessage] = []
             for message_raw in messages_raw:
                 try:
-                    message = Message(**message_raw)
+                    message = parse_message(message_raw)
                     messages.append(message)
                 except KeyError as e:
                     if not ignore_invalid_messages:
@@ -835,7 +836,7 @@ class AlephClient:
                         break
                     else:
                         data = json.loads(msg.data)
-                        yield Message(**data)
+                        yield parse_message(data)
                 elif msg.type == aiohttp.WSMsgType.ERROR:
                     break
 
@@ -1387,7 +1388,7 @@ class AuthenticatedAlephClient(AlephClient):
                 message_dict["item_type"] = ItemType.storage
 
         message_dict = await self.account.sign_message(message_dict)
-        return Message(**message_dict)
+        return parse_message(message_dict)
 
     async def submit(
         self,

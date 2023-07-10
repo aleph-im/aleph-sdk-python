@@ -1,3 +1,4 @@
+import logging
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Dict, Optional
@@ -7,9 +8,8 @@ from ecies import decrypt, encrypt
 
 from aleph.sdk.conf import settings
 
-import logging
-
 logger = logging.getLogger(__name__)
+
 
 def get_verification_buffer(message: Dict) -> bytes:
     """
