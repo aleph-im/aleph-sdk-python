@@ -650,7 +650,7 @@ class AlephClient:
         :param chunk_size: Size of chunk we download.
         """
         async with aiohttp.ClientSession() as session:
-            async with session.get(f"https://ipfs.io/ipfs/{file_hash}") as response:
+            async with session.get(f"https://ipfs.aleph.im/ipfs/{file_hash}") as response:
                 response.raise_for_status()
                 while True:
                     chunk = await response.content.read(chunk_size)
