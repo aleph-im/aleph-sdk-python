@@ -227,11 +227,17 @@ class UserSessionSync:
             end_date=end_date,
         )
 
-    def download_file(self, file_hash: str, chunk_size :int = 16 * 1024) -> bytes:
-        return self._wrap(self.async_session.download_file, file_hash=file_hash, chunk_size=chunk_size)
+    def download_file(self, file_hash: str, chunk_size: int = 16 * 1024) -> bytes:
+        return self._wrap(
+            self.async_session.download_file, file_hash=file_hash, chunk_size=chunk_size
+        )
 
-    def download_file_ipfs(self, file_hash: str, chunk_size : int = 16 * 1024) -> bytes:
-        return self._wrap(self.async_session.download_file_ipfs, file_hash=file_hash, chunk_size=chunk_size)
+    def download_file_ipfs(self, file_hash: str, chunk_size: int = 16 * 1024) -> bytes:
+        return self._wrap(
+            self.async_session.download_file_ipfs,
+            file_hash=file_hash,
+            chunk_size=chunk_size,
+        )
 
     def watch_messages(
         self,
@@ -614,20 +620,21 @@ class AlephClient:
             return await resp.json()
 
     async def download_file_to_buffer(
-            self,
-            file_hash: str,
-            output_buffer: BinaryIO,
-            chunk_size: int,
+        self,
+        file_hash: str,
+        output_buffer: BinaryIO,
+        chunk_size: int,
     ) -> None:
         """
         Download a file from the storage engine and write it to the specified output buffer.
-        :param self: The current instance of the class.
         :param file_hash: The hash of the file to retrieve.
         :param output_buffer: The binary output buffer to write the file data to.
         :param chunk_size: Size of the chunk to download.
         """
         async with aiohttp.ClientSession() as session:
-            async with session.get(f"https://official.aleph.im/api/v0/storage/raw/{file_hash}") as response:
+            async with self.http_session.get(
+                f"/api/v0/storage/raw/{file_hash}"
+            ) as response:
                 response.raise_for_status()
 
                 while True:
@@ -637,10 +644,10 @@ class AlephClient:
                     output_buffer.write(chunk)
 
     async def download_file_ipfs_to_buffer(
-            self,
-            file_hash: str,
-            output_buffer: BinaryIO,
-            chunk_size : int,
+        self,
+        file_hash: str,
+        output_buffer: BinaryIO,
+        chunk_size: int,
     ) -> None:
         """
         Download a file from the storage engine and write it to the specified output buffer.
@@ -650,7 +657,9 @@ class AlephClient:
         :param chunk_size: Size of chunk we download.
         """
         async with aiohttp.ClientSession() as session:
-            async with session.get(f"https://ipfs.aleph.im/ipfs/{file_hash}") as response:
+            async with session.get(
+                f"https://ipfs.aleph.im/ipfs/{file_hash}"
+            ) as response:
                 response.raise_for_status()
                 while True:
                     chunk = await response.content.read(chunk_size)
@@ -672,9 +681,10 @@ class AlephClient:
         :param chunk_size: The size of each chunk to read from the response.
         """
         buffer = BytesIO()
-        await self.download_file_to_buffer(file_hash, output_buffer=buffer, chunk_size=chunk_size)
+        await self.download_file_to_buffer(
+            file_hash, output_buffer=buffer, chunk_size=chunk_size
+        )
         return buffer.getvalue()
-
 
     async def download_file_ipfs(
         self,
@@ -690,7 +700,9 @@ class AlephClient:
         :param chunk_size: The size of each chunk to read from the response.
         """
         buffer = BytesIO()
-        await self.download_file_ipfs_to_buffer(file_hash, output_buffer=buffer, chunk_size=chunk_size)
+        await self.download_file_ipfs_to_buffer(
+            file_hash, output_buffer=buffer, chunk_size=chunk_size
+        )
         return buffer.getvalue()
 
     async def get_messages(
