@@ -13,7 +13,7 @@ fi
 mkdir -p ./dist
 chmod 0777 ./dist
 
-$DOCKER_COMMAND build -t aleph-sdk-python -f docker/Dockerfile .
+$DOCKER_COMMAND build -t aleph-sdk-python -f docker/python-3.9.dockerfile .
 $DOCKER_COMMAND run -ti --rm \
   -w /opt/aleph-sdk-python \
   -v "$(pwd)/dist":/opt/aleph-sdk-python/dist \
