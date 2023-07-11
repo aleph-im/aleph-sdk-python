@@ -633,21 +633,25 @@ class AlephClient:
         :param chunk_size: Size of the chunk to download.
         """
         IPFS_HASH = ItemHash(file_hash)
-        if ItemType.from_hash(IPFS_HASH) == ItemType.ipfs:
-            return await self.download_file_ipfs_to_buffer(
-                file_hash, output_buffer, chunk_size
-            )
+
         async with aiohttp.ClientSession() as session:
             async with self.http_session.get(
                 f"/api/v0/storage/raw/{file_hash}"
             ) as response:
-                response.raise_for_status()
-
-                while True:
-                    chunk = await response.content.read(chunk_size)
-                    if not chunk:
-                        break
-                    output_buffer.write(chunk)
+                if response.status == 200:
+                    response.raise_for_status()
+                    while True:
+                        chunk = await response.content.read(chunk_size)
+                        if not chunk:
+                            break
+                        output_buffer.write(chunk)
+                if response.status == 413:
+                    if ItemType.from_hash(IPFS_HASH) == ItemType.ipfs:
+                        return await self.download_file_ipfs_to_buffer(
+                            file_hash, output_buffer, chunk_size
+                        )
+                    else:
+                        raise Exception("Unsupported file hash")
 
     async def download_file_ipfs_to_buffer(
         self,
