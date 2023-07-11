@@ -25,7 +25,7 @@ RUN pip install --upgrade pip wheel twine
 
 # Preinstall dependencies for faster steps
 RUN pip install --upgrade secp256k1 coincurve aiohttp eciespy python-magic typer
-RUN pip install --upgrade 'aleph-message~=0.3.1' eth_account pynacl base58
+RUN pip install --upgrade 'aleph-message~=0.4.0' eth_account pynacl base58
 RUN pip install --upgrade pytest pytest-cov pytest-asyncio mypy types-setuptools pytest-asyncio fastapi httpx requests
 
 WORKDIR /opt/aleph-sdk-python/
