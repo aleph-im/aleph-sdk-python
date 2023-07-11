@@ -33,6 +33,7 @@ from aleph_message.models import (
     AlephMessage,
     ForgetContent,
     ForgetMessage,
+    ItemHash,
     ItemType,
     Message,
     MessageType,
@@ -44,7 +45,7 @@ from aleph_message.models import (
 )
 from aleph_message.models.program import Encoding, ProgramContent
 from aleph_message.status import MessageStatus
-from pydantic import ValidationError
+from pydantic import ValidationError, BaseModel
 
 from aleph.sdk.types import Account, GenericMessage, StorageEnum
 
@@ -67,6 +68,10 @@ except ImportError:
     magic = None  # type:ignore
 
 T = TypeVar("T")
+
+
+class ModelWithItemHash(BaseModel):
+    hash: ItemHash
 
 
 def async_wrapper(f):
@@ -631,6 +636,11 @@ class AlephClient:
         :param output_buffer: Writable binary buffer. The file will be written to this buffer.
         :param chunk_size: Size of the chunk to download.
         """
+        IPFS_HASH = ItemHash(file_hash)
+        if ItemType.from_hash(IPFS_HASH) == ItemType.ipfs:
+            return await self.download_file_ipfs_to_buffer(
+                file_hash, output_buffer, chunk_size
+            )
         async with aiohttp.ClientSession() as session:
             async with self.http_session.get(
                 f"/api/v0/storage/raw/{file_hash}"
