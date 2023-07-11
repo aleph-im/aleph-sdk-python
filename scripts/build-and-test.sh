@@ -10,6 +10,6 @@ else
   DOCKER_COMMAND=docker
 fi
 
-$DOCKER_COMMAND build -t aleph-sdk-python -f docker/Dockerfile .
+$DOCKER_COMMAND build -t aleph-sdk-python -f docker/python-3.9.dockerfile .
 $DOCKER_COMMAND run -ti --rm --entrypoint /opt/venv/bin/pytest aleph-sdk-python /opt/aleph-sdk-python/ "$@"
 $DOCKER_COMMAND run -ti --rm --entrypoint /opt/venv/bin/mypy aleph-sdk-python /opt/aleph-sdk-python/src/ --ignore-missing-imports
