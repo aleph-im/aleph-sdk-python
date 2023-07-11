@@ -70,10 +70,6 @@ except ImportError:
 T = TypeVar("T")
 
 
-class ModelWithItemHash(BaseModel):
-    hash: ItemHash
-
-
 def async_wrapper(f):
     """
     Copies the docstring of wrapped functions.
