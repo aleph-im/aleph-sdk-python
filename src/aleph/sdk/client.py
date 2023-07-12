@@ -22,7 +22,6 @@ from typing import (
     Type,
     TypeVar,
     Union,
-    Protocol,
 )
 from io import BytesIO
 
@@ -48,7 +47,7 @@ from aleph_message.status import MessageStatus
 from pydantic import ValidationError, BaseModel
 
 from aleph.sdk.types import Account, GenericMessage, StorageEnum
-
+from aleph.sdk.utils import copy_async_readable_to_buffer, Writable, AsyncReadable
 from .conf import settings
 from .exceptions import (
     BroadcastError,
@@ -69,28 +68,6 @@ except ImportError:
     magic = None  # type:ignore
 
 T = TypeVar("T")
-C = TypeVar("C", str, bytes, covariant=True)
-U = TypeVar("U", str, bytes, contravariant=True)
-
-
-class AsyncReadable(Protocol[C]):
-    async def read(self, n: int = -1) -> C:
-        ...
-
-
-class Writable(Protocol[U]):
-    def write(self, buffer: U) -> int:
-        ...
-
-
-async def copy_async_readable_to_buffer(
-    readable: AsyncReadable[C], buffer: Writable[C], chunk_size: int
-):
-    while True:
-        chunk = await readable.read(chunk_size)
-        if not chunk:
-            break
-        buffer.write(chunk)
 
 
 def async_wrapper(f):
@@ -651,22 +628,21 @@ class AlephClient:
         :param output_buffer: Writable binary buffer. The file will be written to this buffer.
         """
 
-        async with aiohttp.ClientSession() as session:
-            async with self.http_session.get(
-                f"/api/v0/storage/raw/{file_hash}"
-            ) as response:
-                if response.status == 200:
-                    await copy_async_readable_to_buffer(
-                        response.content, output_buffer, chunk_size=16 * 1024
+        async with self.http_session.get(
+            f"/api/v0/storage/raw/{file_hash}"
+        ) as response:
+            if response.status == 200:
+                await copy_async_readable_to_buffer(
+                    response.content, output_buffer, chunk_size=16 * 1024
+                )
+            if response.status == 413:
+                ipfs_hash = ItemHash(file_hash)
+                if ipfs_hash.item_type == ItemType.ipfs:
+                    return await self.download_file_ipfs_to_buffer(
+                        file_hash, output_buffer
                     )
-                if response.status == 413:
-                    ipfs_hash = ItemHash(file_hash)
-                    if ItemType.from_hash(ipfs_hash) == ItemType.ipfs:
-                        return await self.download_file_ipfs_to_buffer(
-                            file_hash, output_buffer
-                        )
-                    else:
-                        raise FileTooLarge(f"The file from {file_hash} is too large")
+                else:
+                    raise FileTooLarge(f"The file from {file_hash} is too large")
 
     async def download_file_ipfs_to_buffer(
         self,
@@ -687,8 +663,6 @@ class AlephClient:
                     await copy_async_readable_to_buffer(
                         response.content, output_buffer, chunk_size=16 * 1024
                     )
-                elif response.status == 413:
-                    raise FileTooLarge()
                 else:
                     response.raise_for_status()
 

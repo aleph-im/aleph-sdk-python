@@ -12,6 +12,13 @@ from aleph_message.models.program import Encoding
 from aleph.sdk.conf import settings
 from aleph.sdk.types import GenericMessage
 
+from typing import (
+    Tuple,
+    Type,
+    TypeVar,
+    Protocol,
+)
+
 logger = logging.getLogger(__name__)
 
 try:
@@ -76,3 +83,27 @@ def check_unix_socket_valid(unix_socket_path: str) -> bool:
             unix_socket_path,
         )
     return True
+
+
+C = TypeVar("C", str, bytes, covariant=True)
+U = TypeVar("U", str, bytes, contravariant=True)
+
+
+class AsyncReadable(Protocol[C]):
+    async def read(self, n: int = -1) -> C:
+        ...
+
+
+class Writable(Protocol[U]):
+    def write(self, buffer: U) -> int:
+        ...
+
+
+async def copy_async_readable_to_buffer(
+    readable: AsyncReadable[C], buffer: Writable[C], chunk_size: int
+):
+    while True:
+        chunk = await readable.read(chunk_size)
+        if not chunk:
+            break
+        buffer.write(chunk)
