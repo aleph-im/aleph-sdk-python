@@ -22,9 +22,9 @@ from typing import (
     Type,
     TypeVar,
     Union,
+    Protocol,
 )
 from io import BytesIO
-from typing import BinaryIO
 
 import aiohttp
 from aleph_message.models import (
@@ -69,6 +69,28 @@ except ImportError:
     magic = None  # type:ignore
 
 T = TypeVar("T")
+C = TypeVar("C", str, bytes, covariant=True)
+U = TypeVar("U", str, bytes, contravariant=True)
+
+
+class AsyncReadable(Protocol[C]):
+    async def read(self, n: int = -1) -> C:
+        ...
+
+
+class Writable(Protocol[U]):
+    def write(self, buffer: U) -> int:
+        ...
+
+
+async def copy_async_readable_to_buffer(
+    readable: AsyncReadable[C], buffer: Writable[C], chunk_size: int
+):
+    while True:
+        chunk = await readable.read(chunk_size)
+        if not chunk:
+            break
+        buffer.write(chunk)
 
 
 def async_wrapper(f):
@@ -231,6 +253,12 @@ class UserSessionSync:
 
     def download_file(self, file_hash: str) -> bytes:
         return self._wrap(self.async_session.download_file, file_hash=file_hash)
+
+    def download_file_ipfs(self, file_hash: str) -> bytes:
+        return self._wrap(
+            self.async_session.download_file_ipfs,
+            file_hash=file_hash,
+        )
 
     def watch_messages(
         self,
@@ -443,33 +471,6 @@ class AuthenticatedUserSessionSync(UserSessionSync):
         )
 
 
-async def download_file_to_buffer(
-    file_hash: str,
-    output_buffer: BinaryIO,
-) -> None:
-    """
-    Download a file from the storage engine and write it to the specified output buffer.
-
-    :param file_hash: The hash of the file to retrieve.
-    :param output_buffer: The binary output buffer to write the file data to.
-    """
-    url: str = f"{settings.API_HOST}/api/v0/storage/raw/{file_hash}"
-
-    ipfs_hash = ItemHash(file_hash)
-    if ItemType.from_hash(ipfs_hash) == ItemType.ipfs:
-        url = f"https://ipfs.aleph.im/ipfs/{file_hash}"
-    async with aiohttp.ClientSession() as session:
-        async with session.get(url) as response:
-            if response.status == 200:
-                while True:
-                    chunk = await response.content.read(16384)
-                    if not chunk:
-                        break
-                    output_buffer.write(chunk)
-            elif response.status == 413:
-                raise FileTooLarge(f"The file from {file_hash} is too large")
-
-
 class AlephClient:
     api_server: str
     http_session: aiohttp.ClientSession
@@ -639,6 +640,58 @@ class AlephClient:
             resp.raise_for_status()
             return await resp.json()
 
+    async def download_file_to_buffer(
+        self,
+        file_hash: str,
+        output_buffer: Writable[bytes],
+    ) -> None:
+        """
+        Download a file from the storage engine and write it to the specified output buffer.
+        :param file_hash: The hash of the file to retrieve.
+        :param output_buffer: Writable binary buffer. The file will be written to this buffer.
+        """
+
+        async with aiohttp.ClientSession() as session:
+            async with self.http_session.get(
+                f"/api/v0/storage/raw/{file_hash}"
+            ) as response:
+                if response.status == 200:
+                    await copy_async_readable_to_buffer(
+                        response.content, output_buffer, chunk_size=16 * 1024
+                    )
+                if response.status == 413:
+                    ipfs_hash = ItemHash(file_hash)
+                    if ItemType.from_hash(ipfs_hash) == ItemType.ipfs:
+                        return await self.download_file_ipfs_to_buffer(
+                            file_hash, output_buffer
+                        )
+                    else:
+                        raise FileTooLarge(f"The file from {file_hash} is too large")
+
+    async def download_file_ipfs_to_buffer(
+        self,
+        file_hash: str,
+        output_buffer: Writable[bytes],
+    ) -> None:
+        """
+        Download a file from the storage engine and write it to the specified output buffer.
+
+        :param file_hash: The hash of the file to retrieve.
+        :param output_buffer: The binary output buffer to write the file data to.
+        """
+        async with aiohttp.ClientSession() as session:
+            async with session.get(
+                f"https://ipfs.aleph.im/ipfs/{file_hash}"
+            ) as response:
+                if response.status == 200:
+                    await copy_async_readable_to_buffer(
+                        response.content, output_buffer, chunk_size=16 * 1024
+                    )
+                elif response.status == 413:
+                    raise FileTooLarge()
+                else:
+                    response.raise_for_status()
+
     async def download_file(
         self,
         file_hash: str,
@@ -651,7 +704,22 @@ class AlephClient:
         :param file_hash: The hash of the file to retrieve.
         """
         buffer = BytesIO()
-        await download_file_to_buffer(file_hash, output_buffer=buffer)
+        await self.download_file_to_buffer(file_hash, output_buffer=buffer)
+        return buffer.getvalue()
+
+    async def download_file_ipfs(
+        self,
+        file_hash: str,
+    ) -> bytes:
+        """
+        Get a file from the ipfs storage engine as raw bytes.
+
+        Warning: Downloading large files can be slow.
+
+        :param file_hash: The hash of the file to retrieve.
+        """
+        buffer = BytesIO()
+        await self.download_file_ipfs_to_buffer(file_hash, output_buffer=buffer)
         return buffer.getvalue()
 
     async def get_messages(
