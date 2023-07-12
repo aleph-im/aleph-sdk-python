@@ -42,3 +42,11 @@ class BadSignatureError(Exception):
     """
 
     pass
+
+
+class FileTooLarge(Exception):
+    """
+    A file is too large
+    """
+
+    pass

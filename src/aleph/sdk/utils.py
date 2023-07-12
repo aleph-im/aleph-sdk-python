@@ -13,6 +13,13 @@ from aleph_message.models.execution.program import Encoding
 from aleph.sdk.conf import settings
 from aleph.sdk.types import GenericMessage
 
+from typing import (
+    Tuple,
+    Type,
+    TypeVar,
+    Protocol,
+)
+
 logger = logging.getLogger(__name__)
 
 try:
@@ -47,7 +54,7 @@ def create_archive(path: Path) -> Tuple[Path, Encoding]:
             return archive_path, Encoding.zip
     elif os.path.isfile(path):
         if path.suffix == ".squashfs" or (
-            magic and magic.from_file(path).startswith("Squashfs filesystem")
+                magic and magic.from_file(path).startswith("Squashfs filesystem")
         ):
             return path, Encoding.squashfs
         else:
@@ -77,6 +84,30 @@ def check_unix_socket_valid(unix_socket_path: str) -> bool:
             unix_socket_path,
         )
     return True
+
+
+T = TypeVar("T", str, bytes, covariant=True)
+U = TypeVar("U", str, bytes, contravariant=True)
+
+
+class AsyncReadable(Protocol[T]):
+    async def read(self, n: int = -1) -> T:
+        ...
+
+
+class Writable(Protocol[U]):
+    def write(self, buffer: U) -> int:
+        ...
+
+
+async def copy_async_readable_to_buffer(
+        readable: AsyncReadable[T], buffer: Writable[T], chunk_size: int
+):
+    while True:
+        chunk = await readable.read(chunk_size)
+        if not chunk:
+            break
+        buffer.write(chunk)
 
 
 def enum_as_str(obj: Union[str, Enum]) -> str:
