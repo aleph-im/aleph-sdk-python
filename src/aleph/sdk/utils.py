@@ -85,12 +85,12 @@ def check_unix_socket_valid(unix_socket_path: str) -> bool:
     return True
 
 
-C = TypeVar("C", str, bytes, covariant=True)
+T = TypeVar("T", str, bytes, covariant=True)
 U = TypeVar("U", str, bytes, contravariant=True)
 
 
-class AsyncReadable(Protocol[C]):
-    async def read(self, n: int = -1) -> C:
+class AsyncReadable(Protocol[T]):
+    async def read(self, n: int = -1) -> T:
         ...
 
 
@@ -100,7 +100,7 @@ class Writable(Protocol[U]):
 
 
 async def copy_async_readable_to_buffer(
-    readable: AsyncReadable[C], buffer: Writable[C], chunk_size: int
+    readable: AsyncReadable[T], buffer: Writable[T], chunk_size: int
 ):
     while True:
         chunk = await readable.read(chunk_size)
