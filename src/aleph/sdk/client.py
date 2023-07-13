@@ -237,6 +237,12 @@ class UserSessionSync:
             self.async_session.download_file_ipfs,
             file_hash=file_hash,
         )
+    def download_file_to_buffer(self, file_hash: str, output_buffer: Writable[bytes]) -> bytes:
+        return self._wrap(self.async_session.download_file_to_buffer, file_hash=file_hash, output_buffer=output_buffer)
+
+    def download_file_ipfs_to_buffer(self, file_hash: str, output_buffer: Writable[bytes]) -> bytes:
+        return self._wrap(self.async_session.download_file_ipfs_to_buffer, file_hash=file_hash, output_buffer=output_buffer)
+
 
     def watch_messages(
         self,
