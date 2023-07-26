@@ -89,8 +89,10 @@ class AlephDNS:
 
         if target == "ipfs":
             cname_value = settings.DNS_IPFS_DOMAIN
-        else:
+        elif target == "program":
             cname_value = settings.DNS_PROGRAM_DOMAIN
+        elif target == "instance":
+            cname_value = f"{domain}.{settings.DNS_INSTANCE_DOMAIN}"
 
         # cname rule
         dns_rules.append({

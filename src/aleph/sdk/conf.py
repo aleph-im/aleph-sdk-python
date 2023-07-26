@@ -36,6 +36,7 @@ class Settings(BaseSettings):
     # Dns resolver
     DNS_IPFS_DOMAIN = "ipfs.public.aleph.sh"
     DNS_PROGRAM_DOMAIN = "program.public.aleph.sh"
+    DNS_INSTANCE_DOMAIN = "instance.public.aleph.sh"
     DNS_ROOT_DOMAIN = "static.public.aleph.sh"
     DNS_RESOLVERS = ["1.1.1.1", "1.0.0.1"]
 
