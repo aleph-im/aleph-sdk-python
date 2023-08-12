@@ -40,7 +40,7 @@ async def test_ETHAccount(ethereum_account):
     assert len(address) == 42
 
     pubkey = account.get_public_key()
-    assert isinstance(pubkey, bytes)
+    assert isinstance(pubkey, str)
     assert len(pubkey) == 68
 
 
