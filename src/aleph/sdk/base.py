@@ -23,7 +23,7 @@ from aleph_message.models import (
     MessageType,
     PostMessage,
 )
-from aleph_message.models.program import Encoding
+from aleph_message.models.execution.program import Encoding
 from aleph_message.status import MessageStatus
 
 from aleph.sdk.types import GenericMessage, StorageEnum

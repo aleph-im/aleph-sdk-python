@@ -168,7 +168,7 @@ class MessageCache(AlephClientBase):
         return repr(self)
 
     def add(self, messages: Union[AlephMessage, Iterable[AlephMessage]]):
-        if not isinstance(messages, Iterable):
+        if isinstance(messages, AlephMessage):
             messages = [messages]
 
         data_source = (message_to_model(message) for message in messages)

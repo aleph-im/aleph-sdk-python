@@ -1,6 +1,9 @@
 import asyncio
+import json
+from hashlib import sha256
 
 import pytest
+from aleph_message.models import AlephMessage, PostMessage, PostContent, MessageType, Chain
 
 from aleph.sdk.cache import MessageCache
 from aleph.sdk.chains.ethereum import get_fallback_account
@@ -46,15 +49,27 @@ async def test_message_cache():
 
 @pytest.mark.asyncio
 async def test_message_cache_listener():
-    auth_session = AuthenticatedAlephClient(get_fallback_account(), settings.API_HOST)
+    async def mock_message_stream():
+        for i in range(3):
+            content = PostContent(
+                    content={"hello": f"world{i}"},
+                    type="test",
+                    address=get_fallback_account().get_address(),
+                    time=0,
+                )
+            message = PostMessage(
+                sender=get_fallback_account().get_address(),
+                item_hash=sha256(json.dumps(content.dict()).encode()).hexdigest(),
+                chain=Chain.ETH.value,
+                type=MessageType.post.value,
+                item_type="inline",
+                time=0,
+                content=content,
+                item_content=json.dumps(content.dict()),
+            )
+            yield message
     cache = MessageCache()
-    # test listen until first message
-    coro = cache.listen_to(auth_session.watch_messages())
-    task = asyncio.create_task(coro)
-    before = len(cache)
-    # send message
-    await auth_session.create_aggregate("test", {"test": "test"})
-    await asyncio.sleep(2)  # wait for message to be received
-    task.cancel()
-    after = len(cache)
-    assert after > before
+    # test listener
+    coro = cache.listen_to(mock_message_stream())
+    await coro
+    assert len(cache) == 3
