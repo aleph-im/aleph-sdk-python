@@ -62,7 +62,6 @@ class BaseAccount(ABC):
         else:
             raise ValueError("Message sender does not match the account's public key.")
 
-    @abstractmethod
     async def sign_message(self, message: Dict) -> Dict:
         """
         Returns a signed message from an Aleph message.
@@ -72,19 +71,19 @@ class BaseAccount(ABC):
             Dict: Signed message
         """
         message = self._setup_sender(message)
-        sig = await self.sign_raw(get_verification_buffer(message))
-        message["signature"] = sig.hex()
+        message["signature"] = await self.sign_raw(get_verification_buffer(message))
         return message
-    
-    async def sign_raw(self, buffer: bytes) -> bytes:
+
+    @abstractmethod
+    async def sign_raw(self, buffer: bytes) -> str:
         """
         Returns a signed message from a raw buffer.
         Args:
             buffer: Buffer to sign
         Returns:
-            bytes: Signed buffer
+            str: Signature in preferred format
         """
-        
+        raise NotImplementedError
 
     @abstractmethod
     def get_address(self) -> str:

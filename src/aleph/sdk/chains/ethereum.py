@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Dict, Optional, Union
+from typing import Optional, Union
 
 from eth_account import Account
 from eth_account.messages import encode_defunct
@@ -11,7 +11,6 @@ from .common import (
     BaseAccount,
     get_fallback_private_key,
     get_public_key,
-    get_verification_buffer,
 )
 
 
@@ -23,12 +22,12 @@ class ETHAccount(BaseAccount):
     def __init__(self, private_key: bytes):
         self.private_key = private_key
         self._account = Account.from_key(self.private_key)
-    
-    async def sign_raw(self, buffer: bytes) -> bytes:
+
+    async def sign_raw(self, buffer: bytes) -> str:
         """Sign a raw buffer."""
         msghash = encode_defunct(text=buffer.decode("utf-8"))
         sig = self._account.sign_message(msghash)
-        return sig["signature"]
+        return sig["signature"].hex()
 
     def get_address(self) -> str:
         return self._account.address

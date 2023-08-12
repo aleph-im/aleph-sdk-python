@@ -12,7 +12,6 @@ from .common import (
     BaseAccount,
     get_fallback_private_key,
     get_public_key,
-    get_verification_buffer,
 )
 
 
@@ -37,16 +36,9 @@ class NULSAccount(BaseAccount):
         else:
             self.prefix = prefix
 
-    async def sign_message(self, message):
-        # sig = NulsSignature.sign_message(self.private_key,
-        #                                  get_verification_buffer(message))
-        message = self._setup_sender(message)
-
-        sig = sign_recoverable_message(
-            self.private_key, get_verification_buffer(message)
-        )
-        message["signature"] = base64.b64encode(sig).decode()
-        return message
+    async def sign_raw(self, buffer: bytes) -> str:
+        sig = sign_recoverable_message(self.private_key, buffer)
+        return base64.b64encode(sig).decode()
 
     def get_address(self):
         return address_from_hash(

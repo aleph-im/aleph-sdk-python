@@ -25,6 +25,10 @@ class DOTAccount(BaseAccount):
         message["signature"] = json.dumps(sig)
         return message
 
+    async def sign_raw(self, buffer: bytes) -> str:
+        sig = self._account.sign(buffer)
+        return sig.hex()
+
     def get_address(self):
         return self._account.ss58_address
 
