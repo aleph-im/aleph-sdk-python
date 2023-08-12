@@ -18,9 +18,9 @@ async def test_sign_data():
     )
 
     assert sign
-    assert type(sign.pub_key) == bytes
-    assert type(sign.digest_bytes) == bytes
-    assert type(sign.sig_ser) == bytes
+    assert isinstance(sign.pub_key, bytes)
+    assert isinstance(sign.digest_bytes, bytes)
+    assert isinstance(sign.sig_ser, bytes)
     assert sign.ecc_type is None
 
 
@@ -37,9 +37,9 @@ async def test_sign_message():
     assert len(sign.sig_ser) == 70
 
     assert sign
-    assert type(sign.pub_key) == bytes
+    assert isinstance(sign.pub_key, bytes)
     assert sign.digest_bytes is None
-    assert type(sign.sig_ser) == bytes
+    assert isinstance(sign.sig_ser, bytes)
     assert sign.ecc_type is None
 
 

@@ -4,7 +4,7 @@ import os
 from enum import Enum
 from pathlib import Path
 from shutil import make_archive
-from typing import Tuple, Type, Union
+from typing import Protocol, Tuple, Type, TypeVar, Union
 from zipfile import BadZipFile, ZipFile
 
 from aleph_message.models import MessageType
@@ -12,13 +12,6 @@ from aleph_message.models.execution.program import Encoding
 
 from aleph.sdk.conf import settings
 from aleph.sdk.types import GenericMessage
-
-from typing import (
-    Tuple,
-    Type,
-    TypeVar,
-    Protocol,
-)
 
 logger = logging.getLogger(__name__)
 
@@ -54,7 +47,7 @@ def create_archive(path: Path) -> Tuple[Path, Encoding]:
             return archive_path, Encoding.zip
     elif os.path.isfile(path):
         if path.suffix == ".squashfs" or (
-                magic and magic.from_file(path).startswith("Squashfs filesystem")
+            magic and magic.from_file(path).startswith("Squashfs filesystem")
         ):
             return path, Encoding.squashfs
         else:
@@ -101,7 +94,7 @@ class Writable(Protocol[U]):
 
 
 async def copy_async_readable_to_buffer(
-        readable: AsyncReadable[T], buffer: Writable[T], chunk_size: int
+    readable: AsyncReadable[T], buffer: Writable[T], chunk_size: int
 ):
     while True:
         chunk = await readable.read(chunk_size)
