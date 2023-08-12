@@ -32,7 +32,7 @@ class SOLAccount(BaseAccount):
         verif = get_verification_buffer(message)
         sig = {
             "publicKey": self.get_address(),
-            "signature": self.sign_raw(verif),
+            "signature": await self.sign_raw(verif),
         }
         message["signature"] = json.dumps(sig)
         return message

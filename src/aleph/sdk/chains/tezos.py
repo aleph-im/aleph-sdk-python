@@ -27,7 +27,7 @@ class TezosAccount(BaseAccount):
         verif = get_verification_buffer(message)
         sig = {
             "publicKey": self.get_public_key(),
-            "signature": self.sign_raw(verif),
+            "signature": await self.sign_raw(verif),
         }
 
         message["signature"] = json.dumps(sig)
