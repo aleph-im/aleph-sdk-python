@@ -7,11 +7,7 @@ from eth_account.signers.local import LocalAccount
 from eth_keys.exceptions import BadSignature as EthBadSignatureError
 
 from ..exceptions import BadSignatureError
-from .common import (
-    BaseAccount,
-    get_fallback_private_key,
-    get_public_key,
-)
+from .common import BaseAccount, get_fallback_private_key, get_public_key
 
 
 class ETHAccount(BaseAccount):

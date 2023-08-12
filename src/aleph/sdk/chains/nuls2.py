@@ -8,11 +8,7 @@ from nuls2.model.data import (
     sign_recoverable_message,
 )
 
-from .common import (
-    BaseAccount,
-    get_fallback_private_key,
-    get_public_key,
-)
+from .common import BaseAccount, get_fallback_private_key, get_public_key
 
 
 def get_address(public_key=None, private_key=None, chain_id=1, prefix="NULS"):
