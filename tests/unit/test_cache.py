@@ -1,13 +1,12 @@
-import asyncio
 import json
 from hashlib import sha256
 
 import pytest
-from aleph_message.models import AlephMessage, PostMessage, PostContent, MessageType, Chain
+from aleph_message.models import Chain, MessageType, PostContent, PostMessage
 
 from aleph.sdk.cache import MessageCache
 from aleph.sdk.chains.ethereum import get_fallback_account
-from aleph.sdk.client import AlephClient, AuthenticatedAlephClient
+from aleph.sdk.client import AlephClient
 from aleph.sdk.conf import settings
 
 
@@ -52,11 +51,11 @@ async def test_message_cache_listener():
     async def mock_message_stream():
         for i in range(3):
             content = PostContent(
-                    content={"hello": f"world{i}"},
-                    type="test",
-                    address=get_fallback_account().get_address(),
-                    time=0,
-                )
+                content={"hello": f"world{i}"},
+                type="test",
+                address=get_fallback_account().get_address(),
+                time=0,
+            )
             message = PostMessage(
                 sender=get_fallback_account().get_address(),
                 item_hash=sha256(json.dumps(content.dict()).encode()).hexdigest(),
@@ -68,6 +67,7 @@ async def test_message_cache_listener():
                 item_content=json.dumps(content.dict()),
             )
             yield message
+
     cache = MessageCache()
     # test listener
     coro = cache.listen_to(mock_message_stream())
