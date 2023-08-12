@@ -71,7 +71,20 @@ class BaseAccount(ABC):
         Returns:
             Dict: Signed message
         """
-        raise NotImplementedError
+        message = self._setup_sender(message)
+        sig = await self.sign_raw(get_verification_buffer(message))
+        message["signature"] = sig.hex()
+        return message
+    
+    async def sign_raw(self, buffer: bytes) -> bytes:
+        """
+        Returns a signed message from a raw buffer.
+        Args:
+            buffer: Buffer to sign
+        Returns:
+            bytes: Signed buffer
+        """
+        
 
     @abstractmethod
     def get_address(self) -> str:

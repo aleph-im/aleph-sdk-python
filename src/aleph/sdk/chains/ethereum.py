@@ -23,16 +23,12 @@ class ETHAccount(BaseAccount):
     def __init__(self, private_key: bytes):
         self.private_key = private_key
         self._account = Account.from_key(self.private_key)
-
-    async def sign_message(self, message: Dict) -> Dict:
-        """Sign a message inplace."""
-        message = self._setup_sender(message)
-
-        msghash = encode_defunct(text=get_verification_buffer(message).decode("utf-8"))
+    
+    async def sign_raw(self, buffer: bytes) -> bytes:
+        """Sign a raw buffer."""
+        msghash = encode_defunct(text=buffer.decode("utf-8"))
         sig = self._account.sign_message(msghash)
-
-        message["signature"] = sig["signature"].hex()
-        return message
+        return sig["signature"]
 
     def get_address(self) -> str:
         return self._account.address
