@@ -11,8 +11,8 @@ from aleph_message.models import (
     PostMessage,
 )
 
-from aleph.sdk.cache import MessageCache
 from aleph.sdk.chains.ethereum import get_fallback_account
+from aleph.sdk.node import MessageCache
 
 
 @pytest.mark.asyncio
