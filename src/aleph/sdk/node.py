@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Any, Dict, Iterable, List, Mapping, Optional, Tuple, Union
 
 from aleph_message.models import AlephMessage, Chain, MessageType
-from aleph_message.models.program import Encoding
+from aleph_message.models.execution.base import Encoding
 from aleph_message.status import MessageStatus
 
 from aleph.sdk import AuthenticatedAlephClient
@@ -60,6 +60,12 @@ class DomainNode(MessageCache, AuthenticatedAlephClientBase):
                 message_type=self.message_type,
             )
         )
+
+    async def __aenter__(self) -> "DomainNode":
+        return self
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        ...
 
     async def synchronize(
         self,

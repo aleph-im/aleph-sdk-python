@@ -9,6 +9,7 @@ from typing import (
     Dict,
     Generic,
     Iterable,
+    Iterator,
     List,
     Optional,
     Type,
@@ -16,17 +17,13 @@ from typing import (
     Union,
 )
 
+import aleph_message.models
 from aleph_message import MessagesResponse
 from aleph_message.models import (
-    AggregateMessage,
     AlephMessage,
-    ForgetMessage,
     ItemHash,
     MessageConfirmation,
     MessageType,
-    PostMessage,
-    ProgramMessage,
-    StoreMessage,
 )
 from peewee import (
     BooleanField,
@@ -107,10 +104,53 @@ class MessageModel(Model):
     tags = JSONField(json_dumps=pydantic_json_dumps, null=True)
     key = CharField(null=True)
     ref = CharField(null=True)
-    post_type = CharField(null=True)
+    content_type = CharField(null=True)
 
     class Meta:
         database = db
+
+
+def message_to_model(message: AlephMessage) -> Dict:
+    return {
+        "item_hash": str(message.item_hash),
+        "chain": message.chain,
+        "type": message.type,
+        "sender": message.sender,
+        "channel": message.channel,
+        "confirmations": message.confirmations[0] if message.confirmations else None,
+        "confirmed": message.confirmed,
+        "signature": message.signature,
+        "size": message.size,
+        "time": message.time,
+        "item_type": message.item_type,
+        "item_content": message.item_content,
+        "hash_type": message.hash_type,
+        "content": message.content,
+        "forgotten_by": message.forgotten_by[0] if message.forgotten_by else None,
+        "tags": message.content.content.get("tags", None)
+        if hasattr(message.content, "content")
+        else None,
+        "key": message.content.key if hasattr(message.content, "key") else None,
+        "ref": message.content.ref if hasattr(message.content, "ref") else None,
+        "content_type": message.content.type
+        if hasattr(message.content, "type")
+        else None,
+    }
+
+
+def model_to_message(item: Any) -> AlephMessage:
+    item.confirmations = [item.confirmations] if item.confirmations else []
+    item.forgotten_by = [item.forgotten_by] if item.forgotten_by else None
+
+    to_exclude = [
+        MessageModel.tags,
+        MessageModel.ref,
+        MessageModel.key,
+        MessageModel.content_type,
+    ]
+
+    item_dict = model_to_dict(item, exclude=to_exclude)
+    return aleph_message.parse_message(item_dict)
 
 
 class MessageCache(AlephClientBase):
@@ -154,7 +194,7 @@ class MessageCache(AlephClientBase):
     def __len__(self):
         return MessageModel.select().count()
 
-    def __iter__(self) -> Iterable[AlephMessage]:
+    def __iter__(self) -> Iterator[AlephMessage]:
         """
         Iterate over all messages in the cache, the latest first.
         """
@@ -415,111 +455,49 @@ class MessageCache(AlephClientBase):
             yield model_to_message(item)
 
 
-def message_to_model(message: AlephMessage) -> Dict:
-    return {
-        "item_hash": str(message.item_hash),
-        "chain": message.chain,
-        "type": message.type,
-        "sender": message.sender,
-        "channel": message.channel,
-        "confirmations": message.confirmations[0] if message.confirmations else None,
-        "confirmed": message.confirmed,
-        "signature": message.signature,
-        "size": message.size,
-        "time": message.time,
-        "item_type": message.item_type,
-        "item_content": message.item_content,
-        "hash_type": message.hash_type,
-        "content": message.content,
-        "forgotten_by": message.forgotten_by[0] if message.forgotten_by else None,
-        "tags": message.content.content.get("tags", None)
-        if hasattr(message.content, "content")
-        else None,
-        "key": message.key if hasattr(message, "key") else None,
-        "ref": message.content.ref if hasattr(message.content, "ref") else None,
-        "post_type": message.content.type if hasattr(message.content, "type") else None,
-    }
-
-
-def model_to_message(item: Any) -> AlephMessage:
-    item.confirmations = [item.confirmations] if item.confirmations else []
-    item.forgotten_by = [item.forgotten_by] if item.forgotten_by else None
-
-    item_dict = model_to_dict(
-        item,
-        exclude=[
-            MessageModel.tags,
-            MessageModel.key,
-            MessageModel.ref,
-            MessageModel.post_type,
-        ],
-    )
-
-    if item.type == MessageType.post.value:
-        return PostMessage.parse_obj(item_dict)
-    elif item.type == MessageType.aggregate.value:
-        return AggregateMessage.parse_obj(item_dict)
-    elif item.type == MessageType.store.value:
-        return StoreMessage.parse_obj(item_dict)
-    elif item.type == MessageType.forget.value:
-        return ForgetMessage.parse_obj(item_dict)
-    elif item.type == MessageType.program.value:
-        return ProgramMessage.parse_obj(item_dict)
-    else:
-        raise ValueError(f"Unknown message type {item.type}")
-
-
-def query_post_types(types):
-    types = list(types)
-    if len(types) == 1:
-        return MessageModel.content_type == types[0]
+def query_post_types(types: Union[str, Iterable[str]]):
+    if isinstance(types, str):
+        return MessageModel.content_type == types
     return MessageModel.content_type.in_(types)
 
 
-def query_content_types(content_types):
-    content_types = list(content_types)
-    if len(content_types) == 1:
-        return MessageModel.content_type == content_types[0]
+def query_content_types(content_types: Union[str, Iterable[str]]):
+    if isinstance(content_types, str):
+        return MessageModel.content_type == content_types
     return MessageModel.content_type.in_(content_types)
 
 
-def query_content_keys(content_keys):
-    content_keys = list(content_keys)
-    if len(content_keys) == 1:
-        return MessageModel.key == content_keys[0]
+def query_content_keys(content_keys: Union[str, Iterable[str]]):
+    if isinstance(content_keys, str):
+        return MessageModel.key == content_keys
     return MessageModel.key.in_(content_keys)
 
 
-def query_refs(refs):
-    refs = list(refs)
-    if len(refs) == 1:
-        return MessageModel.ref == refs[0]
+def query_refs(refs: Union[str, Iterable[str]]):
+    if isinstance(refs, str):
+        return MessageModel.ref == refs
     return MessageModel.ref.in_(refs)
 
 
-def query_addresses(addresses):
-    addresses = list(addresses)
-    if len(addresses) == 1:
-        return MessageModel.sender == addresses[0]
+def query_addresses(addresses: Union[str, Iterable[str]]):
+    if isinstance(addresses, str):
+        return MessageModel.sender == addresses
     return MessageModel.sender.in_(addresses)
 
 
-def query_hashes(hashes):
-    hashes = list(hashes)
-    if len(hashes) == 1:
-        return MessageModel.item_hash == hashes[0]
+def query_hashes(hashes: Union[ItemHash, Iterable[ItemHash]]):
+    if isinstance(hashes, ItemHash):
+        return MessageModel.item_hash == hashes
     return MessageModel.item_hash.in_(hashes)
 
 
-def query_channels(channels):
-    channels = list(channels)
-    if len(channels) == 1:
-        return MessageModel.channel == channels[0]
+def query_channels(channels: Union[str, Iterable[str]]):
+    if isinstance(channels, str):
+        return MessageModel.channel == channels
     return MessageModel.channel.in_(channels)
 
 
-def query_chains(chains):
-    chains = list(chains)
-    if len(chains) == 1:
-        return MessageModel.chain == chains[0]
+def query_chains(chains: Union[str, Iterable[str]]):
+    if isinstance(chains, str):
+        return MessageModel.chain == chains
     return MessageModel.chain.in_(chains)

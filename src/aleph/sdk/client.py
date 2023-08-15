@@ -1163,7 +1163,7 @@ class AuthenticatedAlephClient(AlephClient, AuthenticatedAlephClientBase):
             else:
                 raise ValueError(f"Unknown storage engine: '{storage_engine}'")
 
-        assert file_hash, "File hash should be empty"
+        assert file_hash, "File hash should not be empty"
 
         if magic is None:
             pass

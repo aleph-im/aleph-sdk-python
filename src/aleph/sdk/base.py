@@ -28,6 +28,8 @@ from aleph_message.status import MessageStatus
 
 from aleph.sdk.types import GenericMessage, StorageEnum
 
+DEFAULT_PAGE_SIZE = 200
+
 
 class AlephClientBase(ABC):
     @abstractmethod
@@ -65,7 +67,7 @@ class AlephClientBase(ABC):
     @abstractmethod
     async def get_posts(
         self,
-        pagination: int = 200,
+        pagination: int = DEFAULT_PAGE_SIZE,
         page: int = 1,
         types: Optional[Iterable[str]] = None,
         refs: Optional[Iterable[str]] = None,
@@ -121,7 +123,7 @@ class AlephClientBase(ABC):
         :param end_date: Latest date to fetch messages from
         """
         total_items = None
-        per_page = self.get_posts.__kwdefaults__["pagination"]
+        per_page = DEFAULT_PAGE_SIZE
         page = 1
         while total_items is None or page * per_page < total_items:
             resp = await self.get_posts(
@@ -158,7 +160,7 @@ class AlephClientBase(ABC):
     @abstractmethod
     async def get_messages(
         self,
-        pagination: int = 200,
+        pagination: int = DEFAULT_PAGE_SIZE,
         page: int = 1,
         message_type: Optional[MessageType] = None,
         content_types: Optional[Iterable[str]] = None,
@@ -226,7 +228,7 @@ class AlephClientBase(ABC):
         :param end_date: Latest date to fetch messages from
         """
         total_items = None
-        per_page = self.get_messages.__kwdefaults__["pagination"]
+        per_page = DEFAULT_PAGE_SIZE
         page = 1
         while total_items is None or page * per_page < total_items:
             resp = await self.get_messages(
