@@ -16,6 +16,7 @@ from aleph_message.status import MessageStatus
 from aleph.sdk import AuthenticatedAlephClient
 from aleph.sdk.base import AuthenticatedAlephClientBase
 from aleph.sdk.cache import MessageCache
+from aleph.sdk.conf import settings
 from aleph.sdk.types import StorageEnum
 
 
@@ -107,13 +108,14 @@ class DomainNode(MessageCache, AuthenticatedAlephClientBase):
                 return f.read()
         except FileNotFoundError:
             file = await self.session.download_file(file_hash)
+            self._file_path(file_hash).parent.mkdir(parents=True, exist_ok=True)
             with open(self._file_path(file_hash), "wb") as f:
                 f.write(file)
             return file
 
-    def _file_path(self, file_hash: str) -> Path:
-        # TODO: Make this configurable (and not be an ugly hack)
-        return Path("cache", "files", file_hash)
+    @staticmethod
+    def _file_path(file_hash: str) -> Path:
+        return settings.CACHE_FILES_PATH / Path(file_hash)
 
     async def create_post(
         self,
@@ -271,5 +273,5 @@ class DomainNode(MessageCache, AuthenticatedAlephClientBase):
         )
         # TODO: this can cause inconsistencies if the message is dropped
         if status in [MessageStatus.PROCESSED, MessageStatus.PENDING]:
-            self.add(resp["message"])
+            self.add(resp)
         return resp, status

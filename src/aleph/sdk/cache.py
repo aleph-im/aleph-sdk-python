@@ -290,7 +290,7 @@ class MessageCache(AlephClientBase):
         conditions = []
 
         if types:
-            conditions.append(query_post_types(types))
+            conditions.append(query_message_types(types))
         if refs:
             conditions.append(query_refs(refs))
         if addresses:
@@ -345,7 +345,7 @@ class MessageCache(AlephClientBase):
         conditions = []
 
         if message_type:
-            conditions.append(MessageModel.type == message_type.value)
+            conditions.append(query_message_types(message_type))
         if content_types:
             conditions.append(query_content_types(content_types))
         if content_keys:
@@ -455,10 +455,10 @@ class MessageCache(AlephClientBase):
             yield model_to_message(item)
 
 
-def query_post_types(types: Union[str, Iterable[str]]):
-    if isinstance(types, str):
-        return MessageModel.content_type == types
-    return MessageModel.content_type.in_(types)
+def query_message_types(message_types: Union[str, Iterable[str]]):
+    if isinstance(message_types, str):
+        return MessageModel.type == message_types
+    return MessageModel.type.in_(message_types)
 
 
 def query_content_types(content_types: Union[str, Iterable[str]]):

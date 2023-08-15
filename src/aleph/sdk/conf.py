@@ -44,6 +44,10 @@ class Settings(BaseSettings):
         default=Path(":memory:"),  # can also be :memory: for in-memory caching
         description="Path to the cache database",
     )
+    CACHE_FILES_PATH: Path = Field(
+        default=Path("cache", "files"),
+        description="Path to the cache files",
+    )
 
     class Config:
         env_prefix = "ALEPH_"
