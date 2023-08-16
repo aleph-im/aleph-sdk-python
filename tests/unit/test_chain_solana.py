@@ -27,7 +27,7 @@ def test_get_fallback_account():
         assert account.CHAIN == "SOL"
         assert account.CURVE == "curve25519"
         assert account._signing_key.verify_key
-        assert type(account.private_key) == bytes
+        assert isinstance(account.private_key, bytes)
         assert len(account.private_key) == 32
 
 
@@ -42,12 +42,12 @@ async def test_SOLAccount(solana_account):
 
     address = message["sender"]
     assert address
-    assert type(address) == str
+    assert isinstance(address, str)
     # assert len(address) == 44  # can also be 43?
     signature = json.loads(message["signature"])
 
     pubkey = base58.b58decode(signature["publicKey"])
-    assert type(pubkey) == bytes
+    assert isinstance(pubkey, bytes)
     assert len(pubkey) == 32
 
     verify_key = VerifyKey(pubkey)
@@ -61,7 +61,7 @@ async def test_SOLAccount(solana_account):
     assert message["sender"] == signature["publicKey"]
 
     pubkey = solana_account.get_public_key()
-    assert type(pubkey) == str
+    assert isinstance(pubkey, str)
     assert len(pubkey) == 64
 
 
@@ -71,9 +71,9 @@ async def test_decrypt_curve25516(solana_account):
     content = b"SomeContent"
 
     encrypted = await solana_account.encrypt(content)
-    assert type(encrypted) == bytes
+    assert isinstance(encrypted, bytes)
     decrypted = await solana_account.decrypt(encrypted)
-    assert type(decrypted) == bytes
+    assert isinstance(decrypted, bytes)
     assert content == decrypted
 
 
@@ -90,7 +90,7 @@ async def test_verify_signature(solana_account):
     await solana_account.sign_message(message)
     assert message["signature"]
     raw_signature = json.loads(message["signature"])["signature"]
-    assert type(raw_signature) == str
+    assert isinstance(raw_signature, str)
 
     verify_signature(raw_signature, message["sender"], get_verification_buffer(message))
 

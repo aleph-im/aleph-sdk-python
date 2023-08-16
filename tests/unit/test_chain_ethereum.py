@@ -36,11 +36,11 @@ async def test_ETHAccount(ethereum_account):
 
     address = account.get_address()
     assert address
-    assert type(address) == str
+    assert isinstance(address, str)
     assert len(address) == 42
 
     pubkey = account.get_public_key()
-    assert type(pubkey) == str
+    assert isinstance(pubkey, str)
     assert len(pubkey) == 68
 
 
@@ -111,9 +111,9 @@ async def test_decrypt_secp256k1(ethereum_account):
     content = b"SomeContent"
 
     encrypted = await account.encrypt(content)
-    assert type(encrypted) == bytes
+    assert isinstance(encrypted, bytes)
     decrypted = await account.decrypt(encrypted)
-    assert type(decrypted) == bytes
+    assert isinstance(decrypted, bytes)
     assert content == decrypted
 
 

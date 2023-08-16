@@ -6,6 +6,7 @@ import queue
 import threading
 import time
 from datetime import datetime
+from io import BytesIO
 from pathlib import Path
 from typing import (
     Any,
@@ -23,7 +24,6 @@ from typing import (
     TypeVar,
     Union,
 )
-from io import BytesIO
 
 import aiohttp
 from aleph_message.models import (
@@ -45,17 +45,18 @@ from aleph_message.models import (
 )
 from aleph_message.models.execution.base import Encoding
 from aleph_message.status import MessageStatus
-from pydantic import ValidationError, BaseModel
+from pydantic import ValidationError
 
 from aleph.sdk.types import Account, GenericMessage, StorageEnum
-from aleph.sdk.utils import copy_async_readable_to_buffer, Writable, AsyncReadable
+from aleph.sdk.utils import Writable, copy_async_readable_to_buffer
+
 from .conf import settings
 from .exceptions import (
     BroadcastError,
+    FileTooLarge,
     InvalidMessageError,
     MessageNotFoundError,
     MultipleMessagesError,
-    FileTooLarge,
 )
 from .models import MessagesResponse
 from .utils import check_unix_socket_valid, get_message_type_value
@@ -237,12 +238,24 @@ class UserSessionSync:
             self.async_session.download_file_ipfs,
             file_hash=file_hash,
         )
-    def download_file_to_buffer(self, file_hash: str, output_buffer: Writable[bytes]) -> bytes:
-        return self._wrap(self.async_session.download_file_to_buffer, file_hash=file_hash, output_buffer=output_buffer)
 
-    def download_file_ipfs_to_buffer(self, file_hash: str, output_buffer: Writable[bytes]) -> bytes:
-        return self._wrap(self.async_session.download_file_ipfs_to_buffer, file_hash=file_hash, output_buffer=output_buffer)
+    def download_file_to_buffer(
+        self, file_hash: str, output_buffer: Writable[bytes]
+    ) -> bytes:
+        return self._wrap(
+            self.async_session.download_file_to_buffer,
+            file_hash=file_hash,
+            output_buffer=output_buffer,
+        )
 
+    def download_file_ipfs_to_buffer(
+        self, file_hash: str, output_buffer: Writable[bytes]
+    ) -> bytes:
+        return self._wrap(
+            self.async_session.download_file_ipfs_to_buffer,
+            file_hash=file_hash,
+            output_buffer=output_buffer,
+        )
 
     def watch_messages(
         self,
