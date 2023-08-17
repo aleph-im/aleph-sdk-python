@@ -138,3 +138,13 @@ async def test_verify_signature_wrong_public_key(ethereum_account):
         verify_signature(
             message["signature"], wrong_public_key, get_verification_buffer(message)
         )
+
+
+@pytest.mark.asyncio
+async def test_sign_raw(ethereum_account):
+    buffer = b"SomeBuffer"
+    signature = await ethereum_account.sign_raw(buffer)
+    assert signature
+    assert isinstance(signature, str)
+
+    verify_signature(signature, ethereum_account.get_address(), buffer.decode("utf-8"))
