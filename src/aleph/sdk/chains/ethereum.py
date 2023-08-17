@@ -19,11 +19,11 @@ class ETHAccount(BaseAccount):
         self.private_key = private_key
         self._account = Account.from_key(self.private_key)
 
-    async def sign_raw(self, buffer: bytes) -> str:
+    async def sign_raw(self, buffer: bytes) -> bytes:
         """Sign a raw buffer."""
         msghash = encode_defunct(text=buffer.decode("utf-8"))
         sig = self._account.sign_message(msghash)
-        return sig["signature"].hex()
+        return sig["signature"]
 
     def get_address(self) -> str:
         return self._account.address
@@ -57,13 +57,13 @@ def verify_signature(
     else:
         if signature.startswith(b"0x"):
             signature = signature[2:]
-        signature = bytes.fromhex(signature.decode("utf-8"))
     if isinstance(public_key, bytes):
         public_key = "0x" + public_key.hex()
     if isinstance(message, bytes):
-        message = message.decode("utf-8")
+        message_hash = encode_defunct(primitive=message)
+    else:
+        message_hash = encode_defunct(text=message)
 
-    message_hash = encode_defunct(text=message)
     try:
         address = Account.recover_message(message_hash, signature=signature)
         if address.casefold() != public_key.casefold():

@@ -30,17 +30,18 @@ class SOLAccount(BaseAccount):
         """Sign a message inplace."""
         message = self._setup_sender(message)
         verif = get_verification_buffer(message)
+        signature = await self.sign_raw(verif)
         sig = {
             "publicKey": self.get_address(),
-            "signature": await self.sign_raw(verif),
+            "signature": encode(signature),
         }
         message["signature"] = json.dumps(sig)
         return message
 
-    async def sign_raw(self, buffer: bytes) -> str:
+    async def sign_raw(self, buffer: bytes) -> bytes:
         """Sign a raw buffer."""
         sig = self._signing_key.sign(buffer)
-        return encode(sig.signature)
+        return sig.signature
 
     def get_address(self) -> str:
         return encode(self._signing_key.verify_key)

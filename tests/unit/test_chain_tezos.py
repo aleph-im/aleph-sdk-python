@@ -78,6 +78,6 @@ async def test_sign_raw(tezos_account):
     buffer = b"SomeBuffer"
     signature = await tezos_account.sign_raw(buffer)
     assert signature
-    assert isinstance(signature, str)
+    assert isinstance(signature, bytes)
 
-    verify_signature(signature, tezos_account.get_public_key(), buffer.decode("utf-8"))
+    verify_signature(signature, tezos_account.get_public_key(), buffer)

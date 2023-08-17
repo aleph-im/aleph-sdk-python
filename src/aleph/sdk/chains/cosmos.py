@@ -53,9 +53,10 @@ class CSDKAccount(BaseAccount):
         message = self._setup_sender(message)
         verif = get_verification_string(message)
         base64_pubkey = base64.b64encode(self.get_public_key().encode()).decode("utf-8")
+        signature = await self.sign_raw(verif.encode("utf-8"))
 
         sig = {
-            "signature": self.sign_raw(verif.encode("utf-8")),
+            "signature": signature.decode("utf-8"),
             "pub_key": {"type": "tendermint/PubKeySecp256k1", "value": base64_pubkey},
             "account_number": str(0),
             "sequence": str(0),
@@ -63,14 +64,14 @@ class CSDKAccount(BaseAccount):
         message["signature"] = json.dumps(sig)
         return message
 
-    async def sign_raw(self, buffer: bytes) -> str:
+    async def sign_raw(self, buffer: bytes) -> bytes:
         privkey = ecdsa.SigningKey.from_string(self.private_key, curve=ecdsa.SECP256k1)
         signature_compact = privkey.sign_deterministic(
             buffer,
             hashfunc=hashlib.sha256,
             sigencode=ecdsa.util.sigencode_string_canonize,
         )
-        return base64.b64encode(signature_compact).decode("utf-8")
+        return base64.b64encode(signature_compact)
 
     def get_address(self) -> str:
         return privkey_to_address(self.private_key)

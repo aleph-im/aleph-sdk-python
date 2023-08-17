@@ -77,7 +77,7 @@ class RemoteAccount(BaseAccount):
             response.raise_for_status()
             return await response.json()
 
-    async def sign_raw(self, buffer: bytes) -> str:
+    async def sign_raw(self, buffer: bytes) -> bytes:
         raise NotImplementedError()
 
     def get_address(self) -> str:

@@ -70,12 +70,12 @@ async def test_verify_signature(ethereum_account):
         get_verification_buffer(message),
     )
     verify_signature(
-        bytes(message["signature"], "utf-8"),
+        message["signature"],
         bytes.fromhex(message["sender"][2:]),
         get_verification_buffer(message).decode("utf-8"),
     )
     verify_signature(
-        bytes(message["signature"], "utf-8")[2:],
+        message["signature"],
         message["sender"],
         get_verification_buffer(message),
     )
@@ -145,6 +145,6 @@ async def test_sign_raw(ethereum_account):
     buffer = b"SomeBuffer"
     signature = await ethereum_account.sign_raw(buffer)
     assert signature
-    assert isinstance(signature, str)
+    assert isinstance(signature, bytes)
 
-    verify_signature(signature, ethereum_account.get_address(), buffer.decode("utf-8"))
+    verify_signature(signature, ethereum_account.get_address(), buffer)

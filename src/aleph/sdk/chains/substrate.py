@@ -21,13 +21,13 @@ class DOTAccount(BaseAccount):
     async def sign_message(self, message):
         message = self._setup_sender(message)
         verif = get_verification_buffer(message).decode("utf-8")
-        sig = {"curve": self.CURVE, "data": self._account.sign(verif)}
+        signature = await self.sign_raw(verif.encode("utf-8"))
+        sig = {"curve": self.CURVE, "data": signature.hex()}
         message["signature"] = json.dumps(sig)
         return message
 
-    async def sign_raw(self, buffer: bytes) -> str:
-        sig = self._account.sign(buffer)
-        return sig.hex()
+    async def sign_raw(self, buffer: bytes) -> bytes:
+        return self._account.sign(buffer)
 
     def get_address(self):
         return self._account.ss58_address

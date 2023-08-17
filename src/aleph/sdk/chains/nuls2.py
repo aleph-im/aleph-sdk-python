@@ -1,5 +1,5 @@
 import base64
-from typing import Union
+from typing import Union, Dict
 
 from nuls2.model.data import (
     NETWORKS,
@@ -8,7 +8,7 @@ from nuls2.model.data import (
     sign_recoverable_message,
 )
 
-from .common import BaseAccount, get_fallback_private_key, get_public_key
+from .common import BaseAccount, get_fallback_private_key, get_public_key, get_verification_buffer
 
 
 def get_address(public_key=None, private_key=None, chain_id=1, prefix="NULS"):
@@ -32,9 +32,22 @@ class NULSAccount(BaseAccount):
         else:
             self.prefix = prefix
 
-    async def sign_raw(self, buffer: bytes) -> str:
+    async def sign_message(self, message: Dict) -> Dict:
+        """
+        Returns a signed message from an Aleph message.
+        Args:
+            message: Message to sign
+        Returns:
+            Dict: Signed message
+        """
+        message = self._setup_sender(message)
+        signature = await self.sign_raw(get_verification_buffer(message))
+        message["signature"] = signature.decode()
+        return message
+
+    async def sign_raw(self, buffer: bytes) -> bytes:
         sig = sign_recoverable_message(self.private_key, buffer)
-        return base64.b64encode(sig).decode()
+        return base64.b64encode(sig)
 
     def get_address(self):
         return address_from_hash(

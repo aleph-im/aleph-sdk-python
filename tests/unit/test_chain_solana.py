@@ -126,6 +126,6 @@ async def test_sign_raw(solana_account):
     buffer = b"SomeBuffer"
     signature = await solana_account.sign_raw(buffer)
     assert signature
-    assert isinstance(signature, str)
+    assert isinstance(signature, bytes)
 
-    verify_signature(signature, solana_account.get_address(), buffer.decode("utf-8"))
+    verify_signature(signature, solana_account.get_address(), buffer)
