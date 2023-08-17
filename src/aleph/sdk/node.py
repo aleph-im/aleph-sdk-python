@@ -1,6 +1,7 @@
 import asyncio
 import json
 import logging
+import typing
 from datetime import datetime
 from functools import partial
 from pathlib import Path
@@ -265,7 +266,7 @@ class MessageCache(AlephClientBase):
 
     @staticmethod
     def add(messages: Union[AlephMessage, Iterable[AlephMessage]]):
-        if isinstance(messages, AlephMessage):
+        if isinstance(messages, typing.get_args(AlephMessage)):
             messages = [messages]
 
         data_source = (message_to_model(message) for message in messages)
