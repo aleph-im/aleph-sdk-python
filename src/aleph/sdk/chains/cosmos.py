@@ -74,6 +74,7 @@ class CSDKAccount(BaseAccount):
         return base64.b64encode(signature_compact)
 
     def get_address(self) -> str:
+        # WARNING: Fails with OpenSSL >= 3.2.0 due to deprecation of ripemd160
         return privkey_to_address(self.private_key)
 
     def get_public_key(self) -> str:
