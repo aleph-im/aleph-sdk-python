@@ -1,5 +1,5 @@
 import base64
-from typing import Union, Dict
+from typing import Dict, Union
 
 from nuls2.model.data import (
     NETWORKS,
@@ -8,7 +8,12 @@ from nuls2.model.data import (
     sign_recoverable_message,
 )
 
-from .common import BaseAccount, get_fallback_private_key, get_public_key, get_verification_buffer
+from .common import (
+    BaseAccount,
+    get_fallback_private_key,
+    get_public_key,
+    get_verification_buffer,
+)
 
 
 def get_address(public_key=None, private_key=None, chain_id=1, prefix="NULS"):
