@@ -18,7 +18,7 @@ class Message:
 
 @pytest.mark.ledger_hardware
 @pytest.mark.asyncio
-async def test_LedgerETHAccount():
+async def test_ledger_eth_account():
     account: LedgerETHAccount = get_fallback_account()
 
     address = account.get_address()
