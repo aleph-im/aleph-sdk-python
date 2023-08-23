@@ -22,11 +22,11 @@ class LedgerETHAccount(BaseAccount):
 
     def __init__(self, account: LedgerAccount, device: Dongle):
         """Initialize an aleph.im account instance that relies on a LedgerHQ
-         device and the Ethereum Ledger application for signatures.
+        device and the Ethereum Ledger application for signatures.
 
-         See the static methods `self.from_address(...)` and `self.from_path(...)`
-         for an easier method of instantiation.
-         """
+        See the static methods `self.from_address(...)` and `self.from_path(...)`
+        for an easier method of instantiation.
+        """
         self._account = account
         self._device = device
 
