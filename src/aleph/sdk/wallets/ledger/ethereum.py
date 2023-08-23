@@ -20,14 +20,23 @@ class LedgerETHAccount(BaseAccount):
     _account: LedgerAccount
     _device: Dongle
 
-    def __init__(self, account: LedgerAccount, device: Optional[Dongle]):
+    def __init__(self, account: LedgerAccount, device: Dongle):
+        """Initialize an aleph.im account instance that relies on a LedgerHQ
+         device and the Ethereum Ledger application for signatures.
+
+         See the static methods `self.from_address(...)` and `self.from_path(...)`
+         for an easier method of instantiation.
+         """
         self._account = account
-        self._device = device or init_dongle()
+        self._device = device
 
     @staticmethod
     def from_address(
         address: str, device: Optional[Dongle] = None
     ) -> Optional[LedgerETHAccount]:
+        """Initialize an aleph.im account from a LedgerHQ device from
+        a known wallet address.
+        """
         device = device or init_dongle()
         account = find_account(address=address, dongle=device, count=5)
         return LedgerETHAccount(
@@ -37,6 +46,8 @@ class LedgerETHAccount(BaseAccount):
 
     @staticmethod
     def from_path(path: str, device: Optional[Dongle] = None) -> LedgerETHAccount:
+        """Initialize an aleph.im account from a LedgerHQ device from
+        a known wallet account path."""
         device = device or init_dongle()
         account = get_account_by_path(path_string=path, dongle=device)
         return LedgerETHAccount(
@@ -61,6 +72,9 @@ class LedgerETHAccount(BaseAccount):
         return self._account.address
 
     def get_public_key(self) -> str:
+        """Obtaining the public key is not supported by the ledgereth library
+        we use, and may not be supported by LedgerHQ devices at all.
+        """
         raise NotImplementedError()
 
 

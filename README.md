@@ -43,3 +43,29 @@ or
 ```shell
 $ python setup.py develop
 ```
+
+## Usage with LedgerHQ hardware
+
+The SDK supports signatures using [app-ethereum](https://github.com/LedgerHQ/app-ethereum),
+the Ethereum app for the Ledger hardware wallets.
+
+This has been tested successfully on Linux (amd64). 
+Let us know if it works for you on other operating systems.
+
+Using a Ledger device on Linux requires root access or the setup of udev rules.
+
+### Debian / Ubuntu
+
+Install [ledger-wallets-udev](https://packages.debian.org/bookworm/ledger-wallets-udev).
+
+`sudo apt-get install ledger-wallets-udev`
+
+### On NixOS
+
+Configure `hardware.ledger.enable = true`.
+
+### Other Linux systems
+
+See https://github.com/LedgerHQ/udev-rules
+
+

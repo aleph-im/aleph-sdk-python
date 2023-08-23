@@ -42,6 +42,5 @@ async def test_ledger_eth_account():
             signed["signature"], signed["sender"], get_verification_buffer(signed)
         )
 
-    # Obtaining the public key is not supported (yet ?) on hardware wallets.
     with pytest.raises(NotImplementedError):
         account.get_public_key()
