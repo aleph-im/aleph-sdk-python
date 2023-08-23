@@ -59,7 +59,7 @@ from .exceptions import (
     MessageNotFoundError,
     MultipleMessagesError,
 )
-from .models import MessagesResponse
+from .models import MessagesResponse, PostsResponse
 from .utils import check_unix_socket_valid, get_message_type_value
 
 logger = logging.getLogger(__name__)
@@ -215,7 +215,7 @@ class UserSessionSync:
         chains: Optional[Iterable[str]] = None,
         start_date: Optional[Union[datetime, float]] = None,
         end_date: Optional[Union[datetime, float]] = None,
-    ) -> Dict[str, Dict]:
+    ) -> PostsResponse:
         return self._wrap(
             self.async_session.get_posts,
             pagination=pagination,
@@ -575,7 +575,18 @@ class AlephClient(AlephClientBase):
         chains: Optional[Iterable[str]] = None,
         start_date: Optional[Union[datetime, float]] = None,
         end_date: Optional[Union[datetime, float]] = None,
-    ) -> Dict[str, Dict]:
+        ignore_invalid_messages: bool = True,
+        invalid_messages_log_level: int = logging.NOTSET,
+    ) -> PostsResponse:
+        ignore_invalid_messages = (
+            True if ignore_invalid_messages is None else ignore_invalid_messages
+        )
+        invalid_messages_log_level = (
+            logging.NOTSET
+            if invalid_messages_log_level is None
+            else invalid_messages_log_level
+        )
+
         params: Dict[str, Any] = dict(pagination=pagination, page=page)
 
         if types is not None:
@@ -604,7 +615,36 @@ class AlephClient(AlephClientBase):
 
         async with self.http_session.get("/api/v0/posts.json", params=params) as resp:
             resp.raise_for_status()
-            return await resp.json()
+            response_json = await resp.json()
+            posts_raw = response_json["posts"]
+
+            # All posts may not be valid according to the latest specification in
+            # aleph-message. This allows the user to specify how errors should be handled.
+            posts: List[AlephMessage] = []
+            for post_raw in posts_raw:
+                try:
+                    message = parse_message(post_raw)
+                    posts.append(message)
+                except KeyError as e:
+                    if not ignore_invalid_messages:
+                        raise e
+                    logger.log(
+                        level=invalid_messages_log_level,
+                        msg=f"KeyError: Field '{e.args[0]}' not found",
+                    )
+                except ValidationError as e:
+                    if not ignore_invalid_messages:
+                        raise e
+                    if invalid_messages_log_level:
+                        logger.log(level=invalid_messages_log_level, msg=e)
+
+            return PostsResponse(
+                posts=posts,
+                pagination_page=response_json["pagination_page"],
+                pagination_total=response_json["pagination_total"],
+                pagination_per_page=response_json["pagination_per_page"],
+                pagination_item=response_json["pagination_item"],
+            )
 
     async def download_file_to_buffer(
         self,
@@ -807,6 +847,7 @@ class AlephClient(AlephClientBase):
         self,
         message_type: Optional[MessageType] = None,
         content_types: Optional[Iterable[str]] = None,
+        content_keys: Optional[Iterable[str]] = None,
         refs: Optional[Iterable[str]] = None,
         addresses: Optional[Iterable[str]] = None,
         tags: Optional[Iterable[str]] = None,
@@ -822,6 +863,8 @@ class AlephClient(AlephClientBase):
             params["msgType"] = message_type.value
         if content_types is not None:
             params["contentTypes"] = ",".join(content_types)
+        if content_keys is not None:
+            params["contentKeys"] = ",".join(content_keys)
         if refs is not None:
             params["refs"] = ",".join(refs)
         if addresses is not None:

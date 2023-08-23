@@ -26,6 +26,7 @@ from aleph_message.models import (
 from aleph_message.models.execution.program import Encoding
 from aleph_message.status import MessageStatus
 
+from aleph.sdk.models import PostsResponse
 from aleph.sdk.types import GenericMessage, StorageEnum
 
 DEFAULT_PAGE_SIZE = 200
@@ -78,7 +79,9 @@ class AlephClientBase(ABC):
         chains: Optional[Iterable[str]] = None,
         start_date: Optional[Union[datetime, float]] = None,
         end_date: Optional[Union[datetime, float]] = None,
-    ) -> Dict[str, Dict]:
+        ignore_invalid_messages: bool = True,
+        invalid_messages_log_level: int = logging.NOTSET,
+    ) -> PostsResponse:
         """
         Fetch a list of posts from the network.
 
@@ -93,6 +96,8 @@ class AlephClientBase(ABC):
         :param chains: Chains of the posts to fetch (Default: all chains)
         :param start_date: Earliest date to fetch messages from
         :param end_date: Latest date to fetch messages from
+        :param ignore_invalid_messages: Ignore invalid messages (Default: True)
+        :param invalid_messages_log_level: Log level to use for invalid messages (Default: logging.NOTSET)
         """
         pass
 
@@ -138,9 +143,9 @@ class AlephClientBase(ABC):
                 start_date=start_date,
                 end_date=end_date,
             )
-            total_items = resp["pagination_total"]
+            total_items = resp.pagination_total
             page += 1
-            for post in resp["posts"]:
+            for post in resp.posts:
                 yield post
 
     @abstractmethod
@@ -183,7 +188,7 @@ class AlephClientBase(ABC):
         :param page: Page to fetch, begins at 1 (Default: 1)
         :param message_type: Filter by message type, can be "AGGREGATE", "POST", "PROGRAM", "VM", "STORE" or "FORGET"
         :param content_types: Filter by content type
-        :param content_keys: Filter by content key
+        :param content_keys: Filter by aggregate key
         :param refs: If set, only fetch posts that reference these hashes (in the "refs" field)
         :param addresses: Addresses of the posts to fetch (Default: all addresses)
         :param tags: Tags of the posts to fetch (Default: all tags)
@@ -192,7 +197,7 @@ class AlephClientBase(ABC):
         :param chains: Filter by sender address chain
         :param start_date: Earliest date to fetch messages from
         :param end_date: Latest date to fetch messages from
-        :param ignore_invalid_messages: Ignore invalid messages (Default: False)
+        :param ignore_invalid_messages: Ignore invalid messages (Default: True)
         :param invalid_messages_log_level: Log level to use for invalid messages (Default: logging.NOTSET)
         """
         pass
@@ -271,6 +276,7 @@ class AlephClientBase(ABC):
         self,
         message_type: Optional[MessageType] = None,
         content_types: Optional[Iterable[str]] = None,
+        content_keys: Optional[Iterable[str]] = None,
         refs: Optional[Iterable[str]] = None,
         addresses: Optional[Iterable[str]] = None,
         tags: Optional[Iterable[str]] = None,
@@ -285,6 +291,7 @@ class AlephClientBase(ABC):
 
         :param message_type: Type of message to watch
         :param content_types: Content types to watch
+        :param content_keys: Filter by aggregate key
         :param refs: References to watch
         :param addresses: Addresses to watch
         :param tags: Tags to watch

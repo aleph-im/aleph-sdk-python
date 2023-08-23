@@ -48,6 +48,7 @@ from aleph.sdk import AuthenticatedAlephClient
 from aleph.sdk.base import AlephClientBase, AuthenticatedAlephClientBase
 from aleph.sdk.conf import settings
 from aleph.sdk.exceptions import MessageNotFoundError
+from aleph.sdk.models import PostsResponse
 from aleph.sdk.types import GenericMessage, StorageEnum
 
 db = SqliteDatabase(settings.CACHE_DATABASE_PATH)
@@ -160,52 +161,57 @@ def model_to_message(item: Any) -> AlephMessage:
     return parse_message(item_dict)
 
 
-def query_message_types(message_types: Union[str, Iterable[str]]):
-    if isinstance(message_types, str):
-        return MessageModel.type == message_types
-    return MessageModel.type.in_(message_types)
+def query_field(field_name, field_values: Iterable[str]):
+    field = getattr(MessageModel, field_name)
+    values = list(field_values)
+
+    if len(values) == 1:
+        return field == values[0]
+    return field.in_(values)
 
 
-def query_content_types(content_types: Union[str, Iterable[str]]):
-    if isinstance(content_types, str):
-        return MessageModel.content_type == content_types
-    return MessageModel.content_type.in_(content_types)
+def get_message_query(
+    message_type: Optional[MessageType] = None,
+    content_keys: Optional[Iterable[str]] = None,
+    content_types: Optional[Iterable[str]] = None,
+    refs: Optional[Iterable[str]] = None,
+    addresses: Optional[Iterable[str]] = None,
+    tags: Optional[Iterable[str]] = None,
+    hashes: Optional[Iterable[str]] = None,
+    channels: Optional[Iterable[str]] = None,
+    chains: Optional[Iterable[str]] = None,
+    start_date: Optional[Union[datetime, float]] = None,
+    end_date: Optional[Union[datetime, float]] = None,
+):
+    query = MessageModel.select().order_by(MessageModel.time.desc())
+    conditions = []
+    if message_type:
+        conditions.append(query_field("type", [message_type.value]))
+    if content_keys:
+        conditions.append(query_field("key", content_keys))
+    if content_types:
+        conditions.append(query_field("content_type", content_types))
+    if refs:
+        conditions.append(query_field("ref", refs))
+    if addresses:
+        conditions.append(query_field("sender", addresses))
+    if tags:
+        for tag in tags:
+            conditions.append(MessageModel.tags.contains(tag))
+    if hashes:
+        conditions.append(query_field("item_hash", hashes))
+    if channels:
+        conditions.append(query_field("channel", channels))
+    if chains:
+        conditions.append(query_field("chain", chains))
+    if start_date:
+        conditions.append(MessageModel.time >= start_date)
+    if end_date:
+        conditions.append(MessageModel.time <= end_date)
 
-
-def query_content_keys(content_keys: Union[str, Iterable[str]]):
-    if isinstance(content_keys, str):
-        return MessageModel.key == content_keys
-    return MessageModel.key.in_(content_keys)
-
-
-def query_refs(refs: Union[str, Iterable[str]]):
-    if isinstance(refs, str):
-        return MessageModel.ref == refs
-    return MessageModel.ref.in_(refs)
-
-
-def query_addresses(addresses: Union[str, Iterable[str]]):
-    if isinstance(addresses, str):
-        return MessageModel.sender == addresses
-    return MessageModel.sender.in_(addresses)
-
-
-def query_hashes(hashes: Union[ItemHash, Iterable[ItemHash]]):
-    if isinstance(hashes, ItemHash):
-        return MessageModel.item_hash == hashes
-    return MessageModel.item_hash.in_(hashes)
-
-
-def query_channels(channels: Union[str, Iterable[str]]):
-    if isinstance(channels, str):
-        return MessageModel.channel == channels
-    return MessageModel.channel.in_(channels)
-
-
-def query_chains(chains: Union[str, Iterable[str]]):
-    if isinstance(chains, str):
-        return MessageModel.chain == chains
-    return MessageModel.chain.in_(chains)
+    if conditions:
+        query = query.where(*conditions)
+    return query
 
 
 class MessageCache(AlephClientBase):
@@ -304,27 +310,29 @@ class MessageCache(AlephClientBase):
     async def fetch_aggregate(
         self, address: str, key: str, limit: int = 100
     ) -> Dict[str, Dict]:
-        query = (
+        item = (
             MessageModel.select()
+            .where(MessageModel.type == MessageType.aggregate.value)
             .where(MessageModel.sender == address)
             .where(MessageModel.key == key)
             .order_by(MessageModel.time.desc())
-            .limit(limit)
+            .first()
         )
-        return {item.key: model_to_message(item) for item in list(query)}
+        return item.content["content"]
 
     async def fetch_aggregates(
         self, address: str, keys: Optional[Iterable[str]] = None, limit: int = 100
     ) -> Dict[str, Dict]:
         query = (
             MessageModel.select()
+            .where(MessageModel.type == MessageType.aggregate.value)
             .where(MessageModel.sender == address)
             .order_by(MessageModel.time.desc())
         )
         if keys:
             query = query.where(MessageModel.key.in_(keys))
         query = query.limit(limit)
-        return {item.key: model_to_message(item) for item in list(query)}
+        return {item.key: item.content["content"] for item in list(query)}
 
     async def get_posts(
         self,
@@ -339,41 +347,33 @@ class MessageCache(AlephClientBase):
         chains: Optional[Iterable[str]] = None,
         start_date: Optional[Union[datetime, float]] = None,
         end_date: Optional[Union[datetime, float]] = None,
-    ) -> Dict[str, Dict]:
-        query = (
-            MessageModel.select()
-            .where(MessageModel.type == MessageType.post.value)
-            .order_by(MessageModel.time.desc())
+        ignore_invalid_messages: bool = True,
+        invalid_messages_log_level: int = logging.NOTSET,
+    ) -> PostsResponse:
+        query = get_message_query(
+            message_type=MessageType.post,
+            content_types=types,
+            refs=refs,
+            addresses=addresses,
+            tags=tags,
+            hashes=hashes,
+            channels=channels,
+            chains=chains,
+            start_date=start_date,
+            end_date=end_date,
         )
-
-        conditions = []
-
-        if types:
-            conditions.append(query_message_types(types))
-        if refs:
-            conditions.append(query_refs(refs))
-        if addresses:
-            conditions.append(query_addresses(addresses))
-        if tags:
-            for tag in tags:
-                conditions.append(MessageModel.tags.contains(tag))
-        if hashes:
-            conditions.append(query_hashes(hashes))
-        if channels:
-            conditions.append(query_channels(channels))
-        if chains:
-            conditions.append(query_chains(chains))
-        if start_date:
-            conditions.append(MessageModel.time >= start_date)
-        if end_date:
-            conditions.append(MessageModel.time <= end_date)
-
-        if conditions:
-            query = query.where(*conditions)
 
         query = query.paginate(page, pagination)
 
-        return {item.key: model_to_message(item) for item in list(query)}
+        posts = [model_to_message(item) for item in list(query)]
+
+        return PostsResponse(
+            posts=posts,
+            pagination_page=page,
+            pagination_per_page=pagination,
+            pagination_total=query.count(),
+            pagination_item="posts",
+        )
 
     async def download_file(self, file_hash: str) -> bytes:
         raise NotImplementedError
@@ -399,36 +399,19 @@ class MessageCache(AlephClientBase):
         """
         Get many messages from the cache.
         """
-        query = MessageModel.select().order_by(MessageModel.time.desc())
-
-        conditions = []
-
-        if message_type:
-            conditions.append(query_message_types(message_type))
-        if content_types:
-            conditions.append(query_content_types(content_types))
-        if content_keys:
-            conditions.append(query_content_keys(content_keys))
-        if refs:
-            conditions.append(query_refs(refs))
-        if addresses:
-            conditions.append(query_addresses(addresses))
-        if tags:
-            for tag in tags:
-                conditions.append(MessageModel.tags.contains(tag))
-        if hashes:
-            conditions.append(query_hashes(hashes))
-        if channels:
-            conditions.append(query_channels(channels))
-        if chains:
-            conditions.append(query_chains(chains))
-        if start_date:
-            conditions.append(MessageModel.time >= start_date)
-        if end_date:
-            conditions.append(MessageModel.time <= end_date)
-
-        if conditions:
-            query = query.where(*conditions)
+        query = get_message_query(
+            message_type=message_type,
+            content_keys=content_keys,
+            content_types=content_types,
+            refs=refs,
+            addresses=addresses,
+            tags=tags,
+            hashes=hashes,
+            channels=channels,
+            chains=chains,
+            start_date=start_date,
+            end_date=end_date,
+        )
 
         query = query.paginate(page, pagination)
 
@@ -469,6 +452,7 @@ class MessageCache(AlephClientBase):
         self,
         message_type: Optional[MessageType] = None,
         content_types: Optional[Iterable[str]] = None,
+        content_keys: Optional[Iterable[str]] = None,
         refs: Optional[Iterable[str]] = None,
         addresses: Optional[Iterable[str]] = None,
         tags: Optional[Iterable[str]] = None,
@@ -481,34 +465,19 @@ class MessageCache(AlephClientBase):
         """
         Watch messages from the cache.
         """
-        query = MessageModel.select().order_by(MessageModel.time.desc())
-
-        conditions = []
-
-        if message_type:
-            conditions.append(MessageModel.type == message_type.value)
-        if content_types:
-            conditions.append(query_content_types(content_types))
-        if refs:
-            conditions.append(query_refs(refs))
-        if addresses:
-            conditions.append(query_addresses(addresses))
-        if tags:
-            for tag in tags:
-                conditions.append(MessageModel.tags.contains(tag))
-        if hashes:
-            conditions.append(query_hashes(hashes))
-        if channels:
-            conditions.append(query_channels(channels))
-        if chains:
-            conditions.append(query_chains(chains))
-        if start_date:
-            conditions.append(MessageModel.time >= start_date)
-        if end_date:
-            conditions.append(MessageModel.time <= end_date)
-
-        if conditions:
-            query = query.where(*conditions)
+        query = get_message_query(
+            message_type=message_type,
+            content_keys=content_keys,
+            content_types=content_types,
+            refs=refs,
+            addresses=addresses,
+            tags=tags,
+            hashes=hashes,
+            channels=channels,
+            chains=chains,
+            start_date=start_date,
+            end_date=end_date,
+        )
 
         async for item in query:
             yield model_to_message(item)
