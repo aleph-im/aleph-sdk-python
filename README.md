@@ -49,10 +49,12 @@ $ python setup.py develop
 The SDK supports signatures using [app-ethereum](https://github.com/LedgerHQ/app-ethereum),
 the Ethereum app for the Ledger hardware wallets.
 
-This has been tested successfully on Linux (amd64). 
+This has been tested successfully on Linux (amd64).
 Let us know if it works for you on other operating systems.
 
 Using a Ledger device on Linux requires root access or the setup of udev rules.
+
+Unlocking the device is required before using the relevant SDK functions.
 
 ### Debian / Ubuntu
 
