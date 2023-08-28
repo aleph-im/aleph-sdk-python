@@ -9,7 +9,7 @@ from substrateinterface.utils.ss58 import ss58_decode
 
 from ..conf import settings
 from ..exceptions import BadSignatureError
-from .common import BaseAccount, get_verification_buffer, bytes_from_hex
+from .common import BaseAccount, bytes_from_hex, get_verification_buffer
 
 logger = logging.getLogger(__name__)
 
@@ -85,11 +85,10 @@ def verify_signature(
         message = message.encode()
 
     try:
-        verified = verify(signature, message, public_key)
-        if not verified:
-            # Another attempt with the data wrapped, as discussed in https://github.com/polkadot-js/extension/pull/743
-            verified = verify(signature, b"<Bytes>" + message + b"</Bytes>", public_key)
-        if not verified:
+        # Another attempt with the data wrapped, as discussed in https://github.com/polkadot-js/extension/pull/743
+        if not verify(signature, message, public_key) or verify(
+            signature, b"<Bytes>" + message + b"</Bytes>", public_key
+        ):
             raise BadSignatureError
     except Exception as e:
         raise BadSignatureError from e
