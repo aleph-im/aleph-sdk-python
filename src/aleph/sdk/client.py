@@ -45,7 +45,6 @@ from aleph_message.models import (
 )
 from aleph_message.models.execution.base import Encoding
 from aleph_message.status import MessageStatus
-from pydantic import ValidationError
 
 from aleph.sdk.types import Account, GenericMessage, StorageEnum
 from aleph.sdk.utils import Writable, copy_async_readable_to_buffer
@@ -59,6 +58,7 @@ from .exceptions import (
     MultipleMessagesError,
 )
 from .models import MessagesResponse
+from .query import MessageQuery, MessageQueryFilter
 from .utils import check_unix_socket_valid, get_message_type_value
 
 logger = logging.getLogger(__name__)
@@ -736,96 +736,28 @@ class AlephClient:
     ) -> MessagesResponse:
         """
         Fetch a list of messages from the network.
-
-        :param pagination: Number of items to fetch (Default: 200)
-        :param page: Page to fetch, begins at 1 (Default: 1)
-        :param message_type: Filter by message type, can be "AGGREGATE", "POST", "PROGRAM", "VM", "STORE" or "FORGET"
-        :param content_types: Filter by content type
-        :param content_keys: Filter by content key
-        :param refs: If set, only fetch posts that reference these hashes (in the "refs" field)
-        :param addresses: Addresses of the posts to fetch (Default: all addresses)
-        :param tags: Tags of the posts to fetch (Default: all tags)
-        :param hashes: Specific item_hashes to fetch
-        :param channels: Channels of the posts to fetch (Default: all channels)
-        :param chains: Filter by sender address chain
-        :param start_date: Earliest date to fetch messages from
-        :param end_date: Latest date to fetch messages from
-        :param ignore_invalid_messages: Ignore invalid messages (Default: False)
-        :param invalid_messages_log_level: Log level to use for invalid messages (Default: logging.NOTSET)
         """
-        ignore_invalid_messages = (
-            True if ignore_invalid_messages is None else ignore_invalid_messages
+
+        query_filter = MessageQueryFilter(
+            message_type=message_type,
+            content_types=content_types,
+            content_keys=content_keys,
+            refs=refs,
+            addresses=addresses,
+            tags=tags,
+            hashes=hashes,
+            channels=channels,
+            chains=chains,
+            start_date=start_date,
+            end_date=end_date,
         )
-        invalid_messages_log_level = (
-            logging.NOTSET
-            if invalid_messages_log_level is None
-            else invalid_messages_log_level
-        )
 
-        params: Dict[str, Any] = dict(pagination=pagination, page=page)
-
-        if message_type is not None:
-            params["msgType"] = message_type.value
-        if content_types is not None:
-            params["contentTypes"] = ",".join(content_types)
-        if content_keys is not None:
-            params["contentKeys"] = ",".join(content_keys)
-        if refs is not None:
-            params["refs"] = ",".join(refs)
-        if addresses is not None:
-            params["addresses"] = ",".join(addresses)
-        if tags is not None:
-            params["tags"] = ",".join(tags)
-        if hashes is not None:
-            params["hashes"] = ",".join(hashes)
-        if channels is not None:
-            params["channels"] = ",".join(channels)
-        if chains is not None:
-            params["chains"] = ",".join(chains)
-
-        if start_date is not None:
-            if not isinstance(start_date, float) and hasattr(start_date, "timestamp"):
-                start_date = start_date.timestamp()
-            params["startDate"] = start_date
-        if end_date is not None:
-            if not isinstance(end_date, float) and hasattr(start_date, "timestamp"):
-                end_date = end_date.timestamp()
-            params["endDate"] = end_date
-
-        async with self.http_session.get(
-            "/api/v0/messages.json", params=params
-        ) as resp:
-            resp.raise_for_status()
-            response_json = await resp.json()
-            messages_raw = response_json["messages"]
-
-            # All messages may not be valid according to the latest specification in
-            # aleph-message. This allows the user to specify how errors should be handled.
-            messages: List[AlephMessage] = []
-            for message_raw in messages_raw:
-                try:
-                    message = parse_message(message_raw)
-                    messages.append(message)
-                except KeyError as e:
-                    if not ignore_invalid_messages:
-                        raise e
-                    logger.log(
-                        level=invalid_messages_log_level,
-                        msg=f"KeyError: Field '{e.args[0]}' not found",
-                    )
-                except ValidationError as e:
-                    if not ignore_invalid_messages:
-                        raise e
-                    if invalid_messages_log_level:
-                        logger.log(level=invalid_messages_log_level, msg=e)
-
-            return MessagesResponse(
-                messages=messages,
-                pagination_page=response_json["pagination_page"],
-                pagination_total=response_json["pagination_total"],
-                pagination_per_page=response_json["pagination_per_page"],
-                pagination_item=response_json["pagination_item"],
-            )
+        return await MessageQuery(
+            query_filter=query_filter,
+            http_client_session=self.http_session,
+            ignore_invalid_messages=ignore_invalid_messages,
+            invalid_messages_log_level=invalid_messages_log_level,
+        ).fetch(page=page, pagination=pagination)
 
     async def get_message(
         self,
