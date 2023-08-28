@@ -7,7 +7,7 @@ from eth_account.signers.local import LocalAccount
 from eth_keys.exceptions import BadSignature as EthBadSignatureError
 
 from ..exceptions import BadSignatureError
-from .common import BaseAccount, get_fallback_private_key, get_public_key
+from .common import BaseAccount, get_fallback_private_key, get_public_key, bytes_from_hex
 
 
 class ETHAccount(BaseAccount):
@@ -51,12 +51,7 @@ def verify_signature(
         BadSignatureError: If the signature is invalid.
     """
     if isinstance(signature, str):
-        if signature.startswith("0x"):
-            signature = signature[2:]
-        signature = bytes.fromhex(signature)
-    else:
-        if signature.startswith(b"0x"):
-            signature = signature[2:]
+        signature = bytes_from_hex(signature)
     if isinstance(public_key, bytes):
         public_key = "0x" + public_key.hex()
     if isinstance(message, bytes):

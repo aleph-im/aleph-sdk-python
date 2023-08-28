@@ -9,7 +9,7 @@ from substrateinterface.utils.ss58 import ss58_decode
 
 from ..conf import settings
 from ..exceptions import BadSignatureError
-from .common import BaseAccount, get_verification_buffer
+from .common import BaseAccount, get_verification_buffer, bytes_from_hex
 
 logger = logging.getLogger(__name__)
 
@@ -78,13 +78,9 @@ def verify_signature(
     message: Union[bytes, str],
 ) -> None:
     if isinstance(signature, str):
-        if signature.startswith("0x"):
-            signature = signature[2:]
-        signature = bytes.fromhex(signature)
+        signature = bytes_from_hex(signature)
     if isinstance(public_key, str):
-        if public_key.startswith("0x"):
-            public_key = public_key[2:]
-        public_key = bytes.fromhex(public_key)
+        public_key = bytes_from_hex(public_key)
     if isinstance(message, str):
         message = message.encode()
 
