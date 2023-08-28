@@ -39,6 +39,8 @@ class LedgerETHAccount(BaseAccount):
         """
         device = device or init_dongle()
         account = find_account(address=address, dongle=device, count=5)
+        if not account:
+            return None
         return LedgerETHAccount(
             account=account,
             device=device,
