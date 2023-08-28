@@ -38,10 +38,16 @@ class LedgerETHAccount(BaseAccount):
         a known wallet address.
         """
         device = device or init_dongle()
-        account = find_account(address=address, dongle=device, count=5)
-        return LedgerETHAccount(
-            account=account,
-            device=device,
+        account: Optional[LedgerAccount] = find_account(
+            address=address, dongle=device, count=5
+        )
+        return (
+            LedgerETHAccount(
+                account=account,
+                device=device,
+            )
+            if account
+            else None
         )
 
     @staticmethod
@@ -49,7 +55,7 @@ class LedgerETHAccount(BaseAccount):
         """Initialize an aleph.im account from a LedgerHQ device from
         a known wallet account path."""
         device = device or init_dongle()
-        account = get_account_by_path(path_string=path, dongle=device)
+        account: LedgerAccount = get_account_by_path(path_string=path, dongle=device)
         return LedgerETHAccount(
             account=account,
             device=device,
