@@ -51,6 +51,7 @@ from pydantic import ValidationError
 from aleph.sdk.types import Account, GenericMessage, StorageEnum
 from aleph.sdk.utils import Writable, copy_async_readable_to_buffer
 
+from .base import AlephClientBase, AuthenticatedAlephClientBase
 from .conf import settings
 from .exceptions import (
     BroadcastError,
@@ -59,7 +60,7 @@ from .exceptions import (
     MessageNotFoundError,
     MultipleMessagesError,
 )
-from .models import MessagesResponse
+from .models import MessagesResponse, PostsResponse
 from .utils import check_unix_socket_valid, get_message_type_value
 
 logger = logging.getLogger(__name__)
@@ -215,7 +216,7 @@ class UserSessionSync:
         chains: Optional[Iterable[str]] = None,
         start_date: Optional[Union[datetime, float]] = None,
         end_date: Optional[Union[datetime, float]] = None,
-    ) -> Dict[str, Dict]:
+    ) -> PostsResponse:
         return self._wrap(
             self.async_session.get_posts,
             pagination=pagination,
@@ -469,7 +470,7 @@ class AuthenticatedUserSessionSync(UserSessionSync):
         )
 
 
-class AlephClient:
+class AlephClient(AlephClientBase):
     api_server: str
     http_session: aiohttp.ClientSession
 
@@ -530,14 +531,6 @@ class AlephClient:
         key: str,
         limit: int = 100,
     ) -> Dict[str, Dict]:
-        """
-        Fetch a value from the aggregate store by owner address and item key.
-
-        :param address: Address of the owner of the aggregate
-        :param key: Key of the aggregate
-        :param limit: Maximum number of items to fetch (Default: 100)
-        """
-
         params: Dict[str, Any] = {"keys": key}
         if limit:
             params["limit"] = limit
@@ -555,14 +548,6 @@ class AlephClient:
         keys: Optional[Iterable[str]] = None,
         limit: int = 100,
     ) -> Dict[str, Dict]:
-        """
-        Fetch key-value pairs from the aggregate store by owner address.
-
-        :param address: Address of the owner of the aggregate
-        :param keys: Keys of the aggregates to fetch (Default: all items)
-        :param limit: Maximum number of items to fetch (Default: 100)
-        """
-
         keys_str = ",".join(keys) if keys else ""
         params: Dict[str, Any] = {}
         if keys_str:
@@ -591,22 +576,17 @@ class AlephClient:
         chains: Optional[Iterable[str]] = None,
         start_date: Optional[Union[datetime, float]] = None,
         end_date: Optional[Union[datetime, float]] = None,
-    ) -> Dict[str, Dict]:
-        """
-        Fetch a list of posts from the network.
-
-        :param pagination: Number of items to fetch (Default: 200)
-        :param page: Page to fetch, begins at 1 (Default: 1)
-        :param types: Types of posts to fetch (Default: all types)
-        :param refs: If set, only fetch posts that reference these hashes (in the "refs" field)
-        :param addresses: Addresses of the posts to fetch (Default: all addresses)
-        :param tags: Tags of the posts to fetch (Default: all tags)
-        :param hashes: Specific item_hashes to fetch
-        :param channels: Channels of the posts to fetch (Default: all channels)
-        :param chains: Chains of the posts to fetch (Default: all chains)
-        :param start_date: Earliest date to fetch messages from
-        :param end_date: Latest date to fetch messages from
-        """
+        ignore_invalid_messages: bool = True,
+        invalid_messages_log_level: int = logging.NOTSET,
+    ) -> PostsResponse:
+        ignore_invalid_messages = (
+            True if ignore_invalid_messages is None else ignore_invalid_messages
+        )
+        invalid_messages_log_level = (
+            logging.NOTSET
+            if invalid_messages_log_level is None
+            else invalid_messages_log_level
+        )
 
         params: Dict[str, Any] = dict(pagination=pagination, page=page)
 
@@ -636,7 +616,36 @@ class AlephClient:
 
         async with self.http_session.get("/api/v0/posts.json", params=params) as resp:
             resp.raise_for_status()
-            return await resp.json()
+            response_json = await resp.json()
+            posts_raw = response_json["posts"]
+
+            # All posts may not be valid according to the latest specification in
+            # aleph-message. This allows the user to specify how errors should be handled.
+            posts: List[AlephMessage] = []
+            for post_raw in posts_raw:
+                try:
+                    message = parse_message(post_raw)
+                    posts.append(message)
+                except KeyError as e:
+                    if not ignore_invalid_messages:
+                        raise e
+                    logger.log(
+                        level=invalid_messages_log_level,
+                        msg=f"KeyError: Field '{e.args[0]}' not found",
+                    )
+                except ValidationError as e:
+                    if not ignore_invalid_messages:
+                        raise e
+                    if invalid_messages_log_level:
+                        logger.log(level=invalid_messages_log_level, msg=e)
+
+            return PostsResponse(
+                posts=posts,
+                pagination_page=response_json["pagination_page"],
+                pagination_total=response_json["pagination_total"],
+                pagination_per_page=response_json["pagination_per_page"],
+                pagination_item=response_json["pagination_item"],
+            )
 
     async def download_file_to_buffer(
         self,
@@ -736,26 +745,6 @@ class AlephClient:
         ignore_invalid_messages: bool = True,
         invalid_messages_log_level: int = logging.NOTSET,
     ) -> MessagesResponse:
-        """
-        Fetch a list of messages from the network.
-
-        :param pagination: Number of items to fetch (Default: 200)
-        :param page: Page to fetch, begins at 1 (Default: 1)
-        :param message_type: [DEPRECATED] Filter by message type, can be "AGGREGATE", "POST", "PROGRAM", "VM", "STORE" or "FORGET"
-        :param message_types: Filter by message types, can be any combination of "AGGREGATE", "POST", "PROGRAM", "VM", "STORE" or "FORGET"
-        :param content_types: Filter by content type
-        :param content_keys: Filter by content key
-        :param refs: If set, only fetch posts that reference these hashes (in the "refs" field)
-        :param addresses: Addresses of the posts to fetch (Default: all addresses)
-        :param tags: Tags of the posts to fetch (Default: all tags)
-        :param hashes: Specific item_hashes to fetch
-        :param channels: Channels of the posts to fetch (Default: all channels)
-        :param chains: Filter by sender address chain
-        :param start_date: Earliest date to fetch messages from
-        :param end_date: Latest date to fetch messages from
-        :param ignore_invalid_messages: Ignore invalid messages (Default: False)
-        :param invalid_messages_log_level: Log level to use for invalid messages (Default: logging.NOTSET)
-        """
         ignore_invalid_messages = (
             True if ignore_invalid_messages is None else ignore_invalid_messages
         )
@@ -842,13 +831,6 @@ class AlephClient:
         message_type: Optional[Type[GenericMessage]] = None,
         channel: Optional[str] = None,
     ) -> GenericMessage:
-        """
-        Get a single message from its `item_hash` and perform some basic validation.
-
-        :param item_hash: Hash of the message to fetch
-        :param message_type: Type of message to fetch
-        :param channel: Channel of the message to fetch
-        """
         messages_response = await self.get_messages(
             hashes=[item_hash],
             channels=[channel] if channel else None,
@@ -874,6 +856,7 @@ class AlephClient:
         message_type: Optional[MessageType] = None,
         message_types: Optional[Iterable[MessageType]] = None,
         content_types: Optional[Iterable[str]] = None,
+        content_keys: Optional[Iterable[str]] = None,
         refs: Optional[Iterable[str]] = None,
         addresses: Optional[Iterable[str]] = None,
         tags: Optional[Iterable[str]] = None,
@@ -883,21 +866,6 @@ class AlephClient:
         start_date: Optional[Union[datetime, float]] = None,
         end_date: Optional[Union[datetime, float]] = None,
     ) -> AsyncIterable[AlephMessage]:
-        """
-        Iterate over current and future matching messages asynchronously.
-
-        :param message_type: [DEPRECATED] Type of message to watch
-        :param message_types: Types of messages to watch
-        :param content_types: Content types to watch
-        :param refs: References to watch
-        :param addresses: Addresses to watch
-        :param tags: Tags to watch
-        :param hashes: Hashes to watch
-        :param channels: Channels to watch
-        :param chains: Chains to watch
-        :param start_date: Start date from when to watch
-        :param end_date: End date until when to watch
-        """
         params: Dict[str, Any] = dict()
 
         if message_type is not None:
@@ -910,6 +878,8 @@ class AlephClient:
             params["msgTypes"] = ",".join([t.value for t in message_types])
         if content_types is not None:
             params["contentTypes"] = ",".join(content_types)
+        if content_keys is not None:
+            params["contentKeys"] = ",".join(content_keys)
         if refs is not None:
             params["refs"] = ",".join(refs)
         if addresses is not None:
@@ -948,7 +918,7 @@ class AlephClient:
                     break
 
 
-class AuthenticatedAlephClient(AlephClient):
+class AuthenticatedAlephClient(AlephClient, AuthenticatedAlephClientBase):
     account: Account
 
     BROADCAST_MESSAGE_FIELDS = {
@@ -986,8 +956,11 @@ class AuthenticatedAlephClient(AlephClient):
         return self
 
     async def ipfs_push(self, content: Mapping) -> str:
-        """Push arbitrary content as JSON to the IPFS service."""
+        """
+        Push arbitrary content as JSON to the IPFS service.
 
+        :param content: The dict-like content to upload
+        """
         url = "/api/v0/ipfs/add_json"
         logger.debug(f"Pushing to IPFS on {url}")
 
@@ -996,8 +969,11 @@ class AuthenticatedAlephClient(AlephClient):
             return (await resp.json()).get("hash")
 
     async def storage_push(self, content: Mapping) -> str:
-        """Push arbitrary content as JSON to the storage service."""
+        """
+        Push arbitrary content as JSON to the storage service.
 
+        :param content: The dict-like content to upload
+        """
         url = "/api/v0/storage/add_json"
         logger.debug(f"Pushing to storage on {url}")
 
@@ -1006,7 +982,11 @@ class AuthenticatedAlephClient(AlephClient):
             return (await resp.json()).get("hash")
 
     async def ipfs_push_file(self, file_content: Union[str, bytes]) -> str:
-        """Push a file to the IPFS service."""
+        """
+        Push a file to the IPFS service.
+
+        :param file_content: The file content to upload
+        """
         data = aiohttp.FormData()
         data.add_field("file", file_content)
 
@@ -1018,7 +998,9 @@ class AuthenticatedAlephClient(AlephClient):
             return (await resp.json()).get("hash")
 
     async def storage_push_file(self, file_content) -> str:
-        """Push a file to the storage service."""
+        """
+        Push a file to the storage service.
+        """
         data = aiohttp.FormData()
         data.add_field("file", file_content)
 
@@ -1161,18 +1143,6 @@ class AuthenticatedAlephClient(AlephClient):
         storage_engine: StorageEnum = StorageEnum.storage,
         sync: bool = False,
     ) -> Tuple[PostMessage, MessageStatus]:
-        """
-        Create a POST message on the Aleph network. It is associated with a channel and owned by an account.
-
-        :param post_content: The content of the message
-        :param post_type: An arbitrary content type that helps to describe the post_content
-        :param ref: A reference to a previous message that it replaces
-        :param address: The address that will be displayed as the author of the message
-        :param channel: The channel that the message will be posted on
-        :param inline: An optional flag to indicate if the content should be inlined in the message or not
-        :param storage_engine: An optional storage engine to use for the message, if not inlined (Default: "storage")
-        :param sync: If true, waits for the message to be processed by the API server (Default: False)
-        """
         address = address or settings.ADDRESS_TO_USE or self.account.get_address()
 
         content = PostContent(
@@ -1201,16 +1171,6 @@ class AuthenticatedAlephClient(AlephClient):
         inline: bool = True,
         sync: bool = False,
     ) -> Tuple[AggregateMessage, MessageStatus]:
-        """
-        Create an AGGREGATE message. It is meant to be used as a quick access storage associated with an account.
-
-        :param key: Key to use to store the content
-        :param content: Content to store
-        :param address: Address to use to sign the message
-        :param channel: Channel to use (Default: "TEST")
-        :param inline: Whether to write content inside the message (Default: True)
-        :param sync: If true, waits for the message to be processed by the API server (Default: False)
-        """
         address = address or settings.ADDRESS_TO_USE or self.account.get_address()
 
         content_ = AggregateContent(
@@ -1241,22 +1201,6 @@ class AuthenticatedAlephClient(AlephClient):
         channel: Optional[str] = None,
         sync: bool = False,
     ) -> Tuple[StoreMessage, MessageStatus]:
-        """
-        Create a STORE message to store a file on the Aleph network.
-
-        Can be passed either a file path, an IPFS hash or the file's content as raw bytes.
-
-        :param address: Address to display as the author of the message (Default: account.get_address())
-        :param file_content: Byte stream of the file to store (Default: None)
-        :param file_path: Path to the file to store (Default: None)
-        :param file_hash: Hash of the file to store (Default: None)
-        :param guess_mime_type: Guess the MIME type of the file (Default: False)
-        :param ref: Reference to a previous message (Default: None)
-        :param storage_engine: Storage engine to use (Default: "storage")
-        :param extra_fields: Extra fields to add to the STORE message (Default: None)
-        :param channel: Channel to post the message to (Default: "TEST")
-        :param sync: If true, waits for the message to be processed by the API server (Default: False)
-        """
         address = address or settings.ADDRESS_TO_USE or self.account.get_address()
 
         extra_fields = extra_fields or {}
@@ -1277,7 +1221,7 @@ class AuthenticatedAlephClient(AlephClient):
             else:
                 raise ValueError(f"Unknown storage engine: '{storage_engine}'")
 
-        assert file_hash, "File hash should be empty"
+        assert file_hash, "File hash should not be empty"
 
         if magic is None:
             pass
@@ -1325,25 +1269,6 @@ class AuthenticatedAlephClient(AlephClient):
         subscriptions: Optional[List[Mapping]] = None,
         metadata: Optional[Mapping[str, Any]] = None,
     ) -> Tuple[ProgramMessage, MessageStatus]:
-        """
-        Post a (create) PROGRAM message.
-
-        :param program_ref: Reference to the program to run
-        :param entrypoint: Entrypoint to run
-        :param runtime: Runtime to use
-        :param environment_variables: Environment variables to pass to the program
-        :param storage_engine: Storage engine to use (Default: "storage")
-        :param channel: Channel to use (Default: "TEST")
-        :param address: Address to use (Default: account.get_address())
-        :param sync: If true, waits for the message to be processed by the API server
-        :param memory: Memory in MB for the VM to be allocated (Default: 128)
-        :param vcpus: Number of vCPUs to allocate (Default: 1)
-        :param timeout_seconds: Timeout in seconds (Default: 30.0)
-        :param persistent: Whether the program should be persistent or not (Default: False)
-        :param encoding: Encoding to use (Default: Encoding.zip)
-        :param volumes: Volumes to mount
-        :param subscriptions: Patterns of Aleph messages to forward to the program's event receiver
-        """
         address = address or settings.ADDRESS_TO_USE or self.account.get_address()
 
         volumes = volumes if volumes is not None else []
@@ -1421,19 +1346,6 @@ class AuthenticatedAlephClient(AlephClient):
         address: Optional[str] = None,
         sync: bool = False,
     ) -> Tuple[ForgetMessage, MessageStatus]:
-        """
-        Post a FORGET message to remove previous messages from the network.
-
-        Targeted messages need to be signed by the same account that is attempting to forget them,
-        if the creating address did not delegate the access rights to the forgetting account.
-
-        :param hashes: Hashes of the messages to forget
-        :param reason: Reason for forgetting the messages
-        :param storage_engine: Storage engine to use (Default: "storage")
-        :param channel: Channel to use (Default: "TEST")
-        :param address: Address to use (Default: account.get_address())
-        :param sync: If true, waits for the message to be processed by the API server (Default: False)
-        """
         address = address or settings.ADDRESS_TO_USE or self.account.get_address()
 
         content = ForgetContent(
