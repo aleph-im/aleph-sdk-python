@@ -9,7 +9,7 @@ from ledgereth.comms import init_dongle
 from ledgereth.messages import sign_message
 from ledgereth.objects import LedgerAccount, SignedMessage
 
-from ...chains.common import BaseAccount, get_verification_buffer
+from ...chains.common import BaseAccount, bytes_from_hex, get_verification_buffer
 
 
 class LedgerETHAccount(BaseAccount):
@@ -73,6 +73,12 @@ class LedgerETHAccount(BaseAccount):
 
         message["signature"] = signature
         return message
+
+    async def sign_raw(self, buffer: bytes) -> bytes:
+        """Sign a raw buffer."""
+        sig: SignedMessage = sign_message(buffer, dongle=self._device)
+        signature: HexStr = sig.signature
+        return bytes_from_hex(signature)
 
     def get_address(self) -> str:
         return self._account.address
