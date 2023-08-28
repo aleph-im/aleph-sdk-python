@@ -1,5 +1,4 @@
 import pytest
-import asyncio
 
 from aleph.sdk.domain import AlephDNS
 from aleph.sdk.exceptions import DomainConfigurationError
@@ -36,7 +35,7 @@ async def test_dnslink():
 @pytest.mark.asyncio
 async def test_configured_domain():
     alephdns = AlephDNS()
-    url = 'https://custom-domain-unit-test.aleph.sh'
+    url = "https://custom-domain-unit-test.aleph.sh"
     status = await alephdns.check_domain(url, "ipfs", "0xfakeaddress")
     assert type(status) is dict
 
@@ -44,7 +43,6 @@ async def test_configured_domain():
 @pytest.mark.asyncio
 async def test_not_configured_domain():
     alephdns = AlephDNS()
-    url = 'https://not-configured-domain.aleph.sh'
+    url = "https://not-configured-domain.aleph.sh"
     with pytest.raises(DomainConfigurationError):
-        status = await alephdns.check_domain(url, "ipfs", "0xfakeaddress")
-
+        await alephdns.check_domain(url, "ipfs", "0xfakeaddress")

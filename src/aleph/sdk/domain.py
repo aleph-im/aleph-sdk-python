@@ -1,8 +1,11 @@
-import aiodns
 import re
-from .conf import settings
 from typing import Optional
+
+import aiodns
+
 from aleph.sdk.exceptions import DomainConfigurationError
+
+from .conf import settings
 
 
 class AlephDNS:
@@ -42,13 +45,10 @@ class AlephDNS:
         except Exception as error:
             raise DomainConfigurationError(error)
 
-    async def check_domain(
-        self, url: str, target: str, owner: Optional[str] = None
-    ):
+    async def check_domain(self, url: str, target: str, owner: Optional[str] = None):
         status = {"cname": False, "owner_proof": False}
 
         target = target.lower()
-        domain = self.url_to_domain(url)
 
         dns_rules = self.get_required_dns_rules(url, target, owner)
 
@@ -68,12 +68,16 @@ class AlephDNS:
                     if hasattr(_res, "text") and _res.text == record_value:
                         found = True
 
-                if found == False:
+                if not found:
                     raise DomainConfigurationError(
                         (dns_rule["info"], dns_rule["on_error"], status)
                     )
 
-            elif res is None or not hasattr(res, record_type) or getattr(res, record_type) != record_value:
+            elif (
+                res is None
+                or not hasattr(res, record_type)
+                or getattr(res, record_type) != record_value
+            ):
                 raise DomainConfigurationError(
                     (dns_rule["info"], dns_rule["on_error"], status)
                 )
@@ -95,41 +99,43 @@ class AlephDNS:
             cname_value = f"{domain}.{settings.DNS_INSTANCE_DOMAIN}"
 
         # cname rule
-        dns_rules.append({
-            "rule_name": "cname",
-            "dns": {
-                "type": "cname",
-                "name": domain,
-                "value": cname_value
-            },
-            "info": f"Create a CNAME record for {domain} with value {cname_value}",
-            "on_error": f"CNAME record not found: {domain}"
-        })
+        dns_rules.append(
+            {
+                "rule_name": "cname",
+                "dns": {"type": "cname", "name": domain, "value": cname_value},
+                "info": f"Create a CNAME record for {domain} with value {cname_value}",
+                "on_error": f"CNAME record not found: {domain}",
+            }
+        )
 
         if target == "ipfs":
             # ipfs rule
-            dns_rules.append({
-                "rule_name": "delegation",
-                "dns": {
-                    "type": "cname",
-                    "name": f"_dnslink.{domain}",
-                    "value": f"_dnslink.{domain}.{settings.DNS_ROOT_DOMAIN}"
-                },
-                "info": f"Create a CNAME record for _dnslink.{domain} with value _dnslink.{domain}.{settings.DNS_ROOT_DOMAIN}",
-                "on_error": f"CNAME record not found: _dnslink.{domain}"
-            })
+            dns_rules.append(
+                {
+                    "rule_name": "delegation",
+                    "dns": {
+                        "type": "cname",
+                        "name": f"_dnslink.{domain}",
+                        "value": f"_dnslink.{domain}.{settings.DNS_ROOT_DOMAIN}",
+                    },
+                    "info": f"Create a CNAME record for _dnslink.{domain} with value _dnslink.{domain}.{settings.DNS_ROOT_DOMAIN}",
+                    "on_error": f"CNAME record not found: _dnslink.{domain}",
+                }
+            )
 
         if owner:
             # ownership rule
-            dns_rules.append({
-                "rule_name": "owner_proof",
-                "dns": {
-                    "type": "txt",
-                    "name": f"_control.{domain}",
-                    "value": owner
-                },
-                "info": f"Create a TXT record for _control.{domain} with value = owner address",
-                "on_error": f"Owner address mismatch"
-            })
+            dns_rules.append(
+                {
+                    "rule_name": "owner_proof",
+                    "dns": {
+                        "type": "txt",
+                        "name": f"_control.{domain}",
+                        "value": owner,
+                    },
+                    "info": f"Create a TXT record for _control.{domain} with value = owner address",
+                    "on_error": "Owner address mismatch",
+                }
+            )
 
         return dns_rules
