@@ -1,4 +1,6 @@
 import asyncio
+from pathlib import Path
+from typing import Optional, Literal
 
 import click
 from aleph_message.models import StoreMessage
@@ -8,8 +10,11 @@ from aleph.sdk.chains.common import get_fallback_private_key
 from aleph.sdk.chains.ethereum import ETHAccount
 from aleph.sdk.client import AuthenticatedAlephHttpClient
 from aleph.sdk.conf import settings
+from aleph.sdk.types import Account, StorageEnum
+from aleph_message.utils import Mebibytes
 
 DEFAULT_SERVER = "https://api2.aleph.im"
+MiB = 2**20
 
 
 async def print_output_hash(message: StoreMessage, status: MessageStatus):
@@ -22,8 +27,14 @@ async def print_output_hash(message: StoreMessage, status: MessageStatus):
     )
 
 
-async def do_upload(account, engine, channel, filename=None, file_hash=None):
-    async with AuthenticatedAlephHttpClient(
+async def do_upload(
+    account: Account,
+    engine: Literal["STORAGE", "IPFS"],
+    channel: Optional[str] = None,
+    filename: Optional[str] = None,
+    file_hash: Optional[str] = None,
+):
+    async with AuthenticatedAlephClient(
         account=account, api_server=settings.API_HOST
     ) as session:
         print(filename, account.get_address())
@@ -38,7 +49,7 @@ async def do_upload(account, engine, channel, filename=None, file_hash=None):
                     message, status = await session.create_store(
                         file_content=content,
                         channel=channel,
-                        storage_engine=engine.lower(),
+                        storage_engine=StorageEnum(engine.lower()),
                     )
             except IOError:
                 print("File not accessible")
@@ -48,7 +59,7 @@ async def do_upload(account, engine, channel, filename=None, file_hash=None):
             message, status = await session.create_store(
                 file_hash=file_hash,
                 channel=channel,
-                storage_engine=engine.lower(),
+                storage_engine=StorageEnum(engine.lower()),
             )
 
         await print_output_hash(message, status)
@@ -76,7 +87,12 @@ async def do_upload(account, engine, channel, filename=None, file_hash=None):
     default="TEST",
     help="Channel to write in (default: TEST)",
 )
-def main(filename, pkey=None, storage_engine="IPFS", channel="TEST"):
+def main(
+    filename,
+    pkey=None,
+    storage_engine: Literal["IPFS", "STORAGE"] = "IPFS",
+    channel="TEST",
+):
     """Uploads or store FILENAME.
 
     If FILENAME is an IPFS multihash and IPFS is selected as an engine (default), don't try to upload, just pin it to the network.
