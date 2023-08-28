@@ -107,10 +107,10 @@ async def test_forget_a_forget_message(fixture_account):
         account=fixture_account, api_server=TARGET_NODE
     ) as session:
         get_post_response = await session.get_posts(hashes=[post_hash])
-        assert len(get_post_response["posts"]) == 1
-        post = get_post_response["posts"][0]
+        assert len(get_post_response.posts) == 1
+        post = get_post_response.posts[0]
 
-        forget_message_hash = post["forgotten_by"][0]
+        forget_message_hash = post.forgotten_by[0]
         forget_message, forget_status = await session.forget(
             hashes=[forget_message_hash],
             reason="I want to remember this post. Maybe I can forget I forgot it?",
