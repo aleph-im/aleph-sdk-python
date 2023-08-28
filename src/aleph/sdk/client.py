@@ -1004,6 +1004,31 @@ class AuthenticatedAlephClient(AlephClient, BaseAuthenticatedAlephClient):
             resp.raise_for_status()
             return (await resp.json()).get("hash")
 
+    async def storage_push_file_with_message(self, file_content, content) -> str:
+        """Push a file to the storage service."""
+        data = aiohttp.FormData()
+        data.add_field("file", file_content)
+        message_dict = await self._prepare_aleph_message_dict(
+            message_type=MessageType.store,
+            content=content,
+            channel="test",
+            storage_engine=StorageEnum.storage,
+        )
+        metadata = {
+            "message": message_dict,
+            "file_size": len(file_content),
+            "sync": True,
+        }
+        data.add_field(
+            "metadata", json.dumps(metadata), content_type="application/json"
+        )
+        url = "/api/v0/storage/add_file"
+        logger.debug(f"Posting file on {url}")
+
+        async with self.http_session.post(url, data=data) as resp:
+            resp.raise_for_status()
+            return await resp.json()
+
     @staticmethod
     def _log_publication_status(publication_status: Mapping[str, Any]):
         status = publication_status.get("status")
@@ -1243,6 +1268,72 @@ class AuthenticatedAlephClient(AlephClient, BaseAuthenticatedAlephClient):
             sync=sync,
         )
 
+    async def create_store_with_message(
+        self,
+        address: Optional[str] = None,
+        file_content: Optional[bytes] = None,
+        file_path: Optional[Union[str, Path]] = None,
+        file_hash: Optional[str] = None,
+        guess_mime_type: bool = False,
+        ref: Optional[str] = None,
+        storage_engine: StorageEnum = StorageEnum.storage,
+        extra_fields: Optional[dict] = None,
+        channel: Optional[str] = None,
+        sync: bool = False,
+    ) -> str:
+        """
+        Create a STORE message to store a file on the Aleph network.
+
+        Can be passed either a file path, an IPFS hash or the file's content as raw bytes.
+
+        :param address: Address to display as the author of the message (Default: account.get_address())
+        :param file_content: Byte stream of the file to store (Default: None)
+        :param file_path: Path to the file to store (Default: None)
+        :param file_hash: Hash of the file to store (Default: None)
+        :param guess_mime_type: Guess the MIME type of the file (Default: False)
+        :param ref: Reference to a previous message (Default: None)
+        :param storage_engine: Storage engine to use (Default: "storage")
+        :param extra_fields: Extra fields to add to the STORE message (Default: None)
+        :param channel: Channel to post the message to (Default: "TEST")
+        :param sync: If true, waits for the message to be processed by the API server (Default: False)
+        """
+        address = address or settings.ADDRESS_TO_USE or self.account.get_address()
+
+        extra_fields = extra_fields or {}
+        if file_content is None:
+            if file_path is None:
+                raise ValueError(
+                    "Please specify at least a file_content, a file_hash or a file_path"
+                )
+            else:
+                file_content = Path(file_path).read_bytes()
+
+        if storage_engine == StorageEnum.storage:
+            if ref:
+                extra_fields["ref"] = ref
+            content = {
+                "address": address,
+                "item_type": storage_engine,
+                "item_hash": file_hash,
+                "time": time.time(),
+            }
+            if extra_fields is not None:
+                content.update(extra_fields)
+            if magic is None:
+                pass
+            elif file_content and guess_mime_type and ("mime_type" not in extra_fields):
+                extra_fields["mime_type"] = magic.from_buffer(file_content, mime=True)
+            status = await self.storage_push_file_with_message(
+                file_content=file_content, content=content
+            )
+            return status
+        elif storage_engine == StorageEnum.ipfs:
+            raise ValueError(
+                f"Storage not compatible : {storage_engine} on upload with message"
+            )
+        else:
+            raise ValueError(f"Unknown storage engine: '{storage_engine}'")
+
     async def create_program(
         self,
         program_ref: str,
@@ -1405,6 +1496,45 @@ class AuthenticatedAlephClient(AlephClient, BaseAuthenticatedAlephClient):
         message_dict = await self.account.sign_message(message_dict)
         return parse_message(message_dict)
 
+    async def _prepare_aleph_message_dict(
+        self,
+        message_type: MessageType,
+        content: Dict[str, Any],
+        channel: Optional[str],
+        allow_inlining: bool = True,
+        storage_engine: StorageEnum = StorageEnum.storage,
+    ) -> dict:
+        message_dict: Dict[str, Any] = {
+            "sender": self.account.get_address(),
+            "chain": self.account.CHAIN,
+            "type": "STORE",
+            "content": content,
+            "time": time.time(),
+            "channel": channel,
+        }
+
+        item_content: str = json.dumps(content, separators=(",", ":"))
+
+        if allow_inlining and (len(item_content) < settings.MAX_INLINE_SIZE):
+            message_dict["item_content"] = item_content
+            message_dict["item_hash"] = self.compute_sha256(item_content)
+            message_dict["item_type"] = ItemType.inline
+        else:
+            if storage_engine == StorageEnum.ipfs:
+                message_dict["item_hash"] = await self.ipfs_push(
+                    content=content,
+                )
+                message_dict["item_type"] = ItemType.ipfs
+            else:  # storage
+                assert storage_engine == StorageEnum.storage
+                message_dict["item_hash"] = await self.storage_push(
+                    content=content,
+                )
+                message_dict["item_type"] = ItemType.storage
+
+        message_dict = await self.account.sign_message(message_dict)
+        return message_dict
+
     async def submit(
         self,
         content: Dict[str, Any],
@@ -1421,5 +1551,6 @@ class AuthenticatedAlephClient(AlephClient, BaseAuthenticatedAlephClient):
             allow_inlining=allow_inlining,
             storage_engine=storage_engine,
         )
+        message
         message_status = await self._broadcast(message=message, sync=sync)
         return message, message_status

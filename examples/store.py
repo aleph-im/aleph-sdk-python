@@ -3,6 +3,7 @@ import asyncio
 import click
 from aleph_message.models import StoreMessage
 from aleph_message.status import MessageStatus
+from mypy.dmypy_server import MiB
 
 from aleph.sdk.chains.common import get_fallback_private_key
 from aleph.sdk.chains.ethereum import ETHAccount
@@ -53,6 +54,30 @@ async def do_upload(account, engine, channel, filename=None, file_hash=None):
 
         await print_output_hash(message, status)
 
+
+async def do_upload_with_message(account, engine, channel, filename=None, item_hash=None):
+    async with AuthenticatedAlephClient(
+        account=account, api_server=settings.API_HOST
+    ) as session:
+        print(filename, account.get_address())
+        if filename:
+            try:
+                with open(filename, "rb") as f:
+                    # Do something with the file
+                    content = f.read()
+                    if len(content) > 1000 * MiB and engine == "STORAGE":
+                        print("File too big for native STORAGE engine")
+                        return
+                    message = await session.create_store_with_message(
+                        file_content=content,
+                        channel=channel,
+                        storage_engine=engine.lower(),
+                        file_hash=item_hash
+                    )
+                    return message
+            except IOError:
+                print("File not accessible")
+                raise
 
 @click.command()
 @click.argument(
