@@ -117,9 +117,9 @@ class AlephDNS:
                     "dns": {
                         "type": "cname",
                         "name": f"_dnslink.{domain}",
-                        "value": f"_dnslink.{domain}.{settings.DNS_ROOT_DOMAIN}",
+                        "value": f"_dnslink.{domain}.{settings.DNS_STATIC_DOMAIN}",
                     },
-                    "info": f"Create a CNAME record for _dnslink.{domain} with value _dnslink.{domain}.{settings.DNS_ROOT_DOMAIN}",
+                    "info": f"Create a CNAME record for _dnslink.{domain} with value _dnslink.{domain}.{settings.DNS_STATIC_DOMAIN}",
                     "on_error": f"CNAME record not found: _dnslink.{domain}",
                 }
             )
