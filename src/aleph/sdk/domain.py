@@ -92,6 +92,7 @@ class AlephDNS:
         target = target.lower()
         dns_rules = []
 
+        cname_value = None
         if target == "ipfs":
             cname_value = settings.DNS_IPFS_DOMAIN
         elif target == "program":
