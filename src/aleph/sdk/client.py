@@ -5,6 +5,7 @@ import logging
 import queue
 import threading
 import time
+import warnings
 from datetime import datetime
 from io import BytesIO
 from pathlib import Path
@@ -721,6 +722,7 @@ class AlephClient:
         pagination: int = 200,
         page: int = 1,
         message_type: Optional[MessageType] = None,
+        message_types: Optional[List[MessageType]] = None,
         content_types: Optional[Iterable[str]] = None,
         content_keys: Optional[Iterable[str]] = None,
         refs: Optional[Iterable[str]] = None,
@@ -739,7 +741,8 @@ class AlephClient:
 
         :param pagination: Number of items to fetch (Default: 200)
         :param page: Page to fetch, begins at 1 (Default: 1)
-        :param message_type: Filter by message type, can be "AGGREGATE", "POST", "PROGRAM", "VM", "STORE" or "FORGET"
+        :param message_type: [DEPRECATED] Filter by message type, can be "AGGREGATE", "POST", "PROGRAM", "VM", "STORE" or "FORGET"
+        :param message_types: Filter by message types, can be any combination of "AGGREGATE", "POST", "PROGRAM", "VM", "STORE" or "FORGET"
         :param content_types: Filter by content type
         :param content_keys: Filter by content key
         :param refs: If set, only fetch posts that reference these hashes (in the "refs" field)
@@ -765,7 +768,13 @@ class AlephClient:
         params: Dict[str, Any] = dict(pagination=pagination, page=page)
 
         if message_type is not None:
+            warnings.warn(
+                "The message_type parameter is deprecated, please use message_types instead.",
+                DeprecationWarning,
+            )
             params["msgType"] = message_type.value
+        if message_types is not None:
+            params["msgTypes"] = ",".join([t.value for t in message_types])
         if content_types is not None:
             params["contentTypes"] = ",".join(content_types)
         if content_keys is not None:
@@ -863,6 +872,7 @@ class AlephClient:
     async def watch_messages(
         self,
         message_type: Optional[MessageType] = None,
+        message_types: Optional[Iterable[MessageType]] = None,
         content_types: Optional[Iterable[str]] = None,
         refs: Optional[Iterable[str]] = None,
         addresses: Optional[Iterable[str]] = None,
@@ -876,7 +886,8 @@ class AlephClient:
         """
         Iterate over current and future matching messages asynchronously.
 
-        :param message_type: Type of message to watch
+        :param message_type: [DEPRECATED] Type of message to watch
+        :param message_types: Types of messages to watch
         :param content_types: Content types to watch
         :param refs: References to watch
         :param addresses: Addresses to watch
@@ -890,7 +901,13 @@ class AlephClient:
         params: Dict[str, Any] = dict()
 
         if message_type is not None:
+            warnings.warn(
+                "The message_type parameter is deprecated, please use message_types instead.",
+                DeprecationWarning,
+            )
             params["msgType"] = message_type.value
+        if message_types is not None:
+            params["msgTypes"] = ",".join([t.value for t in message_types])
         if content_types is not None:
             params["contentTypes"] = ",".join(content_types)
         if refs is not None:
