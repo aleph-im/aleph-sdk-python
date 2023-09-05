@@ -38,6 +38,15 @@ class Settings(BaseSettings):
 
     CODE_USES_SQUASHFS: bool = which("mksquashfs") is not None  # True if command exists
 
+    CACHE_DATABASE_PATH: Path = Field(
+        default=Path(":memory:"),  # can also be :memory: for in-memory caching
+        description="Path to the cache database",
+    )
+    CACHE_FILES_PATH: Path = Field(
+        default=Path("cache", "files"),
+        description="Path to the cache files",
+    )
+
     class Config:
         env_prefix = "ALEPH_"
         case_sensitive = False
