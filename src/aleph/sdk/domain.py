@@ -38,6 +38,19 @@ class AlephDNS:
         if query is not None and len(query) > 0:
             return query[0].text
 
+    async def get_txt_values(self, url: str, delimiter: Optional[str] = None):
+        domain = self.url_to_domain(url)
+        res = await alephdns.query(domain, "TXT")
+        values = []
+        if res is not None:
+            for _res in res:
+                if hasattr(_res, "text") and _res.text.startswith("0x"):
+                    if delimiter is not None and delimiter in _res.text:
+                        values = values + _res.text.split(delimiter)
+                    else:
+                        values.append(_res.text)
+        return values
+
     async def check_domain_configured(self, domain, target, owner):
         try:
             print("Check...", target)
