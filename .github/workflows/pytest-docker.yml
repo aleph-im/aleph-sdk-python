@@ -24,6 +24,7 @@ jobs:
           git fetch --prune --unshallow --tags
           docker build . -t aleph-sdk-python:${GITHUB_REF##*/} -f docker/${{matrix.image}}.dockerfile --cache-from=docker.pkg.github.com/$GITHUB_REPOSITORY/aleph-sdk-python-build-cache
 
+
       - name: Push the image on GitHub's repository
         run: docker tag aleph-sdk-python:${GITHUB_REF##*/} docker.pkg.github.com/$GITHUB_REPOSITORY/aleph-sdk-python:${GITHUB_REF##*/} && docker push docker.pkg.github.com/$GITHUB_REPOSITORY/aleph-sdk-python:${GITHUB_REF##*/} || true
 
@@ -32,4 +33,6 @@ jobs:
 
       - name: Pytest in the Docker image
         run: |
+          sudo cp .github/openssl-ci.cnf /etc/ssl/openssl.cnf
+          export OPENSSL_CONF=/etc/ssl/openssl.cnf
           docker run --entrypoint /opt/venv/bin/pytest aleph-sdk-python:${GITHUB_REF##*/} /opt/aleph-sdk-python/
