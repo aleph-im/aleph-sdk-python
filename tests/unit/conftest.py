@@ -47,5 +47,6 @@ def substrate_account() -> substrate.DOTAccount:
 
 @pytest.fixture
 def messages():
-    with open("./messages.json") as f:
+    messages_path = Path(__file__).parent / "messages.json"
+    with open(messages_path) as f:
         return json.load(f)
