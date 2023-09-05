@@ -1,3 +1,6 @@
+import base64
+import binascii
+import socket
 from dataclasses import dataclass
 from typing import (
     Any,
@@ -85,3 +88,29 @@ class AlephApp:
     def __getattr__(self, name):
         # Default all calls to the HTTP handler
         return getattr(self.http_app, name)
+
+    @property
+    def vm_hash(self) -> Optional[str]:
+        """
+        Returns the hash of the VM that is running this app. If the VM is not
+        running in Aleph, this will return None.
+        """
+        # Get hostname from environment
+        hostname = socket.gethostname()
+
+        # Add padding if necessary
+        padding_length = len(hostname) % 8
+        if padding_length != 0:
+            hostname += "=" * (8 - padding_length)
+
+        try:
+            # Convert the hostname back to its original binary form
+            item_hash_binary = base64.b32decode(hostname.upper())
+
+            # Convert the binary form to the original vm_hash
+            vm_hash = base64.b16encode(item_hash_binary).decode().lower()
+        except binascii.Error:
+            # If the hostname is not a valid base32 string, just return None
+            return None
+
+        return vm_hash
