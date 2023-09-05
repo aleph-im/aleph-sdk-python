@@ -103,6 +103,16 @@ async def test_verify_signature(solana_account):
 
 
 @pytest.mark.asyncio
+async def test_verify_signature_with_processed_message(solana_account, messages):
+    message = messages[0]
+    signature = json.loads(message["signature"])["signature"]
+    verify_signature(
+        signature, message["sender"], get_verification_buffer(message)
+    )
+
+
+
+@pytest.mark.asyncio
 async def test_verify_signature_with_forged_signature(solana_account):
     message = asdict(
         Message(

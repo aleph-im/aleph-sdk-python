@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 
@@ -42,3 +43,9 @@ def substrate_account() -> substrate.DOTAccount:
     with NamedTemporaryFile(delete=False) as private_key_file:
         private_key_file.close()
         yield substrate.get_fallback_account(path=Path(private_key_file.name))
+
+
+@pytest.fixture
+def messages():
+    with open("./messages.json") as f:
+        return json.load(f)
