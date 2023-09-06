@@ -77,16 +77,14 @@ class AlephDNS:
 
             if record_type == "txt":
                 found = False
-
-                for _res in res:
-                    if hasattr(_res, "text") and _res.text == record_value:
-                        found = True
-
+                if res is not None:
+                    for _res in res:
+                        if hasattr(_res, "text") and _res.text == record_value:
+                            found = True
                 if found == False:
                     raise DomainConfigurationError(
                         (dns_rule["info"], dns_rule["on_error"], status)
                     )
-
             elif (
                 res is None
                 or not hasattr(res, record_type)
