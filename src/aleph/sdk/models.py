@@ -37,11 +37,14 @@ class Post(BaseModel):
     )
     address: str = Field(description="The address of the sender of the POST message")
     ref: Optional[str] = Field(description="Other message referenced by this one")
-    channel: str = Field(description="The channel where the POST message was published")
+    channel: Optional[str] = Field(description="The channel where the POST message was published")
     created: datetime = Field(description="The time when the POST message was created")
     last_updated: datetime = Field(
         description="The time when the POST message was last updated"
     )
+
+    class Config:
+        allow_extra = False
 
 
 class PostsResponse(PaginationResponse):

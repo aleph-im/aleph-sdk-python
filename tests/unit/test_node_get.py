@@ -13,7 +13,7 @@ from aleph_message.models import (
 
 from aleph.sdk.chains.ethereum import get_fallback_account
 from aleph.sdk.exceptions import MessageNotFoundError
-from aleph.sdk.node import MessageCache
+from aleph.sdk.node import MessageCache, message_to_post
 
 
 @pytest.mark.asyncio
@@ -137,7 +137,7 @@ class TestPostQueries:
     @pytest.mark.asyncio
     async def test_addresses(self):
         items = (await self.cache.get_posts(addresses=[self.messages[1].sender])).posts
-        assert items[0] == self.messages[1]
+        assert items[0] == message_to_post(self.messages[1])
 
     @pytest.mark.asyncio
     async def test_tags(self):
@@ -153,15 +153,16 @@ class TestPostQueries:
 
     @pytest.mark.asyncio
     async def test_channels(self):
+        print(self.messages[1])
         assert (await self.cache.get_posts(channels=[self.messages[1].channel])).posts[
             0
-        ] == self.messages[1]
+        ] == message_to_post(self.messages[1])
 
     @pytest.mark.asyncio
     async def test_chains(self):
         assert (await self.cache.get_posts(chains=[self.messages[1].chain])).posts[
             0
-        ] == self.messages[1]
+        ] == message_to_post(self.messages[1])
 
 
 @pytest.mark.asyncio

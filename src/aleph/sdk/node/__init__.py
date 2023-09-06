@@ -98,6 +98,8 @@ class MessageCache(BaseAlephClient):
         if isinstance(messages, typing.get_args(AlephMessage)):
             messages = [messages]
 
+        messages = list(messages)
+
         message_data = (message_to_model(message) for message in messages)
         MessageModel.insert_many(message_data).on_conflict_replace().execute()
 
@@ -105,16 +107,18 @@ class MessageCache(BaseAlephClient):
         post_data = []
         amend_messages = []
         for message in messages:
-            if message.item_type != MessageType.post:
+            if message.type != MessageType.post.value:
                 continue
             if message.content.type == "amend":
                 amend_messages.append(message)
-            else:
-                post = message_to_post(message).dict()
-                post_data.append(post)
-                # Check if we can now add any amend messages that had missing refs
-                if message.item_hash in self.missing_posts:
-                    amend_messages += self.missing_posts.pop(message.item_hash)
+                continue
+            post = message_to_post(message).dict()
+            post["chain"] = message.chain.value
+            post["tags"] = message.content.content.get("tags", None)
+            post_data.append(post)
+            # Check if we can now add any amend messages that had missing refs
+            if message.item_hash in self.missing_posts:
+                amend_messages += self.missing_posts.pop(message.item_hash)
 
         PostModel.insert_many(post_data).on_conflict_replace().execute()
 
