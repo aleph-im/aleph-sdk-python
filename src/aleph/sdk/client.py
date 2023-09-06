@@ -141,6 +141,7 @@ class UserSessionSync:
         pagination: int = 200,
         page: int = 1,
         message_type: Optional[MessageType] = None,
+        message_types: Optional[List[MessageType]] = None,
         content_types: Optional[Iterable[str]] = None,
         content_keys: Optional[Iterable[str]] = None,
         refs: Optional[Iterable[str]] = None,
@@ -159,6 +160,7 @@ class UserSessionSync:
             pagination=pagination,
             page=page,
             message_type=message_type,
+            message_types=message_types,
             content_types=content_types,
             content_keys=content_keys,
             refs=refs,
@@ -753,6 +755,7 @@ class AlephClient(BaseAlephClient):
             params["msgType"] = message_type.value
         if message_types is not None:
             params["msgTypes"] = ",".join([t.value for t in message_types])
+            print(params["msgTypes"])
         if content_types is not None:
             params["contentTypes"] = ",".join(content_types)
         if content_keys is not None:
