@@ -79,8 +79,8 @@ class BaseAlephClient(ABC):
         chains: Optional[Iterable[str]] = None,
         start_date: Optional[Union[datetime, float]] = None,
         end_date: Optional[Union[datetime, float]] = None,
-        ignore_invalid_messages: bool = True,
-        invalid_messages_log_level: int = logging.NOTSET,
+        ignore_invalid_messages: Optional[bool] = True,
+        invalid_messages_log_level: Optional[int] = logging.NOTSET,
     ) -> PostsResponse:
         """
         Fetch a list of posts from the network.
@@ -177,8 +177,8 @@ class BaseAlephClient(ABC):
         chains: Optional[Iterable[str]] = None,
         start_date: Optional[Union[datetime, float]] = None,
         end_date: Optional[Union[datetime, float]] = None,
-        ignore_invalid_messages: bool = True,
-        invalid_messages_log_level: int = logging.NOTSET,
+        ignore_invalid_messages: Optional[bool] = True,
+        invalid_messages_log_level: Optional[int] = logging.NOTSET,
     ) -> MessagesResponse:
         """
         Fetch a list of messages from the network.
