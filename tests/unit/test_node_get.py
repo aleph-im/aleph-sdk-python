@@ -13,7 +13,8 @@ from aleph_message.models import (
 
 from aleph.sdk.chains.ethereum import get_fallback_account
 from aleph.sdk.exceptions import MessageNotFoundError
-from aleph.sdk.node import MessageCache, message_to_post
+from aleph.sdk.node import MessageCache
+from aleph.sdk.node.post import message_to_post
 
 
 @pytest.mark.asyncio

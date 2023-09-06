@@ -113,10 +113,10 @@ def messages() -> List[AlephMessage]:
 
 @pytest.fixture
 def raw_messages_response(messages):
-    return {
-        "messages": [message.dict() for message in messages],
+    return lambda page: {
+        "messages": [message.dict() for message in messages] if page == 1 else [],
         "pagination_item": "messages",
-        "pagination_page": 1,
-        "pagination_per_page": 20,
-        "pagination_total": 2,
+        "pagination_page": page,
+        "pagination_per_page": max(len(messages), 20),
+        "pagination_total": len(messages) if page == 1 else 0,
     }

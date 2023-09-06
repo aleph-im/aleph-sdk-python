@@ -54,8 +54,9 @@ class MockPostResponse:
 
 
 class MockGetResponse:
-    def __init__(self, response):
-        self.response = response
+    def __init__(self, response_message, page=1):
+        self.response_message = response_message
+        self.page = page
 
     async def __aenter__(self):
         return self
@@ -72,7 +73,7 @@ class MockGetResponse:
             raise Exception("Bad status code")
 
     async def json(self):
-        return self.response
+        return self.response_message(self.page)
 
 
 @pytest.fixture
@@ -92,7 +93,10 @@ def mock_session_with_two_messages(
         sync=kwargs.get("sync", False),
     )
     http_session.get = MagicMock()
-    http_session.get.return_value = MockGetResponse(raw_messages_response)
+    http_session.get.side_effect = lambda *args, **kwargs: MockGetResponse(
+        response_message=raw_messages_response,
+        page=kwargs.get("params", {}).get("page", 1),
+    )
 
     client = AuthenticatedAlephClient(
         account=ethereum_account, api_server="http://localhost"

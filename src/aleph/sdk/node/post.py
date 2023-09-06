@@ -58,7 +58,7 @@ def message_to_post(message: PostMessage) -> Post:
             "ref": message.content.ref if hasattr(message.content, "ref") else None,
             "channel": message.channel,
             "created": datetime.fromtimestamp(message.time),
-            "last_updated": datetime.fromtimestamp(message.time)
+            "last_updated": datetime.fromtimestamp(message.time),
         }
     )
 
