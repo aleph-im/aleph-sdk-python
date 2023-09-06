@@ -7,6 +7,7 @@ from aleph_message.models import MessagesResponse, MessageType
 
 from aleph.sdk.client import AlephClient
 from aleph.sdk.conf import settings
+from aleph.sdk.models import PostsResponse
 
 
 def make_mock_session(get_return_value: Dict[str, Any]) -> AlephClient:
@@ -66,14 +67,10 @@ async def test_fetch_aggregates():
 @pytest.mark.asyncio
 async def test_get_posts():
     async with AlephClient(api_server=settings.API_HOST) as session:
-        response: MessagesResponse = await session.get_messages(
-            message_type=MessageType.post,
-        )
+        response: PostsResponse = await session.get_posts()
 
-        messages = response.messages
-        assert len(messages) > 1
-        for message in messages:
-            assert message.type == MessageType.post
+        posts = response.posts
+        assert len(posts) > 1
 
 
 @pytest.mark.asyncio
