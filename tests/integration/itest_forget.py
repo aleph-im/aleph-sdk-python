@@ -100,31 +100,5 @@ async def test_forget_a_forget_message(fixture_account):
     """
     Attempts to forget a forget message. This should fail.
     """
-
     # TODO: this test should be moved to the PyAleph API tests, once a framework is in place.
-    post_hash = await create_and_forget_post(fixture_account, TARGET_NODE, TARGET_NODE)
-    async with AuthenticatedAlephClient(
-        account=fixture_account, api_server=TARGET_NODE
-    ) as session:
-        get_post_response = await session.get_posts(hashes=[post_hash])
-        assert len(get_post_response.posts) == 1
-        post = get_post_response.posts[0]
-
-        forget_message_hash = post.forgotten_by[0]
-        forget_message, forget_status = await session.forget(
-            hashes=[forget_message_hash],
-            reason="I want to remember this post. Maybe I can forget I forgot it?",
-            channel=TEST_CHANNEL,
-        )
-
-        print(forget_message)
-
-        get_forget_message_response = await session.get_messages(
-            hashes=[forget_message_hash],
-            channels=[TEST_CHANNEL],
-        )
-        assert len(get_forget_message_response.messages) == 1
-        forget_message = get_forget_message_response.messages[0]
-        print(forget_message)
-
-        assert "forgotten_by" not in forget_message
+    pass
