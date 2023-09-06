@@ -32,7 +32,7 @@ from aleph.sdk.types import GenericMessage, StorageEnum
 DEFAULT_PAGE_SIZE = 200
 
 
-class AlephClientBase(ABC):
+class BaseAlephClient(ABC):
     @abstractmethod
     async def fetch_aggregate(
         self,
@@ -127,10 +127,9 @@ class AlephClientBase(ABC):
         :param start_date: Earliest date to fetch messages from
         :param end_date: Latest date to fetch messages from
         """
-        total_items = None
-        per_page = DEFAULT_PAGE_SIZE
         page = 1
-        while total_items is None or page * per_page < total_items:
+        resp = None
+        while resp is None or len(resp.posts) > 0:
             resp = await self.get_posts(
                 page=page,
                 types=types,
@@ -143,7 +142,6 @@ class AlephClientBase(ABC):
                 start_date=start_date,
                 end_date=end_date,
             )
-            total_items = resp.pagination_total
             page += 1
             for post in resp.posts:
                 yield post
@@ -232,10 +230,9 @@ class AlephClientBase(ABC):
         :param start_date: Earliest date to fetch messages from
         :param end_date: Latest date to fetch messages from
         """
-        total_items = None
-        per_page = DEFAULT_PAGE_SIZE
         page = 1
-        while total_items is None or page * per_page < total_items:
+        resp = None
+        while resp is None or len(resp.messages) > 0:
             resp = await self.get_messages(
                 page=page,
                 message_type=message_type,
@@ -250,7 +247,6 @@ class AlephClientBase(ABC):
                 start_date=start_date,
                 end_date=end_date,
             )
-            total_items = resp.pagination_total
             page += 1
             for message in resp.messages:
                 yield message
@@ -304,7 +300,7 @@ class AlephClientBase(ABC):
         pass
 
 
-class AuthenticatedAlephClientBase(AlephClientBase):
+class BaseAuthenticatedAlephClient(BaseAlephClient):
     @abstractmethod
     async def create_post(
         self,

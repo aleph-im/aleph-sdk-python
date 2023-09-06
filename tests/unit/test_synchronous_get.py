@@ -4,7 +4,7 @@ from aleph.sdk.client import AlephClient
 from aleph.sdk.conf import settings
 
 
-def test_get_posts():
+def test_get_post_messages():
     with AlephClient(api_server=settings.API_HOST) as session:
         response: MessagesResponse = session.get_messages(
             pagination=2,

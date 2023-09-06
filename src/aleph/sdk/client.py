@@ -51,7 +51,7 @@ from pydantic import ValidationError
 from aleph.sdk.types import Account, GenericMessage, StorageEnum
 from aleph.sdk.utils import Writable, copy_async_readable_to_buffer
 
-from .base import AlephClientBase, AuthenticatedAlephClientBase
+from .base import BaseAlephClient, BaseAuthenticatedAlephClient
 from .conf import settings
 from .exceptions import (
     BroadcastError,
@@ -60,7 +60,7 @@ from .exceptions import (
     MessageNotFoundError,
     MultipleMessagesError,
 )
-from .models import MessagesResponse, PostsResponse
+from .models import MessagesResponse, PostsResponse, Post
 from .utils import check_unix_socket_valid, get_message_type_value
 
 logger = logging.getLogger(__name__)
@@ -470,7 +470,7 @@ class AuthenticatedUserSessionSync(UserSessionSync):
         )
 
 
-class AlephClient(AlephClientBase):
+class AlephClient(BaseAlephClient):
     api_server: str
     http_session: aiohttp.ClientSession
 
@@ -619,26 +619,15 @@ class AlephClient(AlephClientBase):
             response_json = await resp.json()
             posts_raw = response_json["posts"]
 
-            # All posts may not be valid according to the latest specification in
-            # aleph-message. This allows the user to specify how errors should be handled.
-            posts: List[AlephMessage] = []
+            posts: List[Post] = []
             for post_raw in posts_raw:
                 try:
-                    message = parse_message(post_raw)
-                    posts.append(message)
-                except KeyError as e:
-                    if not ignore_invalid_messages:
-                        raise e
-                    logger.log(
-                        level=invalid_messages_log_level,
-                        msg=f"KeyError: Field '{e.args[0]}' not found",
-                    )
+                    posts.append(Post.parse_obj(post_raw))
                 except ValidationError as e:
                     if not ignore_invalid_messages:
                         raise e
                     if invalid_messages_log_level:
                         logger.log(level=invalid_messages_log_level, msg=e)
-
             return PostsResponse(
                 posts=posts,
                 pagination_page=response_json["pagination_page"],
@@ -918,7 +907,7 @@ class AlephClient(AlephClientBase):
                     break
 
 
-class AuthenticatedAlephClient(AlephClient, AuthenticatedAlephClientBase):
+class AuthenticatedAlephClient(AlephClient, BaseAuthenticatedAlephClient):
     account: Account
 
     BROADCAST_MESSAGE_FIELDS = {
