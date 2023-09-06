@@ -1,6 +1,7 @@
-from typing import Any, Dict, List, Optional, Union
+from datetime import datetime
+from typing import Any, Dict, List, Optional
 
-from aleph_message.models import AlephMessage, BaseMessage, ChainRef, ItemHash
+from aleph_message.models import AlephMessage, ItemHash
 from pydantic import BaseModel, Field
 
 
@@ -18,29 +19,28 @@ class MessagesResponse(PaginationResponse):
     pagination_item = "messages"
 
 
-class Post(BaseMessage):
+class Post(BaseModel):
     """
     A post is a type of message that can be updated. Over the get_posts API
     we get the latest version of a post.
     """
 
-    hash: ItemHash = Field(description="Hash of the content (sha256 by default)")
+    item_hash: ItemHash = Field(description="Hash of the content (sha256 by default)")
+    content: Dict[str, Any] = Field(
+        description="The content.content of the POST message"
+    )
     original_item_hash: ItemHash = Field(
         description="Hash of the original content (sha256 by default)"
-    )
-    original_signature: Optional[str] = Field(
-        description="Cryptographic signature of the original message by the sender"
     )
     original_type: str = Field(
         description="The original, user-generated 'content-type' of the POST message"
     )
-    content: Dict[str, Any] = Field(
-        description="The content.content of the POST message"
-    )
-    type: str = Field(description="The content.type of the POST message")
     address: str = Field(description="The address of the sender of the POST message")
-    ref: Optional[Union[str, ChainRef]] = Field(
-        description="Other message referenced by this one"
+    ref: Optional[str] = Field(description="Other message referenced by this one")
+    channel: str = Field(description="The channel where the POST message was published")
+    created: datetime = Field(description="The time when the POST message was created")
+    last_updated: datetime = Field(
+        description="The time when the POST message was last updated"
     )
 
 

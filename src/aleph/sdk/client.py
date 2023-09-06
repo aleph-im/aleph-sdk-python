@@ -617,7 +617,7 @@ class AlephClient(BaseAlephClient):
                 end_date = end_date.timestamp()
             params["endDate"] = end_date
 
-        async with self.http_session.get("/api/v0/posts.json", params=params) as resp:
+        async with self.http_session.get("/api/v1/posts.json", params=params) as resp:
             resp.raise_for_status()
             response_json = await resp.json()
             posts_raw = response_json["posts"]
