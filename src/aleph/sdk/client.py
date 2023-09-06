@@ -61,7 +61,7 @@ from .exceptions import (
     MessageNotFoundError,
     MultipleMessagesError,
 )
-from .models import MessagesResponse, PostsResponse, Post
+from .models import MessagesResponse, Post, PostsResponse
 from .utils import check_unix_socket_valid, get_message_type_value
 
 logger = logging.getLogger(__name__)
@@ -723,7 +723,7 @@ class AlephClient(BaseAlephClient):
         pagination: int = 200,
         page: int = 1,
         message_type: Optional[MessageType] = None,
-        message_types: Optional[List[MessageType]] = None,
+        message_types: Optional[Iterable[MessageType]] = None,
         content_types: Optional[Iterable[str]] = None,
         content_keys: Optional[Iterable[str]] = None,
         refs: Optional[Iterable[str]] = None,

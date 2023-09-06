@@ -3,7 +3,7 @@ from typing import Any, Dict
 from unittest.mock import AsyncMock
 
 import pytest
-from aleph_message.models import MessagesResponse, MessageType
+from aleph_message.models import MessagesResponse
 
 from aleph.sdk.client import AlephClient
 from aleph.sdk.conf import settings
