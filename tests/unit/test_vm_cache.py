@@ -1,11 +1,11 @@
 import pytest
 
-from aleph.sdk.vm.cache import TestVmCache, sanitize_cache_key
+from aleph.sdk.vm.cache import LocalVmCache, sanitize_cache_key
 
 
 @pytest.mark.asyncio
 async def test_local_vm_cache():
-    cache = TestVmCache()
+    cache = LocalVmCache()
     assert (await cache.get("doesnotexist")) is None
     assert len(await cache.keys()) == 0
     key = "thisdoesexist"

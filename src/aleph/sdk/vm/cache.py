@@ -110,7 +110,7 @@ class VmCache(BaseVmCache):
             return await resp.json()
 
 
-class TestVmCache(BaseVmCache):
+class LocalVmCache(BaseVmCache):
     """This is a local, dict-based cache that can be used for testing purposes."""
 
     def __init__(self):
