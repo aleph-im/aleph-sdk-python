@@ -107,7 +107,7 @@ class AlephDNS:
         if target == "ipfs":
             cname_value = settings.DNS_IPFS_DOMAIN
         elif target == "program":
-            cname_value = settings.DNS_PROGRAM_DOMAIN
+            cname_value = f"{domain}.{settings.DNS_PROGRAM_DOMAIN}"
         elif target == "instance":
             cname_value = f"{domain}.{settings.DNS_INSTANCE_DOMAIN}"
 
