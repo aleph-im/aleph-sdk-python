@@ -71,3 +71,13 @@ async def test_decrypt_secp256k1(tezos_account: TezosAccount):
     decrypted = await tezos_account.decrypt(encrypted)
     assert isinstance(decrypted, bytes)
     assert content == decrypted
+
+
+@pytest.mark.asyncio
+async def test_sign_raw(tezos_account):
+    buffer = b"SomeBuffer"
+    signature = await tezos_account.sign_raw(buffer)
+    assert signature
+    assert isinstance(signature, bytes)
+
+    verify_signature(signature, tezos_account.get_public_key(), buffer)

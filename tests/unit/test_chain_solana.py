@@ -103,6 +103,13 @@ async def test_verify_signature(solana_account):
 
 
 @pytest.mark.asyncio
+async def test_verify_signature_with_processed_message(solana_account, messages):
+    message = messages[0]
+    signature = json.loads(message["signature"])["signature"]
+    verify_signature(signature, message["sender"], get_verification_buffer(message))
+
+
+@pytest.mark.asyncio
 async def test_verify_signature_with_forged_signature(solana_account):
     message = asdict(
         Message(
@@ -119,3 +126,13 @@ async def test_verify_signature_with_forged_signature(solana_account):
 
     with pytest.raises(BadSignatureError):
         verify_signature(forged, message["sender"], get_verification_buffer(message))
+
+
+@pytest.mark.asyncio
+async def test_sign_raw(solana_account):
+    buffer = b"SomeBuffer"
+    signature = await solana_account.sign_raw(buffer)
+    assert signature
+    assert isinstance(signature, bytes)
+
+    verify_signature(signature, solana_account.get_address(), buffer)

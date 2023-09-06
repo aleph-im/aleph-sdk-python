@@ -16,6 +16,11 @@ class Settings(BaseSettings):
         description="Path to the private key used to sign messages",
     )
 
+    PRIVATE_MNEMONIC_FILE: Path = Field(
+        default=Path("substrate.mnemonic"),
+        description="Path to the mnemonic used to create Substrate keypairs",
+    )
+
     PRIVATE_KEY_STRING: Optional[str] = None
     API_HOST: str = "https://api2.aleph.im"
     MAX_INLINE_SIZE: int = 50000
@@ -56,4 +61,9 @@ assert settings.CONFIG_HOME
 if str(settings.PRIVATE_KEY_FILE) == "ethereum.key":
     settings.PRIVATE_KEY_FILE = Path(
         settings.CONFIG_HOME, "private-keys", "ethereum.key"
+    )
+
+if str(settings.PRIVATE_MNEMONIC_FILE) == "substrate.mnemonic":
+    settings.PRIVATE_MNEMONIC_FILE = Path(
+        settings.CONFIG_HOME, "private-keys", "substrate.mnemonic"
     )

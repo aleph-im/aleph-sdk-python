@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Dict, Optional, Union
+from typing import Optional, Union
 
 from eth_account import Account
 from eth_account.messages import encode_defunct
@@ -9,9 +9,9 @@ from eth_keys.exceptions import BadSignature as EthBadSignatureError
 from ..exceptions import BadSignatureError
 from .common import (
     BaseAccount,
+    bytes_from_hex,
     get_fallback_private_key,
     get_public_key,
-    get_verification_buffer,
 )
 
 
@@ -24,15 +24,11 @@ class ETHAccount(BaseAccount):
         self.private_key = private_key
         self._account = Account.from_key(self.private_key)
 
-    async def sign_message(self, message: Dict) -> Dict:
-        """Sign a message inplace."""
-        message = self._setup_sender(message)
-
-        msghash = encode_defunct(text=get_verification_buffer(message).decode("utf-8"))
+    async def sign_raw(self, buffer: bytes) -> bytes:
+        """Sign a raw buffer."""
+        msghash = encode_defunct(text=buffer.decode("utf-8"))
         sig = self._account.sign_message(msghash)
-
-        message["signature"] = sig["signature"].hex()
-        return message
+        return sig["signature"]
 
     def get_address(self) -> str:
         return self._account.address
@@ -60,19 +56,14 @@ def verify_signature(
         BadSignatureError: If the signature is invalid.
     """
     if isinstance(signature, str):
-        if signature.startswith("0x"):
-            signature = signature[2:]
-        signature = bytes.fromhex(signature)
-    else:
-        if signature.startswith(b"0x"):
-            signature = signature[2:]
-        signature = bytes.fromhex(signature.decode("utf-8"))
+        signature = bytes_from_hex(signature)
     if isinstance(public_key, bytes):
         public_key = "0x" + public_key.hex()
     if isinstance(message, bytes):
-        message = message.decode("utf-8")
+        message_hash = encode_defunct(primitive=message)
+    else:
+        message_hash = encode_defunct(text=message)
 
-    message_hash = encode_defunct(text=message)
     try:
         address = Account.recover_message(message_hash, signature=signature)
         if address.casefold() != public_key.casefold():

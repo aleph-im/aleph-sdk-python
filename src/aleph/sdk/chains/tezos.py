@@ -25,13 +25,17 @@ class TezosAccount(BaseAccount):
         message = self._setup_sender(message)
 
         verif = get_verification_buffer(message)
+        signature = await self.sign_raw(verif)
         sig = {
             "publicKey": self.get_public_key(),
-            "signature": self._account.sign(verif),
+            "signature": signature.decode(),
         }
 
         message["signature"] = json.dumps(sig)
         return message
+
+    async def sign_raw(self, buffer: bytes) -> bytes:
+        return self._account.sign(buffer).encode()
 
     def get_address(self) -> str:
         return self._account.public_key_hash()

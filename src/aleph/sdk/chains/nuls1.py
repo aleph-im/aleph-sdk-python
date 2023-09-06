@@ -315,6 +315,10 @@ class NULSAccount(BaseAccount):
         message["signature"] = sig.serialize().hex()
         return message
 
+    async def sign_raw(self, buffer: bytes) -> bytes:
+        sig = NulsSignature.sign_data(self.private_key, buffer)
+        return sig.serialize()
+
     def get_address(self):
         return address_from_hash(
             public_key_to_hash(self.get_public_key(), chain_id=self.chain_id)
