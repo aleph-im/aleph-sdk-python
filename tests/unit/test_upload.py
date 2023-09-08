@@ -1,13 +1,12 @@
 import hashlib
-import json
-from pathlib import Path
-from tempfile import NamedTemporaryFile
-import pytest
 
-from aleph.sdk import AlephClient
+import pytest
+from aleph_message.status import MessageStatus
+
+from aleph.sdk import AuthenticatedAlephClient
 from aleph.sdk.chains.common import get_fallback_private_key
 from aleph.sdk.chains.ethereum import ETHAccount
-from examples.store import do_upload_with_message
+from aleph.sdk.types import StorageEnum
 
 
 @pytest.mark.asyncio
@@ -15,24 +14,21 @@ async def test_upload_with_message():
     pkey = get_fallback_private_key()
     account = ETHAccount(private_key=pkey)
 
-    content = "Test Py Aleph upload\n"
-    content_bytes = content.encode("utf-8")
+    content = b"Test pyaleph upload\n"
+    file_hash = hashlib.sha256(content).hexdigest()
 
-    with NamedTemporaryFile(mode="w", delete=False) as temp_file:
-        temp_file.write(content)
+    async with AuthenticatedAlephClient(
+        account=account, api_server="http://0.0.0.0:8000"
+    ) as client:
+        message, status = await client.create_store(
+            address=account.get_address(),
+            file_content=content,
+            storage_engine=StorageEnum.storage,
+            sync=True,
+        )
 
-    file_name = Path(temp_file.name)
-    actual_item_hash = hashlib.sha256(
-        content.encode()
-    ).hexdigest()  # Calculate the hash of the content
+    assert status == MessageStatus.PROCESSED
+    assert message.content.item_hash == file_hash
 
-    test = await do_upload_with_message(
-        account=account,
-        engine="STORAGE",
-        channel="Test",
-        filename=file_name,
-        item_hash=actual_item_hash,
-    )
-    async with AlephClient(api_server="http://0.0.0.0:4024") as client:
-        file_content = await client.download_file(test["hash"])
-        assert file_content == content_bytes
+    server_content = await client.download_file(file_hash=file_hash)
+    assert server_content == content

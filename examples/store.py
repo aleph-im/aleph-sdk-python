@@ -1,6 +1,6 @@
 import asyncio
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Literal
 
 import click
 from aleph_message.models import StoreMessage
@@ -27,7 +27,13 @@ async def print_output_hash(message: StoreMessage, status: MessageStatus):
     )
 
 
-async def do_upload(account, engine, channel, filename=None, file_hash=None):
+async def do_upload(
+    account: Account,
+    engine: Literal["STORAGE", "IPFS"],
+    channel: Optional[str] = None,
+    filename: Optional[str] = None,
+    file_hash: Optional[str] = None,
+):
     async with AuthenticatedAlephClient(
         account=account, api_server=settings.API_HOST
     ) as session:
@@ -43,7 +49,7 @@ async def do_upload(account, engine, channel, filename=None, file_hash=None):
                     message, status = await session.create_store(
                         file_content=content,
                         channel=channel,
-                        storage_engine=engine.lower(),
+                        storage_engine=StorageEnum(engine.lower()),
                     )
             except IOError:
                 print("File not accessible")
@@ -53,40 +59,10 @@ async def do_upload(account, engine, channel, filename=None, file_hash=None):
             message, status = await session.create_store(
                 file_hash=file_hash,
                 channel=channel,
-                storage_engine=engine.lower(),
+                storage_engine=StorageEnum(engine.lower()),
             )
 
         await print_output_hash(message, status)
-
-
-async def do_upload_with_message(
-    account: Account,
-    engine: StorageEnum,
-    channel: str,
-    filename: Optional[str] = None,
-    item_hash: Optional[str] = None,
-):
-    async with AuthenticatedAlephClient(
-        account=account, api_server=settings.API_HOST
-    ) as session:
-        print(filename, account.get_address())
-        if filename:
-            try:
-                p = Path(filename)
-                content = p.read_bytes()
-                if len(content) > 1000 * MiB and engine == "STORAGE":
-                    print("File too big for native STORAGE engine")
-                    return
-                message = await session.create_store_with_message(
-                    file_content=content,
-                    channel=channel,
-                    storage_engine=engine.lower(),
-                    file_hash=item_hash,
-                )
-                return message
-            except Exception as e:
-                print("File not accessible")
-                raise
 
 
 @click.command()
@@ -111,7 +87,12 @@ async def do_upload_with_message(
     default="TEST",
     help="Channel to write in (default: TEST)",
 )
-def main(filename, pkey=None, storage_engine="IPFS", channel="TEST"):
+def main(
+    filename,
+    pkey=None,
+    storage_engine: Literal["IPFS", "STORAGE"] = "IPFS",
+    channel="TEST",
+):
     """Uploads or store FILENAME.
 
     If FILENAME is an IPFS multihash and IPFS is selected as an engine (default), don't try to upload, just pin it to the network.
