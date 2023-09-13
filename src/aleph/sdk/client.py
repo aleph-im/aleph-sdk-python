@@ -1138,7 +1138,7 @@ class AuthenticatedAlephClient(AlephClient):
             json={"sync": sync, "message": message_dict},
         ) as response:
             # The endpoint may be unavailable on this node, try the deprecated version.
-            if response.status == 404:
+            if response.status in (404, 405):
                 logger.warning(
                     "POST /messages/ not found. Defaulting to legacy endpoint..."
                 )
