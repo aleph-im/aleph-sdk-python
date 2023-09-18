@@ -27,7 +27,7 @@ class AlephDNS:
             print(e)
             return None
 
-    async def get_ipv6_address(self, url: HttpUrl) -> str:
+    async def get_ipv6_address(self, url: HttpUrl) -> List[str]:
         domain = urlparse(url).netloc
         ipv6 = []
         query = await self.query(domain, "AAAA")
