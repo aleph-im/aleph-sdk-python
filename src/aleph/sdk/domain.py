@@ -1,12 +1,11 @@
-import re
 from enum import Enum
-from typing import Optional, List
+from typing import List, Optional
 from urllib.parse import urlparse
 
 import aiodns
+from pydantic import HttpUrl
 
 from aleph.sdk.exceptions import DomainConfigurationError
-from pydantic import HttpUrl
 
 from .conf import settings
 
