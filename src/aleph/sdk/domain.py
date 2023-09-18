@@ -45,7 +45,7 @@ class AlephDNS:
 
     async def get_txt_values(self, url: HttpUrl, delimiter: Optional[str] = None):
         domain = urlparse(url).netloc
-        res = await alephdns.query(domain, "TXT")
+        res = await self.query(domain, "TXT")
         values = []
         if res is not None:
             for _res in res:
