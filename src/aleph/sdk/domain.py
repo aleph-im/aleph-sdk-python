@@ -21,6 +21,11 @@ def domain_from_url(url: HttpUrl) -> str:
     return domain_from_url(url)
 
 class AlephDNS:
+    """
+    Tools used to analyze domain names used on the aleph.im network.
+    """
+    resolver: aiodns.DNSResolver
+
     def __init__(self):
         self.resolver = aiodns.DNSResolver(servers=settings.DNS_RESOLVERS)
 
