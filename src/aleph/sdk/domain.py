@@ -1,5 +1,6 @@
 from enum import Enum
-from typing import List, Optional, Dict
+from ipaddress import IPv6Address
+from typing import List, Optional, Dict, Iterable
 from urllib.parse import urlparse
 
 import aiodns
@@ -24,20 +25,14 @@ class AlephDNS:
         self.resolver = aiodns.DNSResolver(servers=settings.DNS_RESOLVERS)
 
     async def query(self, name: str, query_type: str):
-        try:
-            return await self.resolver.query(name, query_type)
-        except Exception as e:
-            print(e)
-            return None
+        return await self.resolver.query(name, query_type)
 
-    async def get_ipv6_address(self, url: HttpUrl) -> List[str]:
+    async def get_ipv6_address(self, url: HttpUrl) -> Iterable[IPv6Address]:
         domain = domain_from_url(url)
-        ipv6 = []
         query = await self.query(domain, "AAAA")
         if query:
             for entry in query:
-                ipv6.append(entry.host)
-        return ipv6
+                yield entry.host
 
     async def get_dnslink(self, url: HttpUrl) -> Optional[str]:
         domain = domain_from_url(url)
