@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import List, Optional
+from typing import List, Optional, Dict
 from urllib.parse import urlparse
 
 import aiodns
@@ -16,6 +16,9 @@ class Target(str, Enum):
     INSTANCE = "instance"
 
 
+def domain_from_url(url: HttpUrl) -> str:
+    return domain_from_url(url)
+
 class AlephDNS:
     def __init__(self):
         self.resolver = aiodns.DNSResolver(servers=settings.DNS_RESOLVERS)
@@ -28,7 +31,7 @@ class AlephDNS:
             return None
 
     async def get_ipv6_address(self, url: HttpUrl) -> List[str]:
-        domain = urlparse(url).netloc
+        domain = domain_from_url(url)
         ipv6 = []
         query = await self.query(domain, "AAAA")
         if query:
@@ -37,7 +40,7 @@ class AlephDNS:
         return ipv6
 
     async def get_dnslink(self, url: HttpUrl) -> Optional[str]:
-        domain = urlparse(url).netloc
+        domain = domain_from_url(url)
         query = await self.query(f"_dnslink.{domain}", "TXT")
         if query is not None and len(query) > 0:
             return query[0].text
@@ -45,7 +48,7 @@ class AlephDNS:
             return None
 
     async def get_txt_values(self, url: HttpUrl, delimiter: Optional[str] = None) -> List[str]:
-        domain = urlparse(url).netloc
+        domain = domain_from_url(url)
         res = await self.query(domain, "TXT")
         values: List[str] = []
         if res is not None:
@@ -69,7 +72,7 @@ class AlephDNS:
         """
         status = {"cname": False, "owner_proof": False}
 
-        domain = urlparse(url).netloc
+        domain = domain_from_url(url)
 
         dns_rules = self.get_required_dns_rules(url, target, owner)
 
@@ -105,8 +108,8 @@ class AlephDNS:
 
         return status
 
-    def get_required_dns_rules(self, url: HttpUrl, target: Target, owner: Optional[str] = None):
-        domain = urlparse(url).netloc
+    def get_required_dns_rules(self, url: HttpUrl, target: Target, owner: Optional[str] = None) -> List[Dict]:
+        domain = domain_from_url(url)
         target = target.lower()
         dns_rules = []
 
