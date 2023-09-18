@@ -1,6 +1,6 @@
 import re
 from enum import Enum
-from typing import Optional
+from typing import Optional, List
 from urllib.parse import urlparse
 
 import aiodns
@@ -37,16 +37,18 @@ class AlephDNS:
                 ipv6.append(entry.host)
         return ipv6
 
-    async def get_dnslink(self, url: HttpUrl) -> str:
+    async def get_dnslink(self, url: HttpUrl) -> Optional[str]:
         domain = urlparse(url).netloc
         query = await self.query(f"_dnslink.{domain}", "TXT")
         if query is not None and len(query) > 0:
             return query[0].text
+        else:
+            return None
 
-    async def get_txt_values(self, url: HttpUrl, delimiter: Optional[str] = None):
+    async def get_txt_values(self, url: HttpUrl, delimiter: Optional[str] = None) -> List[str]:
         domain = urlparse(url).netloc
         res = await self.query(domain, "TXT")
-        values = []
+        values: List[str] = []
         if res is not None:
             for _res in res:
                 if hasattr(_res, "text") and _res.text.startswith("0x"):
