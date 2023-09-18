@@ -1,4 +1,5 @@
 import asyncio
+from urllib.parse import urlparse
 
 import pytest
 
@@ -9,9 +10,9 @@ from src.aleph.sdk.domain import Target
 
 
 @pytest.mark.asyncio
-async def test_url_to_domain():
+async def test_query():
     alephdns = AlephDNS()
-    domain = alephdns.url_to_domain("https://aleph.im")
+    domain = urlparse("https://aleph.im").netloc
     query = await alephdns.query(domain, "A")
     assert query is not None
     assert len(query) > 0

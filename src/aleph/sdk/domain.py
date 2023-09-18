@@ -1,10 +1,12 @@
 import re
 from enum import Enum
 from typing import Optional
+from urllib.parse import urlparse
 
 import aiodns
 
 from aleph.sdk.exceptions import DomainConfigurationError
+from pydantic import HttpUrl
 
 from .conf import settings
 
@@ -18,7 +20,6 @@ class Target(str, Enum):
 class AlephDNS:
     def __init__(self):
         self.resolver = aiodns.DNSResolver(servers=settings.DNS_RESOLVERS)
-        self.fqdn_matcher = re.compile(r"https?://?")
 
     async def query(self, name: str, query_type: str):
         try:
@@ -27,11 +28,8 @@ class AlephDNS:
             print(e)
             return None
 
-    def url_to_domain(self, url):
-        return self.fqdn_matcher.sub("", url).strip().strip("/")
-
-    async def get_ipv6_address(self, url: str):
-        domain = self.url_to_domain(url)
+    async def get_ipv6_address(self, url: HttpUrl) -> str:
+        domain = urlparse(url).netloc
         ipv6 = []
         query = await self.query(domain, "AAAA")
         if query:
@@ -39,14 +37,14 @@ class AlephDNS:
                 ipv6.append(entry.host)
         return ipv6
 
-    async def get_dnslink(self, url: str):
-        domain = self.url_to_domain(url)
+    async def get_dnslink(self, url: HttpUrl) -> str:
+        domain = urlparse(url).netloc
         query = await self.query(f"_dnslink.{domain}", "TXT")
         if query is not None and len(query) > 0:
             return query[0].text
 
-    async def get_txt_values(self, url: str, delimiter: Optional[str] = None):
-        domain = self.url_to_domain(url)
+    async def get_txt_values(self, url: HttpUrl, delimiter: Optional[str] = None):
+        domain = urlparse(url).netloc
         res = await alephdns.query(domain, "TXT")
         values = []
         if res is not None:
@@ -58,17 +56,19 @@ class AlephDNS:
                         values.append(_res.text)
         return values
 
-    async def check_domain_configured(self, domain, target: Target, owner):
+    async def check_domain_configured(self, domain: HttpUrl, target: Target, owner):
         try:
             print("Check...", target)
             return await self.check_domain(domain, target, owner)
         except Exception as error:
             raise DomainConfigurationError(error)
 
-    async def check_domain(self, url: str, target: str, owner: Optional[str] = None):
+    async def check_domain(self, url: HttpUrl, target: Target, owner: Optional[str] = None):
+        """Check that the domain points towards the target.
+        """
         status = {"cname": False, "owner_proof": False}
 
-        domain = self.url_to_domain(url)
+        domain = urlparse(url).netloc
 
         dns_rules = self.get_required_dns_rules(url, target, owner)
 
@@ -104,8 +104,8 @@ class AlephDNS:
 
         return status
 
-    def get_required_dns_rules(self, url, target: Target, owner: Optional[str] = None):
-        domain = self.url_to_domain(url)
+    def get_required_dns_rules(self, url: HttpUrl, target: Target, owner: Optional[str] = None):
+        domain = urlparse(url).netloc
         target = target.lower()
         dns_rules = []
 
