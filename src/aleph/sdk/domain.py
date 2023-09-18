@@ -1,4 +1,5 @@
 import re
+from enum import Enum
 from typing import Optional
 
 import aiodns
@@ -6,6 +7,12 @@ import aiodns
 from aleph.sdk.exceptions import DomainConfigurationError
 
 from .conf import settings
+
+
+class Target(str, Enum):
+    IPFS = "ipfs"
+    PROGRAM = "program"
+    INSTANCE = "instance"
 
 
 class AlephDNS:
@@ -51,7 +58,7 @@ class AlephDNS:
                         values.append(_res.text)
         return values
 
-    async def check_domain_configured(self, domain, target, owner):
+    async def check_domain_configured(self, domain, target: Target, owner):
         try:
             print("Check...", target)
             return await self.check_domain(domain, target, owner)
@@ -61,7 +68,6 @@ class AlephDNS:
     async def check_domain(self, url: str, target: str, owner: Optional[str] = None):
         status = {"cname": False, "owner_proof": False}
 
-        target = target.lower()
         domain = self.url_to_domain(url)
 
         dns_rules = self.get_required_dns_rules(url, target, owner)
@@ -98,17 +104,17 @@ class AlephDNS:
 
         return status
 
-    def get_required_dns_rules(self, url, target, owner: Optional[str] = None):
+    def get_required_dns_rules(self, url, target: Target, owner: Optional[str] = None):
         domain = self.url_to_domain(url)
         target = target.lower()
         dns_rules = []
 
         cname_value = None
-        if target == "ipfs":
+        if target == Target.IPFS:
             cname_value = settings.DNS_IPFS_DOMAIN
-        elif target == "program":
+        elif target == Target.PROGRAM:
             cname_value = f"{domain}.{settings.DNS_PROGRAM_DOMAIN}"
-        elif target == "instance":
+        elif target == Target.INSTANCE:
             cname_value = f"{domain}.{settings.DNS_INSTANCE_DOMAIN}"
 
         # cname rule
@@ -121,7 +127,7 @@ class AlephDNS:
             }
         )
 
-        if target == "ipfs":
+        if target == Target.IPFS:
             # ipfs rule
             dns_rules.append(
                 {
