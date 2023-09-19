@@ -41,7 +41,7 @@ class Settings(BaseSettings):
     DNS_PROGRAM_DOMAIN = "program.public.aleph.sh"
     DNS_INSTANCE_DOMAIN = "instance.public.aleph.sh"
     DNS_STATIC_DOMAIN = "static.public.aleph.sh"
-    DNS_RESOLVERS = ["1.1.1.1", "1.0.0.1"]
+    DNS_RESOLVERS = ["9.9.9.9", "1.1.1.1"]
 
     class Config:
         env_prefix = "ALEPH_"

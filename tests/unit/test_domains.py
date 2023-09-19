@@ -3,17 +3,17 @@ from urllib.parse import urlparse
 
 import pytest
 
-from aleph.sdk.domain import AlephDNS
+from aleph.sdk.domain import DomainValidator
 from aleph.sdk.exceptions import DomainConfigurationError
 
-from src.aleph.sdk.domain import Target
+from src.aleph.sdk.domain import TargetType, hostname_from_url
 
 
 @pytest.mark.asyncio
 async def test_query():
-    alephdns = AlephDNS()
-    domain = urlparse("https://aleph.im").netloc
-    query = await alephdns.query(domain, "A")
+    alephdns = DomainValidator()
+    hostname = hostname_from_url("https://aleph.im")
+    query = await alephdns.resolver.query(hostname, "A")
     assert query is not None
     assert len(query) > 0
     assert hasattr(query[0], "host")
@@ -21,33 +21,37 @@ async def test_query():
 
 @pytest.mark.asyncio
 async def test_get_ipv6_address():
-    alephdns = AlephDNS()
+    alephdns = DomainValidator()
     url = "https://aleph.im"
-    ipv6_address = await alephdns.get_ipv6_address(url)
-    assert ipv6_address is not None
-    assert len(ipv6_address) > 0
-    assert ":" in ipv6_address[0]
+    hostname = hostname_from_url(url)
+    ipv6_addresses = await alephdns.get_ipv6_addresses(hostname)
+    assert ipv6_addresses is not None
+    assert len(ipv6_addresses) > 0
+    assert ":" in ipv6_addresses[0]
 
 
 @pytest.mark.asyncio
 async def test_dnslink():
-    alephdns = AlephDNS()
+    alephdns = DomainValidator()
     url = "https://aleph.im"
-    dnslink = await alephdns.get_dnslink(url)
+    hostname = hostname_from_url(url)
+    dnslink = await alephdns.get_dnslink(hostname)
     assert dnslink is not None
 
 
 @pytest.mark.asyncio
 async def test_configured_domain():
-    alephdns = AlephDNS()
+    alephdns = DomainValidator()
     url = "https://custom-domain-unit-test.aleph.sh"
-    status = await alephdns.check_domain(url, Target.IPFS, "0xfakeaddress")
+    hostname = hostname_from_url(url)
+    status = await alephdns.check_domain(hostname, TargetType.IPFS, "0xfakeaddress")
     assert type(status) is dict
 
 
 @pytest.mark.asyncio
 async def test_not_configured_domain():
-    alephdns = AlephDNS()
+    alephdns = DomainValidator()
     url = "https://not-configured-domain.aleph.sh"
+    hostname = hostname_from_url(url)
     with pytest.raises(DomainConfigurationError):
-        status = await alephdns.check_domain(url, Target.IPFS, "0xfakeaddress")
+        status = await alephdns.check_domain(hostname, TargetType.IPFS, "0xfakeaddress")
