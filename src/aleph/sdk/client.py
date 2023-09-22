@@ -47,6 +47,7 @@ from aleph_message.models import (
 from aleph_message.models.execution.base import Encoding
 from aleph_message.status import MessageStatus
 from pydantic import ValidationError
+from pydantic.json import pydantic_encoder
 
 from aleph.sdk.types import Account, GenericMessage, StorageEnum
 from aleph.sdk.utils import Writable, copy_async_readable_to_buffer
@@ -1475,7 +1476,10 @@ class AuthenticatedAlephClient(AlephClient):
             "channel": channel,
         }
 
-        item_content: str = json.dumps(content, separators=(",", ":"))
+        # Use the Pydantic encoder to serialize types like UUID, datetimes, etc.
+        item_content: str = json.dumps(
+            content, separators=(",", ":"), default=pydantic_encoder
+        )
 
         if allow_inlining and (len(item_content) < settings.MAX_INLINE_SIZE):
             message_dict["item_content"] = item_content
