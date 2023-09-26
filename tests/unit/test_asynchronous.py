@@ -52,7 +52,7 @@ def mock_session_with_post_success(
     client = AuthenticatedAlephClient(
         account=ethereum_account, api_server="http://localhost"
     )
-    client.http_session = http_session
+    # client.http_session = http_session
 
     return client
 

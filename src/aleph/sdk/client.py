@@ -1,3 +1,4 @@
+from __future__ import annotations
 import asyncio
 import hashlib
 import json
@@ -50,16 +51,13 @@ from aleph.sdk.types import Account, GenericMessage, StorageEnum
 from aleph.sdk.utils import Writable, copy_async_readable_to_buffer
 
 from .conf import settings
-from .exceptions import (
-    BroadcastError,
-    FileTooLarge,
-    InvalidMessageError,
-    MessageNotFoundError,
-    MultipleMessagesError,
-)
+from .exceptions import BroadcastError, FileTooLarge, InvalidMessageError
 from .models import MessagesResponse
-from .query import MessageQuery, MessageQueryFilter
-from .utils import check_unix_socket_valid, get_message_type_value
+from .query.engines.base import QueryEngine
+from .query.engines.http import HttpQueryEngine
+from .query.filter import MessageFilter, PostFilter
+from .query.manager import QueryManager
+from .utils import get_message_type_value
 
 logger = logging.getLogger(__name__)
 
@@ -469,11 +467,12 @@ class AuthenticatedUserSessionSync(UserSessionSync):
 
 
 class AlephClient:
-    api_server: str
-    http_session: aiohttp.ClientSession
+    manager: QueryManager
+    _close_engine_on_exit: bool  # Whether the engine was created by the client or externally
 
     def __init__(
         self,
+        engine: Optional[QueryEngine] = None,
         api_server: Optional[str] = None,
         api_unix_socket: Optional[str] = None,
         allow_unix_sockets: bool = True,
@@ -483,45 +482,42 @@ class AlephClient:
         Unix sockets are used when running inside a virtual machine,
         and can be shared across containers in a more secure way than TCP ports.
         """
-        self.api_server = api_server or settings.API_HOST
+        if not engine:
+            engine = HttpQueryEngine.create_with_new_session(
+                api_server=api_server,
+                api_unix_socket=api_unix_socket,
+                allow_unix_sockets=allow_unix_sockets,
+                timeout=timeout,
+            )
+            self._close_engine_on_exit = True
+        self.manager = QueryManager(engine=engine)
+
         if not self.api_server:
             raise ValueError("Missing API host")
 
-        unix_socket_path = api_unix_socket or settings.API_UNIX_SOCKET
-        if unix_socket_path and allow_unix_sockets:
-            check_unix_socket_valid(unix_socket_path)
-            connector = aiohttp.UnixConnector(path=unix_socket_path)
-        else:
-            connector = None
-
-        # ClientSession timeout defaults to a private sentinel object and may not be None.
-        self.http_session = (
-            aiohttp.ClientSession(
-                base_url=self.api_server, connector=connector, timeout=timeout
-            )
-            if timeout
-            else aiohttp.ClientSession(
-                base_url=self.api_server,
-                connector=connector,
-            )
-        )
+    @property
+    def api_server(self):
+        return str(self.manager.engine.source)
 
     def __enter__(self) -> UserSessionSync:
         return UserSessionSync(async_session=self)
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        close_fut = self.http_session.close()
+        if not self._close_engine_on_exit:
+            return
+        close_fut = self.manager.engine.stop()
         try:
             loop = asyncio.get_running_loop()
             loop.run_until_complete(close_fut)
         except RuntimeError:
             asyncio.run(close_fut)
 
-    async def __aenter__(self) -> "AlephClient":
+    async def __aenter__(self) -> AlephClient:
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
-        await self.http_session.close()
+        if self._close_engine_on_exit:
+            await self.manager.engine.stop()
 
     async def fetch_aggregate(
         self,
@@ -537,16 +533,7 @@ class AlephClient:
         :param limit: Maximum number of items to fetch (Default: 100)
         """
 
-        params: Dict[str, Any] = {"keys": key}
-        if limit:
-            params["limit"] = limit
-
-        async with self.http_session.get(
-            f"/api/v0/aggregates/{address}.json", params=params
-        ) as resp:
-            result = await resp.json()
-            data = result.get("data", dict())
-            return data.get(key)
+        return await self.manager.engine.fetch_aggregate(address, key, limit)
 
     async def fetch_aggregates(
         self,
@@ -562,20 +549,7 @@ class AlephClient:
         :param limit: Maximum number of items to fetch (Default: 100)
         """
 
-        keys_str = ",".join(keys) if keys else ""
-        params: Dict[str, Any] = {}
-        if keys_str:
-            params["keys"] = keys_str
-        if limit:
-            params["limit"] = limit
-
-        async with self.http_session.get(
-            f"/api/v0/aggregates/{address}.json",
-            params=params,
-        ) as resp:
-            result = await resp.json()
-            data = result.get("data", dict())
-            return data
+        return await self.manager.engine.fetch_aggregates(address, keys, limit)
 
     async def get_posts(
         self,
@@ -606,6 +580,21 @@ class AlephClient:
         :param start_date: Earliest date to fetch messages from
         :param end_date: Latest date to fetch messages from
         """
+
+        query_filter = PostFilter(
+            types=types,
+            refs=refs,
+            addresses=addresses,
+            tags=tags,
+            hashes=hashes,
+            channels=channels,
+            chains=chains,
+            start_date=start_date,
+            end_date=end_date,
+        )
+
+        queryset = self.manager.engine.apply_filter(query_filter)
+        return await queryset.fetch_posts(pagination=pagination, page=page)
 
         params: Dict[str, Any] = dict(pagination=pagination, page=page)
 
@@ -648,7 +637,7 @@ class AlephClient:
         :param output_buffer: Writable binary buffer. The file will be written to this buffer.
         """
 
-        async with self.http_session.get(
+        async with self.manager.engine._http_session.get(
             f"/api/v0/storage/raw/{file_hash}"
         ) as response:
             if response.status == 200:
@@ -738,7 +727,7 @@ class AlephClient:
         Fetch a list of messages from the network.
         """
 
-        query_filter = MessageQueryFilter(
+        query_filter = MessageFilter(
             message_type=message_type,
             content_types=content_types,
             content_keys=content_keys,
@@ -752,12 +741,8 @@ class AlephClient:
             end_date=end_date,
         )
 
-        return await MessageQuery(
-            query_filter=query_filter,
-            http_client_session=self.http_session,
-            ignore_invalid_messages=ignore_invalid_messages,
-            invalid_messages_log_level=invalid_messages_log_level,
-        ).fetch(page=page, pagination=pagination)
+        queryset = self.manager.apply_filter(query_filter=query_filter)
+        return await queryset.fetch_messages(page=page, page_size=pagination)
 
     async def get_message(
         self,
@@ -772,17 +757,16 @@ class AlephClient:
         :param message_type: Type of message to fetch
         :param channel: Channel of the message to fetch
         """
-        messages_response = await self.get_messages(
+
+        query_filter = MessageFilter(
             hashes=[item_hash],
+            message_type=message_type,
             channels=[channel] if channel else None,
         )
-        if len(messages_response.messages) < 1:
-            raise MessageNotFoundError(f"No such hash {item_hash}")
-        if len(messages_response.messages) != 1:
-            raise MultipleMessagesError(
-                f"Multiple messages found for the same item_hash `{item_hash}`"
-            )
-        message: GenericMessage = messages_response.messages[0]
+        queryset = self.manager.apply_filter(query_filter=query_filter)
+        message: GenericMessage = await queryset.first()
+
+        # Optional, additional message type check.
         if message_type:
             expected_type = get_message_type_value(message_type)
             if message.type != expected_type:
@@ -792,7 +776,7 @@ class AlephClient:
                 )
         return message
 
-    async def watch_messages(
+    def watch_messages(
         self,
         message_type: Optional[MessageType] = None,
         content_types: Optional[Iterable[str]] = None,
@@ -819,48 +803,21 @@ class AlephClient:
         :param start_date: Start date from when to watch
         :param end_date: End date until when to watch
         """
-        params: Dict[str, Any] = dict()
 
-        if message_type is not None:
-            params["msgType"] = message_type.value
-        if content_types is not None:
-            params["contentTypes"] = ",".join(content_types)
-        if refs is not None:
-            params["refs"] = ",".join(refs)
-        if addresses is not None:
-            params["addresses"] = ",".join(addresses)
-        if tags is not None:
-            params["tags"] = ",".join(tags)
-        if hashes is not None:
-            params["hashes"] = ",".join(hashes)
-        if channels is not None:
-            params["channels"] = ",".join(channels)
-        if chains is not None:
-            params["chains"] = ",".join(chains)
+        query_filter = MessageFilter(
+            message_type=message_type,
+            content_types=content_types,
+            refs=refs,
+            addresses=addresses,
+            tags=tags,
+            hashes=hashes,
+            channels=channels,
+            chains=chains,
+            start_date=start_date,
+            end_date=end_date,
+        )
 
-        if start_date is not None:
-            if not isinstance(start_date, float) and hasattr(start_date, "timestamp"):
-                start_date = start_date.timestamp()
-            params["startDate"] = start_date
-        if end_date is not None:
-            if not isinstance(end_date, float) and hasattr(start_date, "timestamp"):
-                end_date = end_date.timestamp()
-            params["endDate"] = end_date
-
-        async with self.http_session.ws_connect(
-            "/api/ws0/messages", params=params
-        ) as ws:
-            logger.debug("Websocket connected")
-            async for msg in ws:
-                if msg.type == aiohttp.WSMsgType.TEXT:
-                    if msg.data == "close cmd":
-                        await ws.close()
-                        break
-                    else:
-                        data = json.loads(msg.data)
-                        yield parse_message(data)
-                elif msg.type == aiohttp.WSMsgType.ERROR:
-                    break
+        return self.manager.apply_filter(query_filter=query_filter).watch()
 
 
 class AuthenticatedAlephClient(AlephClient):
@@ -894,10 +851,10 @@ class AuthenticatedAlephClient(AlephClient):
         )
         self.account = account
 
-    def __enter__(self) -> "AuthenticatedUserSessionSync":
+    def __enter__(self) -> AuthenticatedUserSessionSync:
         return AuthenticatedUserSessionSync(async_session=self)
 
-    async def __aenter__(self) -> "AuthenticatedAlephClient":
+    async def __aenter__(self) -> AuthenticatedAlephClient:
         return self
 
     async def ipfs_push(self, content: Mapping) -> str:
