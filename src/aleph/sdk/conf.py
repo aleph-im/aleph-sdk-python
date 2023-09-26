@@ -32,7 +32,7 @@ class Settings(BaseSettings):
     DEFAULT_RUNTIME_ID: str = (
         "bd79839bf96e595a06da5ac0b6ba51dea6f7e2591bb913deccded04d831d29f4"
     )
-    DEFAULT_VM_MEMORY: int = 128
+    DEFAULT_VM_MEMORY: int = 256
     DEFAULT_VM_VCPUS: int = 1
     DEFAULT_VM_TIMEOUT: float = 30.0
 
