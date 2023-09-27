@@ -677,7 +677,7 @@ class AlephClient(BaseAlephClient):
         :param file_hash: The hash of the file to retrieve.
         :param output_buffer: The binary output buffer to write the file data to.
         """
-        async with self.http_session as session:
+        async with aiohttp.ClientSession() as session:
             async with session.get(
                 f"https://ipfs.aleph.im/ipfs/{file_hash}"
             ) as response:
