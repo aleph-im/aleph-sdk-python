@@ -483,7 +483,7 @@ class DomainNode(MessageCache, BaseAuthenticatedAlephClient):
             raise ValueError(
                 f"Cannot create {message_type.value} message because DomainNode is not listening to messages from address {address}."
             )
-        if self.channels and channel not in self.channels:
+        if channel and self.channels and channel not in self.channels:
             raise ValueError(
                 f"Cannot create {message_type.value} message because DomainNode is not listening to messages from channel {channel}."
             )
@@ -594,7 +594,9 @@ class DomainNode(MessageCache, BaseAuthenticatedAlephClient):
         subscriptions: Optional[List[Mapping]] = None,
         metadata: Optional[Mapping[str, Any]] = None,
     ) -> Tuple[AlephMessage, MessageStatus]:
-        self.check_validity(MessageType.program, address, channel, metadata)
+        self.check_validity(
+            MessageType.program, address, channel, dict(metadata) if metadata else None
+        )
         resp, status = await self.session.create_program(
             program_ref=program_ref,
             entrypoint=entrypoint,
