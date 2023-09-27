@@ -18,20 +18,20 @@ from aleph.sdk.node.post import message_to_post
 
 
 @pytest.mark.asyncio
-async def test_base(messages):
+async def test_base(aleph_messages):
     # test add_many
     cache = MessageCache()
-    cache.add(messages)
-    assert len(cache) == len(messages)
+    cache.add(aleph_messages)
+    assert len(cache) == len(aleph_messages)
 
-    item_hashes = [message.item_hash for message in messages]
+    item_hashes = [message.item_hash for message in aleph_messages]
     cached_messages = cache.get(item_hashes)
-    assert len(cached_messages) == len(messages)
+    assert len(cached_messages) == len(aleph_messages)
 
-    for message in messages:
+    for message in aleph_messages:
         assert cache[message.item_hash] == message
 
-    for message in messages:
+    for message in aleph_messages:
         assert message.item_hash in cache
 
     for message in cache:
@@ -47,8 +47,8 @@ class TestMessageQueries:
     cache: MessageCache
 
     @pytest.fixture(autouse=True)
-    def class_setup(self, messages):
-        self.messages = messages
+    def class_setup(self, aleph_messages):
+        self.messages = aleph_messages
         self.cache = MessageCache()
         self.cache.add(self.messages)
 
@@ -127,8 +127,8 @@ class TestPostQueries:
     cache: MessageCache
 
     @pytest.fixture(autouse=True)
-    def class_setup(self, messages):
-        self.messages = messages
+    def class_setup(self, aleph_messages):
+        self.messages = aleph_messages
         self.cache = MessageCache()
         self.cache.add(self.messages)
 
@@ -196,33 +196,33 @@ async def test_message_cache_listener():
 
 
 @pytest.mark.asyncio
-async def test_fetch_aggregate(messages):
+async def test_fetch_aggregate(aleph_messages):
     cache = MessageCache()
-    cache.add(messages)
+    cache.add(aleph_messages)
 
-    aggregate = await cache.fetch_aggregate(messages[0].sender, messages[0].content.key)
+    aggregate = await cache.fetch_aggregate(aleph_messages[0].sender, aleph_messages[0].content.key)
 
-    assert aggregate == messages[0].content.content
+    assert aggregate == aleph_messages[0].content.content
 
 
 @pytest.mark.asyncio
-async def test_fetch_aggregates(messages):
+async def test_fetch_aggregates(aleph_messages):
     cache = MessageCache()
-    cache.add(messages)
+    cache.add(aleph_messages)
 
-    aggregates = await cache.fetch_aggregates(messages[0].sender)
+    aggregates = await cache.fetch_aggregates(aleph_messages[0].sender)
 
-    assert aggregates == {messages[0].content.key: messages[0].content.content}
+    assert aggregates == {aleph_messages[0].content.key: aleph_messages[0].content.content}
 
 
 @pytest.mark.asyncio
-async def test_get_message(messages):
+async def test_get_message(aleph_messages):
     cache = MessageCache()
-    cache.add(messages)
+    cache.add(aleph_messages)
 
-    message: AlephMessage = await cache.get_message(messages[0].item_hash)
+    message: AlephMessage = await cache.get_message(aleph_messages[0].item_hash)
 
-    assert message == messages[0]
+    assert message == aleph_messages[0]
 
 
 @pytest.mark.asyncio

@@ -55,7 +55,7 @@ def json_messages():
 
 
 @pytest.fixture
-def messages() -> List[AlephMessage]:
+def aleph_messages() -> List[AlephMessage]:
     return [
         AggregateMessage.parse_obj(
             {
@@ -112,11 +112,11 @@ def messages() -> List[AlephMessage]:
 
 
 @pytest.fixture
-def raw_messages_response(messages):
+def raw_messages_response(aleph_messages):
     return lambda page: {
-        "messages": [message.dict() for message in messages] if page == 1 else [],
+        "messages": [message.dict() for message in aleph_messages] if page == 1 else [],
         "pagination_item": "messages",
         "pagination_page": page,
-        "pagination_per_page": max(len(messages), 20),
-        "pagination_total": len(messages) if page == 1 else 0,
+        "pagination_per_page": max(len(aleph_messages), 20),
+        "pagination_total": len(aleph_messages) if page == 1 else 0,
     }
