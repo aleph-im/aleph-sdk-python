@@ -204,7 +204,7 @@ class BaseAlephClient(ABC):
 
     async def get_messages_iterator(
         self,
-        message_type: Optional[MessageType] = None,
+        message_types: Optional[Iterable[MessageType]] = None,
         content_types: Optional[Iterable[str]] = None,
         content_keys: Optional[Iterable[str]] = None,
         refs: Optional[Iterable[str]] = None,
@@ -220,7 +220,7 @@ class BaseAlephClient(ABC):
         Fetch all filtered messages, returning an async iterator and fetching them page by page. Might return duplicates
         but will always return all messages.
 
-        :param message_type: Filter by message type, can be "AGGREGATE", "POST", "PROGRAM", "VM", "STORE" or "FORGET"
+        :param message_types: Filter by message type, can be "AGGREGATE", "POST", "PROGRAM", "VM", "STORE" or "FORGET"
         :param content_types: Filter by content type
         :param content_keys: Filter by content key
         :param refs: If set, only fetch posts that reference these hashes (in the "refs" field)
@@ -237,7 +237,7 @@ class BaseAlephClient(ABC):
         while resp is None or len(resp.messages) > 0:
             resp = await self.get_messages(
                 page=page,
-                message_type=message_type,
+                message_types=message_types,
                 content_types=content_types,
                 content_keys=content_keys,
                 refs=refs,

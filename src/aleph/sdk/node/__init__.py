@@ -359,9 +359,9 @@ class DomainNode(MessageCache, BaseAuthenticatedAlephClient):
     A Domain Node is a queryable proxy for Aleph Messages that are stored in a database cache and/or in the Aleph
     network.
 
-    It synchronizes with the network on a subset of the messages by listening to the network and storing the
-    messages in the cache. The user may define the subset by specifying a channels, tags, senders, chains,
-    message types, and/or a time window.
+    It synchronizes with the network on a subset of the messages (the "domain") by listening to the network and storing the
+    messages in the cache. The user may define the domain by specifying a channels, tags, senders, chains and/or
+    message types.
     """
 
     def __init__(
@@ -371,7 +371,7 @@ class DomainNode(MessageCache, BaseAuthenticatedAlephClient):
         tags: Optional[Iterable[str]] = None,
         addresses: Optional[Iterable[str]] = None,
         chains: Optional[Iterable[Chain]] = None,
-        message_type: Optional[MessageType] = None,
+        message_types: Optional[Iterable[MessageType]] = None,
     ):
         super().__init__()
         self.session = session
@@ -379,7 +379,7 @@ class DomainNode(MessageCache, BaseAuthenticatedAlephClient):
         self.tags = tags
         self.addresses = addresses
         self.chains = chains
-        self.message_type = message_type
+        self.message_types = message_types
 
         # start listening to the network and storing messages in the cache
         asyncio.get_event_loop().create_task(
@@ -389,7 +389,7 @@ class DomainNode(MessageCache, BaseAuthenticatedAlephClient):
                     tags=self.tags,
                     addresses=self.addresses,
                     chains=self.chains,
-                    message_type=self.message_type,
+                    message_types=self.message_types,
                 )
             )
         )
@@ -401,7 +401,7 @@ class DomainNode(MessageCache, BaseAuthenticatedAlephClient):
                 tags=self.tags,
                 addresses=self.addresses,
                 chains=self.chains,
-                message_type=self.message_type,
+                message_types=self.message_types,
             )
         )
 
@@ -417,7 +417,7 @@ class DomainNode(MessageCache, BaseAuthenticatedAlephClient):
         tags: Optional[Iterable[str]] = None,
         addresses: Optional[Iterable[str]] = None,
         chains: Optional[Iterable[Chain]] = None,
-        message_type: Optional[MessageType] = None,
+        message_types: Optional[Iterable[MessageType]] = None,
         start_date: Optional[Union[datetime, float]] = None,
         end_date: Optional[Union[datetime, float]] = None,
     ):
@@ -431,7 +431,7 @@ class DomainNode(MessageCache, BaseAuthenticatedAlephClient):
             tags=tags,
             addresses=addresses,
             chains=chains,
-            message_type=message_type,
+            message_types=message_types,
             start_date=start_date,
             end_date=end_date,
         ):
