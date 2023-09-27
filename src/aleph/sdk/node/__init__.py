@@ -377,8 +377,16 @@ class DomainNode(MessageCache, BaseAuthenticatedAlephClient):
         self.session = session
         self.channels = channels
         self.tags = tags
-        self.addresses = addresses
-        self.chains = chains
+        self.addresses = (
+            list(addresses) + [session.account.get_address()]
+            if addresses
+            else [session.account.get_address()]
+        )
+        self.chains = (
+            list(chains) + [Chain(session.account.CHAIN)]
+            if chains
+            else [session.account.CHAIN]
+        )
         self.message_types = message_types
 
         # start listening to the network and storing messages in the cache
@@ -460,6 +468,34 @@ class DomainNode(MessageCache, BaseAuthenticatedAlephClient):
     def _file_path(file_hash: str) -> Path:
         return settings.CACHE_FILES_PATH / Path(file_hash)
 
+    def check_validity(
+        self,
+        message_type: MessageType,
+        address: Optional[str] = None,
+        channel: Optional[str] = None,
+        content: Optional[Dict] = None,
+    ):
+        if self.message_types and message_type not in self.message_types:
+            raise ValueError(
+                f"Cannot create {message_type.value} message because DomainNode is not listening to post messages."
+            )
+        if address and self.addresses and address not in self.addresses:
+            raise ValueError(
+                f"Cannot create {message_type.value} message because DomainNode is not listening to messages from address {address}."
+            )
+        if self.channels and channel not in self.channels:
+            raise ValueError(
+                f"Cannot create {message_type.value} message because DomainNode is not listening to messages from channel {channel}."
+            )
+        if (
+            content
+            and self.tags
+            and not set(content.get("tags", [])).intersection(self.tags)
+        ):
+            raise ValueError(
+                f"Cannot create {message_type.value} message because DomainNode is not listening to any of these tags: {content.get('tags', [])}."
+            )
+
     async def create_post(
         self,
         post_content: Any,
@@ -471,6 +507,7 @@ class DomainNode(MessageCache, BaseAuthenticatedAlephClient):
         storage_engine: StorageEnum = StorageEnum.storage,
         sync: bool = False,
     ) -> Tuple[AlephMessage, MessageStatus]:
+        self.check_validity(MessageType.post, address, channel, post_content)
         resp, status = await self.session.create_post(
             post_content=post_content,
             post_type=post_type,
@@ -495,6 +532,7 @@ class DomainNode(MessageCache, BaseAuthenticatedAlephClient):
         inline: bool = True,
         sync: bool = False,
     ) -> Tuple[AlephMessage, MessageStatus]:
+        self.check_validity(MessageType.aggregate, address, channel)
         resp, status = await self.session.create_aggregate(
             key=key,
             content=content,
@@ -520,6 +558,7 @@ class DomainNode(MessageCache, BaseAuthenticatedAlephClient):
         channel: Optional[str] = None,
         sync: bool = False,
     ) -> Tuple[AlephMessage, MessageStatus]:
+        self.check_validity(MessageType.store, address, channel, extra_fields)
         resp, status = await self.session.create_store(
             address=address,
             file_content=file_content,
@@ -555,6 +594,7 @@ class DomainNode(MessageCache, BaseAuthenticatedAlephClient):
         subscriptions: Optional[List[Mapping]] = None,
         metadata: Optional[Mapping[str, Any]] = None,
     ) -> Tuple[AlephMessage, MessageStatus]:
+        self.check_validity(MessageType.program, address, channel, metadata)
         resp, status = await self.session.create_program(
             program_ref=program_ref,
             entrypoint=entrypoint,
@@ -586,6 +626,7 @@ class DomainNode(MessageCache, BaseAuthenticatedAlephClient):
         address: Optional[str] = None,
         sync: bool = False,
     ) -> Tuple[AlephMessage, MessageStatus]:
+        self.check_validity(MessageType.forget, address, channel)
         resp, status = await self.session.forget(
             hashes=hashes,
             reason=reason,
