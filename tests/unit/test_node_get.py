@@ -200,7 +200,9 @@ async def test_fetch_aggregate(aleph_messages):
     cache = MessageCache()
     cache.add(aleph_messages)
 
-    aggregate = await cache.fetch_aggregate(aleph_messages[0].sender, aleph_messages[0].content.key)
+    aggregate = await cache.fetch_aggregate(
+        aleph_messages[0].sender, aleph_messages[0].content.key
+    )
 
     assert aggregate == aleph_messages[0].content.content
 
@@ -212,7 +214,9 @@ async def test_fetch_aggregates(aleph_messages):
 
     aggregates = await cache.fetch_aggregates(aleph_messages[0].sender)
 
-    assert aggregates == {aleph_messages[0].content.key: aleph_messages[0].content.content}
+    assert aggregates == {
+        aleph_messages[0].content.key: aleph_messages[0].content.content
+    }
 
 
 @pytest.mark.asyncio
