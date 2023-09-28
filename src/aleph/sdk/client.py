@@ -5,8 +5,6 @@ import logging
 import queue
 import threading
 import time
-import warnings
-from datetime import datetime
 from io import BytesIO
 from pathlib import Path
 from typing import (
@@ -61,7 +59,8 @@ from .exceptions import (
     MessageNotFoundError,
     MultipleMessagesError,
 )
-from .models import MessagesResponse, Post, PostsResponse
+from .models.message import MessageFilter, MessagesResponse
+from .models.post import Post, PostFilter, PostsResponse
 from .utils import check_unix_socket_valid, get_message_type_value
 
 logger = logging.getLogger(__name__)
@@ -141,18 +140,7 @@ class UserSessionSync:
         self,
         pagination: int = 200,
         page: int = 1,
-        message_type: Optional[MessageType] = None,
-        message_types: Optional[List[MessageType]] = None,
-        content_types: Optional[Iterable[str]] = None,
-        content_keys: Optional[Iterable[str]] = None,
-        refs: Optional[Iterable[str]] = None,
-        addresses: Optional[Iterable[str]] = None,
-        tags: Optional[Iterable[str]] = None,
-        hashes: Optional[Iterable[str]] = None,
-        channels: Optional[Iterable[str]] = None,
-        chains: Optional[Iterable[str]] = None,
-        start_date: Optional[Union[datetime, float]] = None,
-        end_date: Optional[Union[datetime, float]] = None,
+        message_filter: Optional[MessageFilter] = None,
         ignore_invalid_messages: bool = True,
         invalid_messages_log_level: int = logging.NOTSET,
     ) -> MessagesResponse:
@@ -160,18 +148,7 @@ class UserSessionSync:
             self.async_session.get_messages,
             pagination=pagination,
             page=page,
-            message_type=message_type,
-            message_types=message_types,
-            content_types=content_types,
-            content_keys=content_keys,
-            refs=refs,
-            addresses=addresses,
-            tags=tags,
-            hashes=hashes,
-            channels=channels,
-            chains=chains,
-            start_date=start_date,
-            end_date=end_date,
+            message_filter=message_filter,
             ignore_invalid_messages=ignore_invalid_messages,
             invalid_messages_log_level=invalid_messages_log_level,
         )
@@ -210,29 +187,13 @@ class UserSessionSync:
         self,
         pagination: int = 200,
         page: int = 1,
-        types: Optional[Iterable[str]] = None,
-        refs: Optional[Iterable[str]] = None,
-        addresses: Optional[Iterable[str]] = None,
-        tags: Optional[Iterable[str]] = None,
-        hashes: Optional[Iterable[str]] = None,
-        channels: Optional[Iterable[str]] = None,
-        chains: Optional[Iterable[str]] = None,
-        start_date: Optional[Union[datetime, float]] = None,
-        end_date: Optional[Union[datetime, float]] = None,
+        post_filter: Optional[PostFilter] = None,
     ) -> PostsResponse:
         return self._wrap(
             self.async_session.get_posts,
             pagination=pagination,
             page=page,
-            types=types,
-            refs=refs,
-            addresses=addresses,
-            tags=tags,
-            hashes=hashes,
-            channels=channels,
-            chains=chains,
-            start_date=start_date,
-            end_date=end_date,
+            post_filter=post_filter,
         )
 
     def download_file(self, file_hash: str) -> bytes:
@@ -264,16 +225,7 @@ class UserSessionSync:
 
     def watch_messages(
         self,
-        message_type: Optional[MessageType] = None,
-        content_types: Optional[Iterable[str]] = None,
-        refs: Optional[Iterable[str]] = None,
-        addresses: Optional[Iterable[str]] = None,
-        tags: Optional[Iterable[str]] = None,
-        hashes: Optional[Iterable[str]] = None,
-        channels: Optional[Iterable[str]] = None,
-        chains: Optional[Iterable[str]] = None,
-        start_date: Optional[Union[datetime, float]] = None,
-        end_date: Optional[Union[datetime, float]] = None,
+        message_filter: Optional[MessageFilter] = None,
     ) -> Iterable[AlephMessage]:
         """
         Iterate over current and future matching messages synchronously.
@@ -286,18 +238,7 @@ class UserSessionSync:
             args=(
                 output_queue,
                 self.async_session.api_server,
-                (
-                    message_type,
-                    content_types,
-                    refs,
-                    addresses,
-                    tags,
-                    hashes,
-                    channels,
-                    chains,
-                    start_date,
-                    end_date,
-                ),
+                (message_filter),
                 {},
             ),
         )
@@ -570,15 +511,7 @@ class AlephClient(BaseAlephClient):
         self,
         pagination: int = 200,
         page: int = 1,
-        types: Optional[Iterable[str]] = None,
-        refs: Optional[Iterable[str]] = None,
-        addresses: Optional[Iterable[str]] = None,
-        tags: Optional[Iterable[str]] = None,
-        hashes: Optional[Iterable[str]] = None,
-        channels: Optional[Iterable[str]] = None,
-        chains: Optional[Iterable[str]] = None,
-        start_date: Optional[Union[datetime, float]] = None,
-        end_date: Optional[Union[datetime, float]] = None,
+        post_filter: Optional[PostFilter] = None,
         ignore_invalid_messages: Optional[bool] = True,
         invalid_messages_log_level: Optional[int] = logging.NOTSET,
     ) -> PostsResponse:
@@ -591,31 +524,11 @@ class AlephClient(BaseAlephClient):
             else invalid_messages_log_level
         )
 
-        params: Dict[str, Any] = dict(pagination=pagination, page=page)
-
-        if types is not None:
-            params["types"] = ",".join(types)
-        if refs is not None:
-            params["refs"] = ",".join(refs)
-        if addresses is not None:
-            params["addresses"] = ",".join(addresses)
-        if tags is not None:
-            params["tags"] = ",".join(tags)
-        if hashes is not None:
-            params["hashes"] = ",".join(hashes)
-        if channels is not None:
-            params["channels"] = ",".join(channels)
-        if chains is not None:
-            params["chains"] = ",".join(chains)
-
-        if start_date is not None:
-            if not isinstance(start_date, float) and hasattr(start_date, "timestamp"):
-                start_date = start_date.timestamp()
-            params["startDate"] = start_date
-        if end_date is not None:
-            if not isinstance(end_date, float) and hasattr(start_date, "timestamp"):
-                end_date = end_date.timestamp()
-            params["endDate"] = end_date
+        if not post_filter:
+            post_filter = PostFilter()
+        params = post_filter.as_http_params()
+        params["page"] = str(page)
+        params["pagination"] = str(pagination)
 
         async with self.http_session.get("/api/v1/posts.json", params=params) as resp:
             resp.raise_for_status()
@@ -722,18 +635,7 @@ class AlephClient(BaseAlephClient):
         self,
         pagination: int = 200,
         page: int = 1,
-        message_type: Optional[MessageType] = None,
-        message_types: Optional[Iterable[MessageType]] = None,
-        content_types: Optional[Iterable[str]] = None,
-        content_keys: Optional[Iterable[str]] = None,
-        refs: Optional[Iterable[str]] = None,
-        addresses: Optional[Iterable[str]] = None,
-        tags: Optional[Iterable[str]] = None,
-        hashes: Optional[Iterable[str]] = None,
-        channels: Optional[Iterable[str]] = None,
-        chains: Optional[Iterable[str]] = None,
-        start_date: Optional[Union[datetime, float]] = None,
-        end_date: Optional[Union[datetime, float]] = None,
+        message_filter: Optional[MessageFilter] = None,
         ignore_invalid_messages: Optional[bool] = True,
         invalid_messages_log_level: Optional[int] = logging.NOTSET,
     ) -> MessagesResponse:
@@ -746,43 +648,11 @@ class AlephClient(BaseAlephClient):
             else invalid_messages_log_level
         )
 
-        params: Dict[str, Any] = dict(pagination=pagination, page=page)
-
-        if message_type is not None:
-            warnings.warn(
-                "The message_type parameter is deprecated, please use message_types instead.",
-                DeprecationWarning,
-            )
-            params["msgType"] = message_type.value
-        if message_types is not None:
-            params["msgTypes"] = ",".join([t.value for t in message_types])
-            print(params["msgTypes"])
-        if content_types is not None:
-            params["contentTypes"] = ",".join(content_types)
-        if content_keys is not None:
-            params["contentKeys"] = ",".join(content_keys)
-        if refs is not None:
-            params["refs"] = ",".join(refs)
-        if addresses is not None:
-            params["addresses"] = ",".join(addresses)
-        if tags is not None:
-            params["tags"] = ",".join(tags)
-        if hashes is not None:
-            params["hashes"] = ",".join(hashes)
-        if channels is not None:
-            params["channels"] = ",".join(channels)
-        if chains is not None:
-            params["chains"] = ",".join(chains)
-
-        if start_date is not None:
-            if not isinstance(start_date, float) and hasattr(start_date, "timestamp"):
-                start_date = start_date.timestamp()
-            params["startDate"] = start_date
-        if end_date is not None:
-            if not isinstance(end_date, float) and hasattr(start_date, "timestamp"):
-                end_date = end_date.timestamp()
-            params["endDate"] = end_date
-
+        if not message_filter:
+            message_filter = MessageFilter()
+        params = message_filter.as_http_params()
+        params["page"] = str(page)
+        params["pagination"] = str(pagination)
         async with self.http_session.get(
             "/api/v0/messages.json", params=params
         ) as resp:
@@ -825,8 +695,10 @@ class AlephClient(BaseAlephClient):
         channel: Optional[str] = None,
     ) -> GenericMessage:
         messages_response = await self.get_messages(
-            hashes=[item_hash],
-            channels=[channel] if channel else None,
+            message_filter=MessageFilter(
+                hashes=[item_hash],
+                channels=[channel] if channel else None,
+            )
         )
         if len(messages_response.messages) < 1:
             raise MessageNotFoundError(f"No such hash {item_hash}")
@@ -846,54 +718,11 @@ class AlephClient(BaseAlephClient):
 
     async def watch_messages(
         self,
-        message_type: Optional[MessageType] = None,
-        message_types: Optional[Iterable[MessageType]] = None,
-        content_types: Optional[Iterable[str]] = None,
-        content_keys: Optional[Iterable[str]] = None,
-        refs: Optional[Iterable[str]] = None,
-        addresses: Optional[Iterable[str]] = None,
-        tags: Optional[Iterable[str]] = None,
-        hashes: Optional[Iterable[str]] = None,
-        channels: Optional[Iterable[str]] = None,
-        chains: Optional[Iterable[str]] = None,
-        start_date: Optional[Union[datetime, float]] = None,
-        end_date: Optional[Union[datetime, float]] = None,
+        message_filter: Optional[MessageFilter] = None,
     ) -> AsyncIterable[AlephMessage]:
-        params: Dict[str, Any] = dict()
-
-        if message_type is not None:
-            warnings.warn(
-                "The message_type parameter is deprecated, please use message_types instead.",
-                DeprecationWarning,
-            )
-            params["msgType"] = message_type.value
-        if message_types is not None:
-            params["msgTypes"] = ",".join([t.value for t in message_types])
-        if content_types is not None:
-            params["contentTypes"] = ",".join(content_types)
-        if content_keys is not None:
-            params["contentKeys"] = ",".join(content_keys)
-        if refs is not None:
-            params["refs"] = ",".join(refs)
-        if addresses is not None:
-            params["addresses"] = ",".join(addresses)
-        if tags is not None:
-            params["tags"] = ",".join(tags)
-        if hashes is not None:
-            params["hashes"] = ",".join(hashes)
-        if channels is not None:
-            params["channels"] = ",".join(channels)
-        if chains is not None:
-            params["chains"] = ",".join(chains)
-
-        if start_date is not None:
-            if not isinstance(start_date, float) and hasattr(start_date, "timestamp"):
-                start_date = start_date.timestamp()
-            params["startDate"] = start_date
-        if end_date is not None:
-            if not isinstance(end_date, float) and hasattr(start_date, "timestamp"):
-                end_date = end_date.timestamp()
-            params["endDate"] = end_date
+        if not message_filter:
+            message_filter = MessageFilter()
+        params = message_filter.as_http_params()
 
         async with self.http_session.ws_connect(
             "/api/ws0/messages", params=params
@@ -1387,6 +1216,7 @@ class AuthenticatedAlephClient(AlephClient, BaseAuthenticatedAlephClient):
 
         if allow_inlining and (len(item_content) < settings.MAX_INLINE_SIZE):
             message_dict["item_content"] = item_content
+            print(item_content)
             message_dict["item_hash"] = self.compute_sha256(item_content)
             message_dict["item_type"] = ItemType.inline
         else:

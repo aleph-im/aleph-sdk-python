@@ -2,7 +2,6 @@
 
 import logging
 from abc import ABC, abstractmethod
-from datetime import datetime
 from pathlib import Path
 from typing import (
     Any,
@@ -26,8 +25,9 @@ from aleph_message.models import (
 from aleph_message.models.execution.program import Encoding
 from aleph_message.status import MessageStatus
 
-from aleph.sdk.models import PostsResponse
-from aleph.sdk.types import GenericMessage, StorageEnum
+from .models.message import MessageFilter
+from .models.post import PostFilter, PostsResponse
+from .types import GenericMessage, StorageEnum
 
 DEFAULT_PAGE_SIZE = 200
 
@@ -70,15 +70,7 @@ class BaseAlephClient(ABC):
         self,
         pagination: int = DEFAULT_PAGE_SIZE,
         page: int = 1,
-        types: Optional[Iterable[str]] = None,
-        refs: Optional[Iterable[str]] = None,
-        addresses: Optional[Iterable[str]] = None,
-        tags: Optional[Iterable[str]] = None,
-        hashes: Optional[Iterable[str]] = None,
-        channels: Optional[Iterable[str]] = None,
-        chains: Optional[Iterable[str]] = None,
-        start_date: Optional[Union[datetime, float]] = None,
-        end_date: Optional[Union[datetime, float]] = None,
+        post_filter: Optional[PostFilter] = None,
         ignore_invalid_messages: Optional[bool] = True,
         invalid_messages_log_level: Optional[int] = logging.NOTSET,
     ) -> PostsResponse:
@@ -87,15 +79,7 @@ class BaseAlephClient(ABC):
 
         :param pagination: Number of items to fetch (Default: 200)
         :param page: Page to fetch, begins at 1 (Default: 1)
-        :param types: Types of posts to fetch (Default: all types)
-        :param refs: If set, only fetch posts that reference these hashes (in the "refs" field)
-        :param addresses: Addresses of the posts to fetch (Default: all addresses)
-        :param tags: Tags of the posts to fetch (Default: all tags)
-        :param hashes: Specific item_hashes to fetch
-        :param channels: Channels of the posts to fetch (Default: all channels)
-        :param chains: Chains of the posts to fetch (Default: all chains)
-        :param start_date: Earliest date to fetch messages from
-        :param end_date: Latest date to fetch messages from
+        :param post_filter: Filter to apply to the posts (Default: None)
         :param ignore_invalid_messages: Ignore invalid messages (Default: True)
         :param invalid_messages_log_level: Log level to use for invalid messages (Default: logging.NOTSET)
         """
@@ -103,44 +87,20 @@ class BaseAlephClient(ABC):
 
     async def get_posts_iterator(
         self,
-        types: Optional[Iterable[str]] = None,
-        refs: Optional[Iterable[str]] = None,
-        addresses: Optional[Iterable[str]] = None,
-        tags: Optional[Iterable[str]] = None,
-        hashes: Optional[Iterable[str]] = None,
-        channels: Optional[Iterable[str]] = None,
-        chains: Optional[Iterable[str]] = None,
-        start_date: Optional[Union[datetime, float]] = None,
-        end_date: Optional[Union[datetime, float]] = None,
+        post_filter: Optional[PostFilter] = None,
     ) -> AsyncIterable[PostMessage]:
         """
         Fetch all filtered posts, returning an async iterator and fetching them page by page. Might return duplicates
         but will always return all posts.
 
-        :param types: Types of posts to fetch (Default: all types)
-        :param refs: If set, only fetch posts that reference these hashes (in the "refs" field)
-        :param addresses: Addresses of the posts to fetch (Default: all addresses)
-        :param tags: Tags of the posts to fetch (Default: all tags)
-        :param hashes: Specific item_hashes to fetch
-        :param channels: Channels of the posts to fetch (Default: all channels)
-        :param chains: Chains of the posts to fetch (Default: all chains)
-        :param start_date: Earliest date to fetch messages from
-        :param end_date: Latest date to fetch messages from
+        :param post_filter: Filter to apply to the posts (Default: None)
         """
         page = 1
         resp = None
         while resp is None or len(resp.posts) > 0:
             resp = await self.get_posts(
                 page=page,
-                types=types,
-                refs=refs,
-                addresses=addresses,
-                tags=tags,
-                hashes=hashes,
-                channels=channels,
-                chains=chains,
-                start_date=start_date,
-                end_date=end_date,
+                post_filter=post_filter,
             )
             page += 1
             for post in resp.posts:
@@ -165,18 +125,7 @@ class BaseAlephClient(ABC):
         self,
         pagination: int = DEFAULT_PAGE_SIZE,
         page: int = 1,
-        message_type: Optional[MessageType] = None,
-        message_types: Optional[Iterable[MessageType]] = None,
-        content_types: Optional[Iterable[str]] = None,
-        content_keys: Optional[Iterable[str]] = None,
-        refs: Optional[Iterable[str]] = None,
-        addresses: Optional[Iterable[str]] = None,
-        tags: Optional[Iterable[str]] = None,
-        hashes: Optional[Iterable[str]] = None,
-        channels: Optional[Iterable[str]] = None,
-        chains: Optional[Iterable[str]] = None,
-        start_date: Optional[Union[datetime, float]] = None,
-        end_date: Optional[Union[datetime, float]] = None,
+        message_filter: Optional[MessageFilter] = None,
         ignore_invalid_messages: Optional[bool] = True,
         invalid_messages_log_level: Optional[int] = logging.NOTSET,
     ) -> MessagesResponse:
@@ -185,18 +134,7 @@ class BaseAlephClient(ABC):
 
         :param pagination: Number of items to fetch (Default: 200)
         :param page: Page to fetch, begins at 1 (Default: 1)
-        :param message_type: [DEPRECATED] Filter by message type, can be "AGGREGATE", "POST", "PROGRAM", "VM", "STORE" or "FORGET"
-        :param message_types: Filter by message types, can be any combination of "AGGREGATE", "POST", "PROGRAM", "VM", "STORE" or "FORGET"
-        :param content_types: Filter by content type
-        :param content_keys: Filter by aggregate key
-        :param refs: If set, only fetch posts that reference these hashes (in the "refs" field)
-        :param addresses: Addresses of the posts to fetch (Default: all addresses)
-        :param tags: Tags of the posts to fetch (Default: all tags)
-        :param hashes: Specific item_hashes to fetch
-        :param channels: Channels of the posts to fetch (Default: all channels)
-        :param chains: Filter by sender address chain
-        :param start_date: Earliest date to fetch messages from
-        :param end_date: Latest date to fetch messages from
+        :param message_filter: Filter to apply to the messages
         :param ignore_invalid_messages: Ignore invalid messages (Default: True)
         :param invalid_messages_log_level: Log level to use for invalid messages (Default: logging.NOTSET)
         """
@@ -204,50 +142,20 @@ class BaseAlephClient(ABC):
 
     async def get_messages_iterator(
         self,
-        message_types: Optional[Iterable[MessageType]] = None,
-        content_types: Optional[Iterable[str]] = None,
-        content_keys: Optional[Iterable[str]] = None,
-        refs: Optional[Iterable[str]] = None,
-        addresses: Optional[Iterable[str]] = None,
-        tags: Optional[Iterable[str]] = None,
-        hashes: Optional[Iterable[str]] = None,
-        channels: Optional[Iterable[str]] = None,
-        chains: Optional[Iterable[str]] = None,
-        start_date: Optional[Union[datetime, float]] = None,
-        end_date: Optional[Union[datetime, float]] = None,
+        message_filter: Optional[MessageFilter] = None,
     ) -> AsyncIterable[AlephMessage]:
         """
         Fetch all filtered messages, returning an async iterator and fetching them page by page. Might return duplicates
         but will always return all messages.
 
-        :param message_types: Filter by message type, can be "AGGREGATE", "POST", "PROGRAM", "VM", "STORE" or "FORGET"
-        :param content_types: Filter by content type
-        :param content_keys: Filter by content key
-        :param refs: If set, only fetch posts that reference these hashes (in the "refs" field)
-        :param addresses: Addresses of the posts to fetch (Default: all addresses)
-        :param tags: Tags of the posts to fetch (Default: all tags)
-        :param hashes: Specific item_hashes to fetch
-        :param channels: Channels of the posts to fetch (Default: all channels)
-        :param chains: Filter by sender address chain
-        :param start_date: Earliest date to fetch messages from
-        :param end_date: Latest date to fetch messages from
+        :param message_filter: Filter to apply to the messages
         """
         page = 1
         resp = None
         while resp is None or len(resp.messages) > 0:
             resp = await self.get_messages(
                 page=page,
-                message_types=message_types,
-                content_types=content_types,
-                content_keys=content_keys,
-                refs=refs,
-                addresses=addresses,
-                tags=tags,
-                hashes=hashes,
-                channels=channels,
-                chains=chains,
-                start_date=start_date,
-                end_date=end_date,
+                message_filter=message_filter,
             )
             page += 1
             for message in resp.messages:
@@ -272,34 +180,12 @@ class BaseAlephClient(ABC):
     @abstractmethod
     def watch_messages(
         self,
-        message_type: Optional[MessageType] = None,
-        message_types: Optional[Iterable[MessageType]] = None,
-        content_types: Optional[Iterable[str]] = None,
-        content_keys: Optional[Iterable[str]] = None,
-        refs: Optional[Iterable[str]] = None,
-        addresses: Optional[Iterable[str]] = None,
-        tags: Optional[Iterable[str]] = None,
-        hashes: Optional[Iterable[str]] = None,
-        channels: Optional[Iterable[str]] = None,
-        chains: Optional[Iterable[str]] = None,
-        start_date: Optional[Union[datetime, float]] = None,
-        end_date: Optional[Union[datetime, float]] = None,
+        message_filter: Optional[MessageFilter] = None,
     ) -> AsyncIterable[AlephMessage]:
         """
         Iterate over current and future matching messages asynchronously.
 
-        :param message_type: [DEPRECATED] Type of message to watch
-        :param message_types: Types of messages to watch
-        :param content_types: Content types to watch
-        :param content_keys: Filter by aggregate key
-        :param refs: References to watch
-        :param addresses: Addresses to watch
-        :param tags: Tags to watch
-        :param hashes: Hashes to watch
-        :param channels: Channels to watch
-        :param chains: Chains to watch
-        :param start_date: Start date from when to watch
-        :param end_date: End date until when to watch
+        :param message_filter: Filter to apply to the messages
         """
         pass
 

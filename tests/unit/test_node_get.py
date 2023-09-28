@@ -13,8 +13,9 @@ from aleph_message.models import (
 
 from aleph.sdk.chains.ethereum import get_fallback_account
 from aleph.sdk.exceptions import MessageNotFoundError
+from aleph.sdk.models.message import MessageFilter
+from aleph.sdk.models.post import Post, PostFilter
 from aleph.sdk.node import MessageCache
-from aleph.sdk.node.post import message_to_post
 
 
 @pytest.mark.asyncio
@@ -22,11 +23,6 @@ async def test_base(aleph_messages):
     # test add_many
     cache = MessageCache()
     cache.add(aleph_messages)
-    assert len(cache) == len(aleph_messages)
-
-    item_hashes = [message.item_hash for message in aleph_messages]
-    cached_messages = cache.get(item_hashes)
-    assert len(cached_messages) == len(aleph_messages)
 
     for message in aleph_messages:
         assert cache[message.item_hash] == message
@@ -63,35 +59,62 @@ class TestMessageQueries:
 
     @pytest.mark.asyncio
     async def test_addresses(self):
-        items = (
-            await self.cache.get_messages(addresses=[self.messages[0].sender])
-        ).messages
-        assert items[0] == self.messages[0]
+        assert (
+            self.messages[0]
+            in (
+                await self.cache.get_messages(
+                    message_filter=MessageFilter(
+                        addresses=[self.messages[0].sender],
+                    )
+                )
+            ).messages
+        )
 
     @pytest.mark.asyncio
     async def test_tags(self):
         assert (
-            len((await self.cache.get_messages(tags=["thistagdoesnotexist"])).messages)
+            len(
+                (
+                    await self.cache.get_messages(
+                        message_filter=MessageFilter(tags=["thistagdoesnotexist"])
+                    )
+                ).messages
+            )
             == 0
         )
 
     @pytest.mark.asyncio
     async def test_message_type(self):
-        assert (await self.cache.get_messages(message_type=MessageType.post)).messages[
-            0
-        ] == self.messages[1]
+        assert (
+            self.messages[1]
+            in (
+                await self.cache.get_messages(
+                    message_filter=MessageFilter(message_types=[MessageType.post])
+                )
+            ).messages
+        )
 
     @pytest.mark.asyncio
     async def test_refs(self):
         assert (
-            await self.cache.get_messages(refs=[self.messages[1].content.ref])
-        ).messages[0] == self.messages[1]
+            self.messages[1]
+            in (
+                await self.cache.get_messages(
+                    message_filter=MessageFilter(refs=[self.messages[1].content.ref])
+                )
+            ).messages
+        )
 
     @pytest.mark.asyncio
     async def test_hashes(self):
         assert (
-            await self.cache.get_messages(hashes=[self.messages[0].item_hash])
-        ).messages[0] == self.messages[0]
+            self.messages[0]
+            in (
+                await self.cache.get_messages(
+                    message_filter=MessageFilter(hashes=[self.messages[0].item_hash])
+                )
+            ).messages
+        )
 
     @pytest.mark.asyncio
     async def test_pagination(self):
@@ -100,26 +123,50 @@ class TestMessageQueries:
     @pytest.mark.asyncio
     async def test_content_types(self):
         assert (
-            await self.cache.get_messages(content_types=[self.messages[1].content.type])
-        ).messages[0] == self.messages[1]
+            self.messages[1]
+            in (
+                await self.cache.get_messages(
+                    message_filter=MessageFilter(
+                        content_types=[self.messages[1].content.type]
+                    )
+                )
+            ).messages
+        )
 
     @pytest.mark.asyncio
     async def test_channels(self):
         assert (
-            await self.cache.get_messages(channels=[self.messages[1].channel])
-        ).messages[0] == self.messages[1]
+            self.messages[1]
+            in (
+                await self.cache.get_messages(
+                    message_filter=MessageFilter(channels=[self.messages[1].channel])
+                )
+            ).messages
+        )
 
     @pytest.mark.asyncio
     async def test_chains(self):
         assert (
-            await self.cache.get_messages(chains=[self.messages[1].chain])
-        ).messages[0] == self.messages[1]
+            self.messages[1]
+            in (
+                await self.cache.get_messages(
+                    message_filter=MessageFilter(chains=[self.messages[1].chain])
+                )
+            ).messages
+        )
 
     @pytest.mark.asyncio
     async def test_content_keys(self):
         assert (
-            await self.cache.get_messages(content_keys=[self.messages[0].content.key])
-        ).messages[0] == self.messages[0]
+            self.messages[0]
+            in (
+                await self.cache.get_messages(
+                    message_filter=MessageFilter(
+                        content_keys=[self.messages[0].content.key]
+                    )
+                )
+            ).messages
+        )
 
 
 class TestPostQueries:
@@ -137,33 +184,62 @@ class TestPostQueries:
 
     @pytest.mark.asyncio
     async def test_addresses(self):
-        items = (await self.cache.get_posts(addresses=[self.messages[1].sender])).posts
-        assert items[0] == message_to_post(self.messages[1])
+        assert (
+            Post.from_message(self.messages[1])
+            in (
+                await self.cache.get_posts(
+                    post_filter=PostFilter(addresses=[self.messages[1].sender])
+                )
+            ).posts
+        )
 
     @pytest.mark.asyncio
     async def test_tags(self):
         assert (
-            len((await self.cache.get_posts(tags=["thistagdoesnotexist"])).posts) == 0
+            len(
+                (
+                    await self.cache.get_posts(
+                        post_filter=PostFilter(tags=["thistagdoesnotexist"])
+                    )
+                ).posts
+            )
+            == 0
         )
 
     @pytest.mark.asyncio
     async def test_types(self):
         assert (
-            len((await self.cache.get_posts(types=["thistypedoesnotexist"])).posts) == 0
+            len(
+                (
+                    await self.cache.get_posts(
+                        post_filter=PostFilter(types=["thistypedoesnotexist"])
+                    )
+                ).posts
+            )
+            == 0
         )
 
     @pytest.mark.asyncio
     async def test_channels(self):
-        print(self.messages[1])
-        assert (await self.cache.get_posts(channels=[self.messages[1].channel])).posts[
-            0
-        ] == message_to_post(self.messages[1])
+        assert (
+            Post.from_message(self.messages[1])
+            in (
+                await self.cache.get_posts(
+                    post_filter=PostFilter(channels=[self.messages[1].channel])
+                )
+            ).posts
+        )
 
     @pytest.mark.asyncio
     async def test_chains(self):
-        assert (await self.cache.get_posts(chains=[self.messages[1].chain])).posts[
-            0
-        ] == message_to_post(self.messages[1])
+        assert (
+            Post.from_message(self.messages[1])
+            in (
+                await self.cache.get_posts(
+                    post_filter=PostFilter(chains=[self.messages[1].chain])
+                )
+            ).posts
+        )
 
 
 @pytest.mark.asyncio

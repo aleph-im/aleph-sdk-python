@@ -1,12 +1,13 @@
 import json
 import os
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Callable, Dict, List
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest as pytest
 from aleph_message.models import (
     AggregateMessage,
+    AlephMessage,
     ForgetMessage,
     MessageType,
     PostMessage,
@@ -17,6 +18,7 @@ from aleph_message.status import MessageStatus
 
 from aleph.sdk import AuthenticatedAlephClient
 from aleph.sdk.conf import settings
+from aleph.sdk.models.post import PostFilter
 from aleph.sdk.node import DomainNode
 from aleph.sdk.types import Account, StorageEnum
 
@@ -54,7 +56,7 @@ class MockPostResponse:
 
 
 class MockGetResponse:
-    def __init__(self, response_message, page=1):
+    def __init__(self, response_message: Callable[[int], Dict[str, Any]], page=1):
         self.response_message = response_message
         self.page = page
 
@@ -76,9 +78,32 @@ class MockGetResponse:
         return self.response_message(self.page)
 
 
+class MockWsConnection:
+    def __init__(self, messages: List[AlephMessage]):
+        self.messages = messages
+        self.i = 0
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        ...
+
+    def __aiter__(self):
+        return self
+
+    def __anext__(self):
+        try:
+            message = self.messages[self.i]
+            self.i += 1
+            return message
+        except IndexError:
+            raise StopAsyncIteration
+
+
 @pytest.fixture
 def mock_session_with_two_messages(
-    ethereum_account: Account, raw_messages_response: Dict[str, Any]
+    ethereum_account: Account, raw_messages_response: Callable[[int], Dict[str, Any]]
 ) -> AuthenticatedAlephClient:
     http_session = AsyncMock()
     http_session.post = MagicMock()
@@ -97,6 +122,10 @@ def mock_session_with_two_messages(
         response_message=raw_messages_response,
         page=kwargs.get("params", {}).get("page", 1),
     )
+    http_session.ws_connect = MagicMock()
+    http_session.ws_connect.side_effect = lambda *args, **kwargs: MockWsConnection(
+        messages=raw_messages_response(1)["messages"]
+    )
 
     client = AuthenticatedAlephClient(
         account=ethereum_account, api_server="http://localhost"
@@ -106,9 +135,12 @@ def mock_session_with_two_messages(
     return client
 
 
-@pytest.mark.asyncio
-def test_node_init(mock_session_with_two_messages):
-    node = DomainNode(session=mock_session_with_two_messages)
+def test_node_init(mock_session_with_two_messages, aleph_messages):
+    node = DomainNode(
+        session=mock_session_with_two_messages,
+    )
+    assert mock_session_with_two_messages.http_session.get.called_once
+    assert mock_session_with_two_messages.http_session.ws_connect.called_once
     assert node.session == mock_session_with_two_messages
     assert len(node) >= 2
 
@@ -257,3 +289,40 @@ async def test_submit_message(mock_node_with_post_success):
     assert mock_node_with_post_success.session.http_session.post.called_once
     assert message.content.content == content
     assert status == MessageStatus.PENDING
+
+
+@pytest.mark.asyncio
+async def test_amend_post(mock_node_with_post_success):
+    async with mock_node_with_post_success as node:
+        post_message, status = await node.create_post(
+            post_content={
+                "Hello": "World",
+            },
+            post_type="to-be-amended",
+            channel="TEST",
+        )
+
+    assert mock_node_with_post_success.session.http_session.post.called_once
+    assert post_message.content.content == {"Hello": "World"}
+    assert status == MessageStatus.PENDING
+
+    async with mock_node_with_post_success as node:
+        amend_message, status = await node.create_post(
+            post_content={
+                "Hello": "World",
+                "Foo": "Bar",
+            },
+            post_type="amend",
+            ref=post_message.item_hash,
+            channel="TEST",
+        )
+
+    async with mock_node_with_post_success as node:
+        posts = (
+            await node.get_posts(
+                post_filter=PostFilter(
+                    hashes=[post_message.item_hash],
+                )
+            )
+        ).posts
+    assert posts[0].content == {"Hello": "World", "Foo": "Bar"}

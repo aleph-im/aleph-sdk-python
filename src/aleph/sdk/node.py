@@ -23,15 +23,16 @@ from aleph_message.models import AlephMessage, Chain, ItemHash, MessageType, Pos
 from aleph_message.models.execution.base import Encoding
 from aleph_message.status import MessageStatus
 
-from ..base import BaseAlephClient, BaseAuthenticatedAlephClient
-from ..client import AuthenticatedAlephClient
-from ..conf import settings
-from ..exceptions import MessageNotFoundError
-from ..models import PostsResponse
-from ..types import GenericMessage, StorageEnum
-from .common import db
-from .message import MessageModel, get_message_query, message_to_model, model_to_message
-from .post import PostModel, get_post_query, message_to_post, model_to_post
+from .base import BaseAlephClient, BaseAuthenticatedAlephClient
+from .client import AuthenticatedAlephClient
+from .conf import settings
+from .exceptions import MessageNotFoundError
+from .models.db.common import db
+from .models.db.message import MessageDBModel
+from .models.db.post import PostDBModel
+from .models.message import MessageFilter, message_to_model, model_to_message
+from .models.post import Post, PostFilter, PostsResponse
+from .types import GenericMessage, StorageEnum
 
 
 class MessageCache(BaseAlephClient):
@@ -48,10 +49,10 @@ class MessageCache(BaseAlephClient):
     def __init__(self):
         if db.is_closed():
             db.connect()
-            if not MessageModel.table_exists():
-                db.create_tables([MessageModel])
-            if not PostModel.table_exists():
-                db.create_tables([PostModel])
+            if not MessageDBModel.table_exists():
+                db.create_tables([MessageDBModel])
+            if not PostDBModel.table_exists():
+                db.create_tables([PostDBModel])
 
         MessageCache._instance_count += 1
 
@@ -63,29 +64,31 @@ class MessageCache(BaseAlephClient):
 
     def __getitem__(self, item_hash: Union[ItemHash, str]) -> Optional[AlephMessage]:
         try:
-            item = MessageModel.get(MessageModel.item_hash == str(item_hash))
-        except MessageModel.DoesNotExist:
+            item = MessageDBModel.get(MessageDBModel.item_hash == str(item_hash))
+        except MessageDBModel.DoesNotExist:
             return None
         return model_to_message(item)
 
     def __delitem__(self, item_hash: Union[ItemHash, str]):
-        MessageModel.delete().where(MessageModel.item_hash == str(item_hash)).execute()
+        MessageDBModel.delete().where(
+            MessageDBModel.item_hash == str(item_hash)
+        ).execute()
 
     def __contains__(self, item_hash: Union[ItemHash, str]) -> bool:
         return (
-            MessageModel.select()
-            .where(MessageModel.item_hash == str(item_hash))
+            MessageDBModel.select()
+            .where(MessageDBModel.item_hash == str(item_hash))
             .exists()
         )
 
     def __len__(self):
-        return MessageModel.select().count()
+        return MessageDBModel.select().count()
 
     def __iter__(self) -> Iterator[AlephMessage]:
         """
         Iterate over all messages in the cache, the latest first.
         """
-        for item in iter(MessageModel.select().order_by(-MessageModel.time)):
+        for item in iter(MessageDBModel.select().order_by(-MessageDBModel.time)):
             yield model_to_message(item)
 
     def __repr__(self) -> str:
@@ -95,15 +98,19 @@ class MessageCache(BaseAlephClient):
         return repr(self)
 
     def add(self, messages: Union[AlephMessage, Iterable[AlephMessage]]):
+        """
+        Add a message or a list of messages to the cache. If the message is a post, it will also be added to the
+        PostDBModel. Any subsequent amend messages will be used to update the original post in the PostDBModel.
+        """
         if isinstance(messages, typing.get_args(AlephMessage)):
             messages = [messages]
 
         messages = list(messages)
 
         message_data = (message_to_model(message) for message in messages)
-        MessageModel.insert_many(message_data).on_conflict_replace().execute()
+        MessageDBModel.insert_many(message_data).on_conflict_replace().execute()
 
-        # Add posts and their amends to the PostModel
+        # Add posts and their amends to the PostDBModel
         post_data = []
         amend_messages = []
         for message in messages:
@@ -112,7 +119,7 @@ class MessageCache(BaseAlephClient):
             if message.content.type == "amend":
                 amend_messages.append(message)
                 continue
-            post = message_to_post(message).dict()
+            post = Post.from_message(message).dict()
             post["chain"] = message.chain.value
             post["tags"] = message.content.content.get("tags", None)
             post_data.append(post)
@@ -120,14 +127,14 @@ class MessageCache(BaseAlephClient):
             if message.item_hash in self.missing_posts:
                 amend_messages += self.missing_posts.pop(message.item_hash)
 
-        PostModel.insert_many(post_data).on_conflict_replace().execute()
+        PostDBModel.insert_many(post_data).on_conflict_replace().execute()
 
         # Handle amends in second step to avoid missing original posts
-        post_data = []
         for message in amend_messages:
+            logging.debug(f"Adding amend {message.item_hash} to cache")
             # Find the original post and update it
-            original_post = MessageModel.get(
-                MessageModel.item_hash == message.content.ref
+            original_post = PostDBModel.get(
+                PostDBModel.item_hash == message.content.ref
             )
             if not original_post:
                 latest_amend = self.missing_posts.get(ItemHash(message.content.ref))
@@ -136,16 +143,13 @@ class MessageCache(BaseAlephClient):
                 continue
             if datetime.fromtimestamp(message.time) < original_post.last_updated:
                 continue
-            original_post.item_hash = message.item_hash
             original_post.content = message.content.content
             original_post.original_item_hash = message.content.ref
             original_post.original_type = message.content.type
             original_post.address = message.sender
             original_post.channel = message.channel
             original_post.last_updated = datetime.fromtimestamp(message.time)
-            post_data.append(original_post)
-
-        PostModel.insert_many(post_data).on_conflict_replace().execute()
+            original_post.save()
 
     def get(
         self, item_hashes: Union[Union[ItemHash, str], Iterable[Union[ItemHash, str]]]
@@ -157,8 +161,8 @@ class MessageCache(BaseAlephClient):
             item_hashes = [item_hashes]
         item_hashes = [str(item_hash) for item_hash in item_hashes]
         items = (
-            MessageModel.select()
-            .where(MessageModel.item_hash.in_(item_hashes))
+            MessageDBModel.select()
+            .where(MessageDBModel.item_hash.in_(item_hashes))
             .execute()
         )
         return [model_to_message(item) for item in items]
@@ -171,7 +175,7 @@ class MessageCache(BaseAlephClient):
         async def _listen():
             async for message in message_stream:
                 self.add(message)
-                print(f"Added message {message.item_hash} to cache")
+                logging.info(f"Added message {message.item_hash} to cache")
 
         return _listen()
 
@@ -179,11 +183,11 @@ class MessageCache(BaseAlephClient):
         self, address: str, key: str, limit: int = 100
     ) -> Dict[str, Dict]:
         item = (
-            MessageModel.select()
-            .where(MessageModel.type == MessageType.aggregate.value)
-            .where(MessageModel.sender == address)
-            .where(MessageModel.key == key)
-            .order_by(MessageModel.time.desc())
+            MessageDBModel.select()
+            .where(MessageDBModel.type == MessageType.aggregate.value)
+            .where(MessageDBModel.sender == address)
+            .where(MessageDBModel.key == key)
+            .order_by(MessageDBModel.time.desc())
             .first()
         )
         return item.content["content"]
@@ -192,13 +196,13 @@ class MessageCache(BaseAlephClient):
         self, address: str, keys: Optional[Iterable[str]] = None, limit: int = 100
     ) -> Dict[str, Dict]:
         query = (
-            MessageModel.select()
-            .where(MessageModel.type == MessageType.aggregate.value)
-            .where(MessageModel.sender == address)
-            .order_by(MessageModel.time.desc())
+            MessageDBModel.select()
+            .where(MessageDBModel.type == MessageType.aggregate.value)
+            .where(MessageDBModel.sender == address)
+            .order_by(MessageDBModel.time.desc())
         )
         if keys:
-            query = query.where(MessageModel.key.in_(keys))
+            query = query.where(MessageDBModel.key.in_(keys))
         query = query.limit(limit)
         return {item.key: item.content["content"] for item in list(query)}
 
@@ -206,33 +210,17 @@ class MessageCache(BaseAlephClient):
         self,
         pagination: int = 200,
         page: int = 1,
-        types: Optional[Iterable[str]] = None,
-        refs: Optional[Iterable[str]] = None,
-        addresses: Optional[Iterable[str]] = None,
-        tags: Optional[Iterable[str]] = None,
-        hashes: Optional[Iterable[str]] = None,
-        channels: Optional[Iterable[str]] = None,
-        chains: Optional[Iterable[str]] = None,
-        start_date: Optional[Union[datetime, float]] = None,
-        end_date: Optional[Union[datetime, float]] = None,
+        post_filter: Optional[PostFilter] = None,
         ignore_invalid_messages: Optional[bool] = True,
         invalid_messages_log_level: Optional[int] = logging.NOTSET,
     ) -> PostsResponse:
-        query = get_post_query(
-            types=types,
-            refs=refs,
-            addresses=addresses,
-            tags=tags,
-            hashes=hashes,
-            channels=channels,
-            chains=chains,
-            start_date=start_date,
-            end_date=end_date,
-        )
+        if not post_filter:
+            post_filter = PostFilter()
+        query = post_filter.as_db_query()
 
         query = query.paginate(page, pagination)
 
-        posts = [model_to_post(item) for item in list(query)]
+        posts = [Post.from_orm(item) for item in list(query)]
 
         return PostsResponse(
             posts=posts,
@@ -249,38 +237,17 @@ class MessageCache(BaseAlephClient):
         self,
         pagination: int = 200,
         page: int = 1,
-        message_type: Optional[MessageType] = None,
-        message_types: Optional[Iterable[MessageType]] = None,
-        content_types: Optional[Iterable[str]] = None,
-        content_keys: Optional[Iterable[str]] = None,
-        refs: Optional[Iterable[str]] = None,
-        addresses: Optional[Iterable[str]] = None,
-        tags: Optional[Iterable[str]] = None,
-        hashes: Optional[Iterable[str]] = None,
-        channels: Optional[Iterable[str]] = None,
-        chains: Optional[Iterable[str]] = None,
-        start_date: Optional[Union[datetime, float]] = None,
-        end_date: Optional[Union[datetime, float]] = None,
+        message_filter: Optional[MessageFilter] = None,
         ignore_invalid_messages: Optional[bool] = True,
         invalid_messages_log_level: Optional[int] = logging.NOTSET,
     ) -> MessagesResponse:
         """
         Get many messages from the cache.
         """
-        message_types = message_types or [message_type] if message_type else None
-        query = get_message_query(
-            message_types=message_types,
-            content_keys=content_keys,
-            content_types=content_types,
-            refs=refs,
-            addresses=addresses,
-            tags=tags,
-            hashes=hashes,
-            channels=channels,
-            chains=chains,
-            start_date=start_date,
-            end_date=end_date,
-        )
+        if not message_filter:
+            message_filter = MessageFilter()
+
+        query = message_filter.as_db_query()
 
         query = query.paginate(page, pagination)
 
@@ -303,12 +270,12 @@ class MessageCache(BaseAlephClient):
         """
         Get a single message from the cache.
         """
-        query = MessageModel.select().where(MessageModel.item_hash == item_hash)
+        query = MessageDBModel.select().where(MessageDBModel.item_hash == item_hash)
 
         if message_type:
-            query = query.where(MessageModel.type == message_type.value)
+            query = query.where(MessageDBModel.type == message_type.value)
         if channel:
-            query = query.where(MessageModel.channel == channel)
+            query = query.where(MessageDBModel.channel == channel)
 
         item = query.first()
 
@@ -319,36 +286,15 @@ class MessageCache(BaseAlephClient):
 
     async def watch_messages(
         self,
-        message_type: Optional[MessageType] = None,
-        message_types: Optional[Iterable[MessageType]] = None,
-        content_types: Optional[Iterable[str]] = None,
-        content_keys: Optional[Iterable[str]] = None,
-        refs: Optional[Iterable[str]] = None,
-        addresses: Optional[Iterable[str]] = None,
-        tags: Optional[Iterable[str]] = None,
-        hashes: Optional[Iterable[str]] = None,
-        channels: Optional[Iterable[str]] = None,
-        chains: Optional[Iterable[str]] = None,
-        start_date: Optional[Union[datetime, float]] = None,
-        end_date: Optional[Union[datetime, float]] = None,
+        message_filter: Optional[MessageFilter] = None,
     ) -> AsyncIterable[AlephMessage]:
         """
         Watch messages from the cache.
         """
-        message_types = message_types or [message_type] if message_type else None
-        query = get_message_query(
-            message_types=message_types,
-            content_keys=content_keys,
-            content_types=content_types,
-            refs=refs,
-            addresses=addresses,
-            tags=tags,
-            hashes=hashes,
-            channels=channels,
-            chains=chains,
-            start_date=start_date,
-            end_date=end_date,
-        )
+        if not message_filter:
+            message_filter = MessageFilter()
+
+        query = message_filter.as_db_query()
 
         async for item in query:
             yield model_to_message(item)
@@ -362,42 +308,49 @@ class DomainNode(MessageCache, BaseAuthenticatedAlephClient):
     It synchronizes with the network on a subset of the messages (the "domain") by listening to the network and storing the
     messages in the cache. The user may define the domain by specifying a channels, tags, senders, chains and/or
     message types.
+
+    By default, the domain is defined by the user's own address and used chain, meaning that the DomainNode will only
+    store and create messages that are sent by the user.
     """
+
+    session: AuthenticatedAlephClient
+    message_filter: MessageFilter
+    watch_task: Optional[asyncio.Task] = None
 
     def __init__(
         self,
         session: AuthenticatedAlephClient,
-        channels: Optional[Iterable[str]] = None,
-        tags: Optional[Iterable[str]] = None,
-        addresses: Optional[Iterable[str]] = None,
-        chains: Optional[Iterable[Chain]] = None,
-        message_types: Optional[Iterable[MessageType]] = None,
+        message_filter: Optional[MessageFilter] = None,
     ):
         super().__init__()
         self.session = session
-        self.channels = channels
-        self.tags = tags
-        self.addresses = (
-            list(addresses) + [session.account.get_address()]
-            if addresses
-            else [session.account.get_address()]
+        if not message_filter:
+            message_filter = MessageFilter()
+        message_filter.addresses = list(
+            set(
+                (
+                    list(message_filter.addresses) + [session.account.get_address()]
+                    if message_filter.addresses
+                    else [session.account.get_address()]
+                )
+            )
         )
-        self.chains = (
-            list(chains) + [Chain(session.account.CHAIN)]
-            if chains
-            else [session.account.CHAIN]
+        message_filter.chains = list(
+            set(
+                (
+                    list(message_filter.chains) + [Chain(session.account.CHAIN)]
+                    if message_filter.chains
+                    else [session.account.CHAIN]
+                )
+            )
         )
-        self.message_types = message_types
+        self.message_filter = message_filter
 
         # start listening to the network and storing messages in the cache
-        asyncio.get_event_loop().create_task(
+        self.watch_task = asyncio.get_event_loop().create_task(
             self.listen_to(
                 self.session.watch_messages(
-                    channels=self.channels,
-                    tags=self.tags,
-                    addresses=self.addresses,
-                    chains=self.chains,
-                    message_types=self.message_types,
+                    message_filter=self.message_filter,
                 )
             )
         )
@@ -405,29 +358,31 @@ class DomainNode(MessageCache, BaseAuthenticatedAlephClient):
         # synchronize with past messages
         asyncio.get_event_loop().run_until_complete(
             self.synchronize(
-                channels=self.channels,
-                tags=self.tags,
-                addresses=self.addresses,
-                chains=self.chains,
-                message_types=self.message_types,
+                message_filter=self.message_filter,
             )
         )
+
+    def __del__(self):
+        if self.watch_task:
+            self.watch_task.cancel()
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        close_fut = self.session.__aexit__(exc_type, exc_val, exc_tb)
+        try:
+            loop = asyncio.get_running_loop()
+            loop.run_until_complete(close_fut)
+        except RuntimeError:
+            asyncio.run(close_fut)
 
     async def __aenter__(self) -> "DomainNode":
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
-        ...
+        await self.session.__aexit__(exc_type, exc_val, exc_tb)
 
     async def synchronize(
         self,
-        channels: Optional[Iterable[str]] = None,
-        tags: Optional[Iterable[str]] = None,
-        addresses: Optional[Iterable[str]] = None,
-        chains: Optional[Iterable[Chain]] = None,
-        message_types: Optional[Iterable[MessageType]] = None,
-        start_date: Optional[Union[datetime, float]] = None,
-        end_date: Optional[Union[datetime, float]] = None,
+        message_filter: MessageFilter,
     ):
         """
         Synchronize with past messages.
@@ -435,13 +390,7 @@ class DomainNode(MessageCache, BaseAuthenticatedAlephClient):
         chunk_size = 200
         messages = []
         async for message in self.session.get_messages_iterator(
-            channels=channels,
-            tags=tags,
-            addresses=addresses,
-            chains=chains,
-            message_types=message_types,
-            start_date=start_date,
-            end_date=end_date,
+            message_filter=message_filter
         ):
             messages.append(message)
             if len(messages) >= chunk_size:
@@ -475,22 +424,33 @@ class DomainNode(MessageCache, BaseAuthenticatedAlephClient):
         channel: Optional[str] = None,
         content: Optional[Dict] = None,
     ):
-        if self.message_types and message_type not in self.message_types:
+        if (
+            self.message_filter.message_types
+            and message_type not in self.message_filter.message_types
+        ):
             raise ValueError(
                 f"Cannot create {message_type.value} message because DomainNode is not listening to post messages."
             )
-        if address and self.addresses and address not in self.addresses:
+        if (
+            address
+            and self.message_filter.addresses
+            and address not in self.message_filter.addresses
+        ):
             raise ValueError(
                 f"Cannot create {message_type.value} message because DomainNode is not listening to messages from address {address}."
             )
-        if channel and self.channels and channel not in self.channels:
+        if (
+            channel
+            and self.message_filter.channels
+            and channel not in self.message_filter.channels
+        ):
             raise ValueError(
                 f"Cannot create {message_type.value} message because DomainNode is not listening to messages from channel {channel}."
             )
         if (
             content
-            and self.tags
-            and not set(content.get("tags", [])).intersection(self.tags)
+            and self.message_filter.tags
+            and not set(content.get("tags", [])).intersection(self.message_filter.tags)
         ):
             raise ValueError(
                 f"Cannot create {message_type.value} message because DomainNode is not listening to any of these tags: {content.get('tags', [])}."
@@ -518,6 +478,7 @@ class DomainNode(MessageCache, BaseAuthenticatedAlephClient):
             storage_engine=storage_engine,
             sync=sync,
         )
+        print(resp)
         # WARNING: this can cause inconsistencies if the message is dropped/rejected by the aleph node
         if status in [MessageStatus.PENDING, MessageStatus.PROCESSED]:
             self.add(resp)
