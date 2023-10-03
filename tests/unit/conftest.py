@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 from tempfile import NamedTemporaryFile
-from typing import List
+from typing import Any, Callable, Dict, List
 
 import pytest as pytest
 from aleph_message.models import AggregateMessage, AlephMessage, PostMessage
@@ -112,11 +112,13 @@ def aleph_messages() -> List[AlephMessage]:
 
 
 @pytest.fixture
-def raw_messages_response(aleph_messages):
+def raw_messages_response(aleph_messages) -> Callable[[int], Dict[str, Any]]:
     return lambda page: {
-        "messages": [message.dict() for message in aleph_messages] if page == 1 else [],
+        "messages": [message.dict() for message in aleph_messages]
+        if int(page) == 1
+        else [],
         "pagination_item": "messages",
-        "pagination_page": page,
+        "pagination_page": int(page),
         "pagination_per_page": max(len(aleph_messages), 20),
         "pagination_total": len(aleph_messages) if page == 1 else 0,
     }
