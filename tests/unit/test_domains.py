@@ -1,6 +1,3 @@
-import asyncio
-from urllib.parse import urlparse
-
 import pytest
 
 from aleph.sdk.domain import DomainValidator
@@ -13,6 +10,7 @@ def test_hostname():
     assert hostname == "aleph.im"
     hostname = hostname_from_url("aleph.im")
     assert hostname == "aleph.im"
+
 
 @pytest.mark.asyncio
 async def test_query():
