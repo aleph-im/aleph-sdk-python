@@ -39,7 +39,7 @@ class NULSAccount(BaseAccount):
 
     async def sign_message(self, message: Dict) -> Dict:
         """
-        Returns a signed message from an Aleph message.
+        Returns a signed message from an aleph.im message.
         Args:
             message: Message to sign
         Returns:
