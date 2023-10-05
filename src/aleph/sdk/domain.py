@@ -1,7 +1,7 @@
 import logging
 from enum import Enum
 from ipaddress import IPv6Address
-from typing import Dict, Iterable, List, Optional, NewType, Union
+from typing import Dict, Iterable, List, NewType, Optional, Union
 from urllib.parse import urlparse
 
 import aiodns
@@ -104,7 +104,11 @@ class DomainValidator:
             record_type = dns_rule["dns"]["type"]
             record_value = dns_rule["dns"]["value"]
 
-            entries = await self.resolver.query(record_name, record_type.upper())
+            try:
+                entries = await self.resolver.query(record_name, record_type.upper())
+            except aiodns.error.DNSError:
+                """Continue checks"""
+                entries = None
 
             if entries and record_type == "txt":
                 for entry in entries:
@@ -176,8 +180,8 @@ class DomainValidator:
                         "name": f"_control.{hostname}",
                         "value": owner,
                     },
-                    "info": f"Create a TXT record for _control.{hostname} with value = owner address",
-                    "on_error": f"Owner address mismatch",
+                    "info": f"Create a TXT record for _control.{hostname} with value {owner}",
+                    "on_error": "Owner address mismatch",
                 }
             )
 
