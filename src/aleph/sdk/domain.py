@@ -22,7 +22,11 @@ class TargetType(str, Enum):
 
 
 def hostname_from_url(url: Union[HttpUrl, str]) -> Hostname:
-    return Hostname(urlparse(url).netloc)
+    parsed = urlparse(url)
+    if all([parsed.scheme, parsed.netloc]) is True:
+        url = parsed.netloc
+
+    return Hostname(url)
 
 
 class DomainValidator:

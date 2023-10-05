@@ -5,9 +5,14 @@ import pytest
 
 from aleph.sdk.domain import DomainValidator
 from aleph.sdk.exceptions import DomainConfigurationError
-
 from src.aleph.sdk.domain import TargetType, hostname_from_url
 
+
+def test_hostname():
+    hostname = hostname_from_url("https://aleph.im")
+    assert hostname == "aleph.im"
+    hostname = hostname_from_url("aleph.im")
+    assert hostname == "aleph.im"
 
 @pytest.mark.asyncio
 async def test_query():
@@ -55,3 +60,4 @@ async def test_not_configured_domain():
     hostname = hostname_from_url(url)
     with pytest.raises(DomainConfigurationError):
         status = await alephdns.check_domain(hostname, TargetType.IPFS, "0xfakeaddress")
+        assert type(status) is None
