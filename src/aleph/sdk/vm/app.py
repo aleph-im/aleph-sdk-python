@@ -30,7 +30,7 @@ class EventHandler:
 
 
 class AlephApp:
-    """ASGI compatible wrapper for apps running inside Aleph Virtual Machines.
+    """ASGI compatible wrapper for apps running inside aleph.im Virtual Machines.
     The wrapper adds support to register functions to react to non-HTTP events.
     """
 
@@ -93,7 +93,7 @@ class AlephApp:
     def vm_hash(self) -> Optional[str]:
         """
         Returns the hash of the VM that is running this app. If the VM is not
-        running in Aleph, this will return None.
+        running in aleph.im, this will return None.
         """
         # Get hostname from environment
         hostname = socket.gethostname()

@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 def get_verification_buffer(message: Dict) -> bytes:
     """
-    Returns the verification buffer that Aleph nodes use to verify the signature of a message.
+    Returns the verification buffer that aleph.im nodes use to verify the signature of a message.
     Note:
         The verification buffer is a string of the following format:
         b"{chain}\\n{sender}\\n{type}\\n{item_hash}"
@@ -64,7 +64,7 @@ class BaseAccount(ABC):
 
     async def sign_message(self, message: Dict) -> Dict:
         """
-        Returns a signed message from an Aleph message.
+        Returns a signed message from an aleph.im message.
         Args:
             message: Message to sign
         Returns:
