@@ -1,8 +1,10 @@
 from typing import Callable, Dict
 
 import pytest
+from aleph_message.models import PostMessage
 
 from aleph.sdk.client import AuthenticatedAlephClient
+from aleph.sdk.models.message import MessageFilter
 from aleph.sdk.types import Account
 
 from .config import REFERENCE_NODE, TARGET_NODE, TEST_CHANNEL
@@ -106,11 +108,9 @@ async def test_forget_a_forget_message(fixture_account):
     async with AuthenticatedAlephClient(
         account=fixture_account, api_server=TARGET_NODE
     ) as session:
-        get_post_response = await session.get_posts(hashes=[post_hash])
-        assert len(get_post_response.posts) == 1
-        post = get_post_response.posts[0]
+        get_post_message: PostMessage = await session.get_message(post_hash)
 
-        forget_message_hash = post.forgotten_by[0]
+        forget_message_hash = get_post_message.forgotten_by[0]
         forget_message, forget_status = await session.forget(
             hashes=[forget_message_hash],
             reason="I want to remember this post. Maybe I can forget I forgot it?",
@@ -120,8 +120,10 @@ async def test_forget_a_forget_message(fixture_account):
         print(forget_message)
 
         get_forget_message_response = await session.get_messages(
-            hashes=[forget_message_hash],
-            channels=[TEST_CHANNEL],
+            message_filter=MessageFilter(
+                hashes=[forget_message_hash],
+                channels=[TEST_CHANNEL],
+            )
         )
         assert len(get_forget_message_response.messages) == 1
         forget_message = get_forget_message_response.messages[0]

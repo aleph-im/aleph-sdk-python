@@ -2,14 +2,16 @@ from aleph_message.models import MessagesResponse, MessageType
 
 from aleph.sdk.client import AlephClient
 from aleph.sdk.conf import settings
+from aleph.sdk.models.message import MessageFilter
 
 
 def test_get_post_messages():
     with AlephClient(api_server=settings.API_HOST) as session:
-        # TODO: Remove deprecated message_type parameter after message_types changes on pyaleph are deployed
         response: MessagesResponse = session.get_messages(
             pagination=2,
-            message_type=MessageType.post,
+            message_filter=MessageFilter(
+                message_types=[MessageType.post],
+            ),
         )
 
         messages = response.messages

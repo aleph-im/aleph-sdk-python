@@ -82,8 +82,8 @@ async def test_verify_signature(ethereum_account):
 
 
 @pytest.mark.asyncio
-async def test_verify_signature_with_processed_message(ethereum_account, messages):
-    message = messages[1]
+async def test_verify_signature_with_processed_message(ethereum_account, json_messages):
+    message = json_messages[1]
     verify_signature(
         message["signature"], message["sender"], get_verification_buffer(message)
     )
