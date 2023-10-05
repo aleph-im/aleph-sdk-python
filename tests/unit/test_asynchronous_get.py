@@ -3,11 +3,12 @@ from typing import Any, Dict
 from unittest.mock import AsyncMock
 
 import pytest
-from aleph_message.models import MessagesResponse
+from aleph_message.models import MessagesResponse, MessageType
 
 from aleph.sdk.client import AlephClient
 from aleph.sdk.conf import settings
-from aleph.sdk.models import PostsResponse
+from aleph.sdk.models.message import MessageFilter
+from aleph.sdk.models.post import PostFilter, PostsResponse
 
 
 def make_mock_session(get_return_value: Dict[str, Any]) -> AlephClient:
@@ -67,7 +68,12 @@ async def test_fetch_aggregates():
 @pytest.mark.asyncio
 async def test_get_posts():
     async with AlephClient(api_server=settings.API_HOST) as session:
-        response: PostsResponse = await session.get_posts()
+        response: PostsResponse = await session.get_posts(
+            pagination=2,
+            post_filter=PostFilter(
+                channels=["TEST"],
+            ),
+        )
 
         posts = response.posts
         assert len(posts) > 1
@@ -78,6 +84,9 @@ async def test_get_messages():
     async with AlephClient(api_server=settings.API_HOST) as session:
         response: MessagesResponse = await session.get_messages(
             pagination=2,
+            message_filter=MessageFilter(
+                message_types=[MessageType.post],
+            ),
         )
 
         messages = response.messages
