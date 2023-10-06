@@ -23,6 +23,9 @@ def make_mock_session(get_return_value: Dict[str, Any]) -> AlephClient:
         def status(self):
             return 200
 
+        def raise_for_status(self):
+            ...
+
         async def json(self):
             return get_return_value
 

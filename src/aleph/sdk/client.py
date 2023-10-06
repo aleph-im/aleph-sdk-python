@@ -475,6 +475,7 @@ class AlephClient(BaseAlephClient):
         async with self.http_session.get(
             f"/api/v0/aggregates/{address}.json", params=params
         ) as resp:
+            resp.raise_for_status()
             result = await resp.json()
             data = result.get("data", dict())
             return data.get(key)
@@ -491,6 +492,7 @@ class AlephClient(BaseAlephClient):
             f"/api/v0/aggregates/{address}.json",
             params=params,
         ) as resp:
+            resp.raise_for_status()
             result = await resp.json()
             data = result.get("data", dict())
             return data
