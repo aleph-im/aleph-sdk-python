@@ -25,9 +25,9 @@ from aleph_message.models import (
 from aleph_message.models.execution.program import Encoding
 from aleph_message.status import MessageStatus
 
-from .models.message import MessageFilter
-from .models.post import PostFilter, PostsResponse
-from .types import GenericMessage, StorageEnum
+from ..models.message import MessageFilter
+from ..models.post import PostFilter, PostsResponse
+from ..types import GenericMessage, StorageEnum
 
 DEFAULT_PAGE_SIZE = 200
 
@@ -58,7 +58,7 @@ class BaseAlephClient(ABC):
     @abstractmethod
     async def get_posts(
         self,
-        pagination: int = DEFAULT_PAGE_SIZE,
+        page_size: int = DEFAULT_PAGE_SIZE,
         page: int = 1,
         post_filter: Optional[PostFilter] = None,
         ignore_invalid_messages: Optional[bool] = True,
@@ -67,7 +67,7 @@ class BaseAlephClient(ABC):
         """
         Fetch a list of posts from the network.
 
-        :param pagination: Number of items to fetch (Default: 200)
+        :param page_size: Number of items to fetch (Default: 200)
         :param page: Page to fetch, begins at 1 (Default: 1)
         :param post_filter: Filter to apply to the posts (Default: None)
         :param ignore_invalid_messages: Ignore invalid messages (Default: True)
@@ -113,7 +113,7 @@ class BaseAlephClient(ABC):
     @abstractmethod
     async def get_messages(
         self,
-        pagination: int = DEFAULT_PAGE_SIZE,
+        page_size: int = DEFAULT_PAGE_SIZE,
         page: int = 1,
         message_filter: Optional[MessageFilter] = None,
         ignore_invalid_messages: Optional[bool] = True,
@@ -122,7 +122,7 @@ class BaseAlephClient(ABC):
         """
         Fetch a list of messages from the network.
 
-        :param pagination: Number of items to fetch (Default: 200)
+        :param page_size: Number of items to fetch (Default: 200)
         :param page: Page to fetch, begins at 1 (Default: 1)
         :param message_filter: Filter to apply to the messages
         :param ignore_invalid_messages: Ignore invalid messages (Default: True)

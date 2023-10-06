@@ -3,7 +3,8 @@ from typing import Dict, Iterable, List, Optional, Union
 
 from aleph_message.models import AlephMessage, MessageType
 
-from .common import PaginationResponse, _date_field_to_float, serialize_list
+from .common import PaginationResponse
+from .utils import _date_field_to_float, serialize_list
 
 
 class MessagesResponse(PaginationResponse):
