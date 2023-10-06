@@ -5,7 +5,7 @@ from unittest.mock import AsyncMock
 import pytest
 from aleph_message.models import MessagesResponse, MessageType
 
-from aleph.sdk.client import AlephClient
+from aleph.sdk import AlephClient
 from aleph.sdk.conf import settings
 from aleph.sdk.models.message import MessageFilter
 from aleph.sdk.models.post import PostFilter, PostsResponse
@@ -72,7 +72,7 @@ async def test_fetch_aggregates():
 async def test_get_posts():
     async with AlephClient(api_server=settings.API_HOST) as session:
         response: PostsResponse = await session.get_posts(
-            pagination=2,
+            page_size=2,
             post_filter=PostFilter(
                 channels=["TEST"],
             ),
@@ -86,7 +86,7 @@ async def test_get_posts():
 async def test_get_messages():
     async with AlephClient(api_server=settings.API_HOST) as session:
         response: MessagesResponse = await session.get_messages(
-            pagination=2,
+            page_size=2,
             message_filter=MessageFilter(
                 message_types=[MessageType.post],
             ),

@@ -4,7 +4,8 @@ from typing import Any, Dict, Iterable, List, Optional, Union
 from aleph_message.models import Chain, ItemHash, ItemType, MessageConfirmation
 from pydantic import BaseModel, Field
 
-from .common import PaginationResponse, _date_field_to_float, serialize_list
+from .common import PaginationResponse
+from .utils import _date_field_to_float, serialize_list
 
 
 class Post(BaseModel):

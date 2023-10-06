@@ -1,6 +1,6 @@
 from aleph_message.models import MessagesResponse, MessageType
 
-from aleph.sdk.client import AlephClient
+from aleph.sdk import AlephClient
 from aleph.sdk.conf import settings
 from aleph.sdk.models.message import MessageFilter
 
@@ -8,7 +8,7 @@ from aleph.sdk.models.message import MessageFilter
 def test_get_post_messages():
     with AlephClient(api_server=settings.API_HOST) as session:
         response: MessagesResponse = session.get_messages(
-            pagination=2,
+            page_size=2,
             message_filter=MessageFilter(
                 message_types=[MessageType.post],
             ),
