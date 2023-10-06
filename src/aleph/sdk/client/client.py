@@ -284,10 +284,14 @@ class AlephClient(BaseAlephClient):
         )
 
         if not post_filter:
-            post_filter = PostFilter()
-        params = post_filter.as_http_params()
-        params["page"] = str(page)
-        params["pagination"] = str(page_size)
+            params = {
+                "page": str(page),
+                "pagination": str(page_size),
+            }
+        else:
+            params = post_filter.as_http_params()
+            params["page"] = str(page)
+            params["pagination"] = str(page_size)
 
         async with self.http_session.get("/api/v0/posts.json", params=params) as resp:
             resp.raise_for_status()
@@ -408,10 +412,15 @@ class AlephClient(BaseAlephClient):
         )
 
         if not message_filter:
-            message_filter = MessageFilter()
-        params = message_filter.as_http_params()
-        params["page"] = str(page)
-        params["pagination"] = str(page_size)
+            params = {
+                "page": str(page),
+                "pagination": str(page_size),
+            }
+        else:
+            params = message_filter.as_http_params()
+            params["page"] = str(page)
+            params["pagination"] = str(page_size)
+
         async with self.http_session.get(
             "/api/v0/messages.json", params=params
         ) as resp:
@@ -479,8 +488,7 @@ class AlephClient(BaseAlephClient):
         self,
         message_filter: Optional[MessageFilter] = None,
     ) -> AsyncIterable[AlephMessage]:
-        if not message_filter:
-            message_filter = MessageFilter()
+        message_filter = message_filter or MessageFilter()
         params = message_filter.as_http_params()
 
         async with self.http_session.ws_connect(
