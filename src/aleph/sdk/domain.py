@@ -79,11 +79,11 @@ class DomainValidator:
         try:
             entry = await resolver.query(fqdn, "CNAME")
             cname = getattr(entry, "cname")
-            if cname == settings.DNS_IPFS_DOMAIN:
+            if settings.DNS_IPFS_DOMAIN in cname:
                 return TargetType.IPFS
-            elif cname == settings.DNS_PROGRAM_DOMAIN:
+            elif settings.DNS_PROGRAM_DOMAIN in cname:
                 return TargetType.PROGRAM
-            elif cname == settings.DNS_INSTANCE_DOMAIN:
+            elif settings.DNS_INSTANCE_DOMAIN in cname:
                 return TargetType.INSTANCE
 
             return None
