@@ -33,6 +33,9 @@ def mock_session_with_post_success(
         def status(self):
             return 200 if self.sync else 202
 
+        def raise_for_status(self):
+            pass
+
         async def json(self):
             message_status = "processed" if self.sync else "pending"
             return {

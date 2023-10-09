@@ -1022,7 +1022,6 @@ class AuthenticatedAlephClient(AlephClient, BaseAuthenticatedAlephClient):
         )
         metadata = {
             "message": message.dict(exclude_none=True),
-            "file_size": len(file_content),
             "sync": sync,
         }
         data.add_field(
@@ -1240,14 +1239,22 @@ class AuthenticatedAlephClient(AlephClient, BaseAuthenticatedAlephClient):
             item_type=StorageEnum.storage,
             item_hash=file_hash,
             mime_type=mime_type,
+            time=time.time(),
             **extra_fields,
         )
-        return await self._storage_push_file_with_message(
+        message, _ = await self._storage_push_file_with_message(
             file_content=file_content,
             store_content=store_content,
             channel=channel,
             sync=sync,
         )
+
+        # Some nodes may not implement authenticated file upload yet. As we cannot detect
+        # this easily, broadcast the message a second time to ensure publication on older
+        # nodes.
+        status = await self._broadcast(message=message, sync=sync)
+        return message, status
+
 
     async def create_store(
         self,
