@@ -6,7 +6,7 @@ from aleph_message.status import MessageStatus
 
 from aleph.sdk.chains.common import get_fallback_private_key
 from aleph.sdk.chains.ethereum import ETHAccount
-from aleph.sdk.client import AuthenticatedAlephClient
+from aleph.sdk.client import AuthenticatedAlephHttpClient
 from aleph.sdk.conf import settings
 
 DEFAULT_SERVER = "https://api2.aleph.im"
@@ -23,7 +23,7 @@ async def print_output_hash(message: StoreMessage, status: MessageStatus):
 
 
 async def do_upload(account, engine, channel, filename=None, file_hash=None):
-    async with AuthenticatedAlephClient(
+    async with AuthenticatedAlephHttpClient(
         account=account, api_server=settings.API_HOST
     ) as session:
         print(filename, account.get_address())

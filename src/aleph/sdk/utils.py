@@ -1,10 +1,11 @@
 import errno
 import logging
 import os
+from datetime import datetime
 from enum import Enum
 from pathlib import Path
 from shutil import make_archive
-from typing import Protocol, Tuple, Type, TypeVar, Union
+from typing import Iterable, Optional, Protocol, Tuple, Type, TypeVar, Union
 from zipfile import BadZipFile, ZipFile
 
 from aleph_message.models import MessageType
@@ -116,3 +117,21 @@ def enum_as_str(obj: Union[str, Enum]) -> str:
         return obj.value
 
     return obj
+
+
+def serialize_list(values: Optional[Iterable[str]]) -> Optional[str]:
+    if values:
+        return ",".join(values)
+    else:
+        return None
+
+
+def _date_field_to_float(date: Optional[Union[datetime, float]]) -> Optional[float]:
+    if date is None:
+        return None
+    elif isinstance(date, float):
+        return date
+    elif hasattr(date, "timestamp"):
+        return date.timestamp()
+    else:
+        raise TypeError(f"Invalid type: `{type(date)}`")

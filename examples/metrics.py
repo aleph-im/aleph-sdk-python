@@ -12,7 +12,7 @@ from aleph_message.models import AlephMessage
 from aleph_message.status import MessageStatus
 
 from aleph.sdk.chains.ethereum import get_fallback_account
-from aleph.sdk.client import AuthenticatedAlephClient, AuthenticatedUserSessionSync
+from aleph.sdk.client import AuthenticatedAlephClientSync, AuthenticatedAlephHttpClient
 from aleph.sdk.conf import settings
 
 
@@ -54,7 +54,7 @@ def get_cpu_cores():
 
 
 def send_metrics(
-    session: AuthenticatedUserSessionSync, metrics
+    session: AuthenticatedAlephClientSync, metrics
 ) -> Tuple[AlephMessage, MessageStatus]:
     return session.create_aggregate(key="metrics", content=metrics, channel="SYSINFO")
 
@@ -70,7 +70,7 @@ def collect_metrics():
 
 def main():
     account = get_fallback_account()
-    with AuthenticatedAlephClient(
+    with AuthenticatedAlephHttpClient(
         account=account, api_server=settings.API_HOST
     ) as session:
         while True:

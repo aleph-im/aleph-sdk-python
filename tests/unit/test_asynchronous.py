@@ -11,14 +11,14 @@ from aleph_message.models import (
 )
 from aleph_message.status import MessageStatus
 
-from aleph.sdk.client import AuthenticatedAlephClient
+from aleph.sdk.client import AuthenticatedAlephHttpClient
 from aleph.sdk.types import Account, StorageEnum
 
 
 @pytest.fixture
 def mock_session_with_post_success(
     ethereum_account: Account,
-) -> AuthenticatedAlephClient:
+) -> AuthenticatedAlephHttpClient:
     class MockResponse:
         def __init__(self, sync: bool):
             self.sync = sync
@@ -49,7 +49,7 @@ def mock_session_with_post_success(
         sync=kwargs.get("sync", False)
     )
 
-    client = AuthenticatedAlephClient(
+    client = AuthenticatedAlephHttpClient(
         account=ethereum_account, api_server="http://localhost"
     )
     client.http_session = http_session

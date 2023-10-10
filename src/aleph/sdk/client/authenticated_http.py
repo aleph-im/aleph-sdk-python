@@ -23,14 +23,20 @@ from aleph_message.models import (
     StoreMessage,
 )
 from aleph_message.models.execution.base import Encoding
+from aleph_message.models.execution.environment import (
+    FunctionEnvironment,
+    MachineResources,
+)
+from aleph_message.models.execution.program import CodeContent, FunctionRuntime
+from aleph_message.models.execution.volume import MachineVolume
 from aleph_message.status import MessageStatus
 from pydantic.json import pydantic_encoder
 
 from ..conf import settings
 from ..exceptions import BroadcastError, InvalidMessageError
 from ..types import Account, StorageEnum
-from .base import BaseAuthenticatedAlephClient
-from .client import AlephClient, UserSessionSync
+from .abstract import AuthenticatedAlephClient
+from .http import AlephHttpClient
 
 logger = logging.getLogger(__name__)
 
@@ -41,174 +47,7 @@ except ImportError:
     magic = None  # type:ignore
 
 
-class AuthenticatedUserSessionSync(UserSessionSync):
-    async_session: "AuthenticatedAlephClient"
-
-    def __init__(self, async_session: "AuthenticatedAlephClient"):
-        super().__init__(async_session=async_session)
-
-    def ipfs_push(self, content: Mapping) -> str:
-        return self._wrap(self.async_session.ipfs_push, content=content)
-
-    def storage_push(self, content: Mapping) -> str:
-        return self._wrap(self.async_session.storage_push, content=content)
-
-    def ipfs_push_file(self, file_content: Union[str, bytes]) -> str:
-        return self._wrap(self.async_session.ipfs_push_file, file_content=file_content)
-
-    def storage_push_file(self, file_content: Union[str, bytes]) -> str:
-        return self._wrap(
-            self.async_session.storage_push_file, file_content=file_content
-        )
-
-    def create_post(
-        self,
-        post_content,
-        post_type: str,
-        ref: Optional[str] = None,
-        address: Optional[str] = None,
-        channel: Optional[str] = None,
-        inline: bool = True,
-        storage_engine: StorageEnum = StorageEnum.storage,
-        sync: bool = False,
-    ) -> Tuple[PostMessage, MessageStatus]:
-        return self._wrap(
-            self.async_session.create_post,
-            post_content=post_content,
-            post_type=post_type,
-            ref=ref,
-            address=address,
-            channel=channel,
-            inline=inline,
-            storage_engine=storage_engine,
-            sync=sync,
-        )
-
-    def create_aggregate(
-        self,
-        key: str,
-        content: Mapping[str, Any],
-        address: Optional[str] = None,
-        channel: Optional[str] = None,
-        inline: bool = True,
-        sync: bool = False,
-    ) -> Tuple[AggregateMessage, MessageStatus]:
-        return self._wrap(
-            self.async_session.create_aggregate,
-            key=key,
-            content=content,
-            address=address,
-            channel=channel,
-            inline=inline,
-            sync=sync,
-        )
-
-    def create_store(
-        self,
-        address: Optional[str] = None,
-        file_content: Optional[bytes] = None,
-        file_path: Optional[Union[str, Path]] = None,
-        file_hash: Optional[str] = None,
-        guess_mime_type: bool = False,
-        ref: Optional[str] = None,
-        storage_engine: StorageEnum = StorageEnum.storage,
-        extra_fields: Optional[dict] = None,
-        channel: Optional[str] = None,
-        sync: bool = False,
-    ) -> Tuple[StoreMessage, MessageStatus]:
-        return self._wrap(
-            self.async_session.create_store,
-            address=address,
-            file_content=file_content,
-            file_path=file_path,
-            file_hash=file_hash,
-            guess_mime_type=guess_mime_type,
-            ref=ref,
-            storage_engine=storage_engine,
-            extra_fields=extra_fields,
-            channel=channel,
-            sync=sync,
-        )
-
-    def create_program(
-        self,
-        program_ref: str,
-        entrypoint: str,
-        runtime: str,
-        environment_variables: Optional[Mapping[str, str]] = None,
-        storage_engine: StorageEnum = StorageEnum.storage,
-        channel: Optional[str] = None,
-        address: Optional[str] = None,
-        sync: bool = False,
-        memory: Optional[int] = None,
-        vcpus: Optional[int] = None,
-        timeout_seconds: Optional[float] = None,
-        persistent: bool = False,
-        encoding: Encoding = Encoding.zip,
-        volumes: Optional[List[Mapping]] = None,
-        subscriptions: Optional[List[Mapping]] = None,
-        metadata: Optional[Mapping[str, Any]] = None,
-    ) -> Tuple[ProgramMessage, MessageStatus]:
-        return self._wrap(
-            self.async_session.create_program,
-            program_ref=program_ref,
-            entrypoint=entrypoint,
-            runtime=runtime,
-            environment_variables=environment_variables,
-            storage_engine=storage_engine,
-            channel=channel,
-            address=address,
-            sync=sync,
-            memory=memory,
-            vcpus=vcpus,
-            timeout_seconds=timeout_seconds,
-            persistent=persistent,
-            encoding=encoding,
-            volumes=volumes,
-            subscriptions=subscriptions,
-            metadata=metadata,
-        )
-
-    def forget(
-        self,
-        hashes: List[str],
-        reason: Optional[str],
-        storage_engine: StorageEnum = StorageEnum.storage,
-        channel: Optional[str] = None,
-        address: Optional[str] = None,
-        sync: bool = False,
-    ) -> Tuple[ForgetMessage, MessageStatus]:
-        return self._wrap(
-            self.async_session.forget,
-            hashes=hashes,
-            reason=reason,
-            storage_engine=storage_engine,
-            channel=channel,
-            address=address,
-            sync=sync,
-        )
-
-    def submit(
-        self,
-        content: Dict[str, Any],
-        message_type: MessageType,
-        channel: Optional[str] = None,
-        storage_engine: StorageEnum = StorageEnum.storage,
-        allow_inlining: bool = True,
-        sync: bool = False,
-    ) -> Tuple[AlephMessage, MessageStatus]:
-        return self._wrap(
-            self.async_session.submit,
-            content=content,
-            message_type=message_type,
-            channel=channel,
-            storage_engine=storage_engine,
-            allow_inlining=allow_inlining,
-            sync=sync,
-        )
-
-
-class AuthenticatedAlephClient(AlephClient, BaseAuthenticatedAlephClient):
+class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
     account: Account
 
     BROADCAST_MESSAGE_FIELDS = {
@@ -239,10 +78,7 @@ class AuthenticatedAlephClient(AlephClient, BaseAuthenticatedAlephClient):
         )
         self.account = account
 
-    def __enter__(self) -> "AuthenticatedUserSessionSync":
-        return AuthenticatedUserSessionSync(async_session=self)
-
-    async def __aenter__(self) -> "AuthenticatedAlephClient":
+    async def __aenter__(self) -> "AuthenticatedAlephHttpClient":
         return self
 
     async def ipfs_push(self, content: Mapping) -> str:
@@ -580,40 +416,42 @@ class AuthenticatedAlephClient(AlephClient, BaseAuthenticatedAlephClient):
             # Trigger on HTTP calls.
             triggers = {"http": True, "persistent": persistent}
 
+        volumes: List[MachineVolume] = [
+            MachineVolume.parse_obj(volume) for volume in volumes
+        ]
+
         content = ProgramContent(
-            **{
-                "type": "vm-function",
-                "address": address,
-                "allow_amend": False,
-                "code": {
-                    "encoding": encoding,
-                    "entrypoint": entrypoint,
-                    "ref": program_ref,
-                    "use_latest": True,
-                },
-                "on": triggers,
-                "environment": {
-                    "reproducible": False,
-                    "internet": True,
-                    "aleph_api": True,
-                },
-                "variables": environment_variables,
-                "resources": {
-                    "vcpus": vcpus,
-                    "memory": memory,
-                    "seconds": timeout_seconds,
-                },
-                "runtime": {
-                    "ref": runtime,
-                    "use_latest": True,
-                    "comment": "Official aleph.im runtime"
-                    if runtime == settings.DEFAULT_RUNTIME_ID
-                    else "",
-                },
-                "volumes": volumes,
-                "time": time.time(),
-                "metadata": metadata,
-            }
+            type="vm-function",
+            address=address,
+            allow_amend=False,
+            code=CodeContent(
+                encoding=encoding,
+                entrypoint=entrypoint,
+                ref=program_ref,
+                use_latest=True,
+            ),
+            on=triggers,
+            environment=FunctionEnvironment(
+                reproducible=False,
+                internet=True,
+                aleph_api=True,
+            ),
+            variables=environment_variables,
+            resources=MachineResources(
+                vcpus=vcpus,
+                memory=memory,
+                seconds=timeout_seconds,
+            ),
+            runtime=FunctionRuntime(
+                ref=runtime,
+                use_latest=True,
+                comment="Official aleph.im runtime"
+                if runtime == settings.DEFAULT_RUNTIME_ID
+                else "",
+            ),
+            volumes=volumes,
+            time=time.time(),
+            metadata=metadata,
         )
 
         # Ensure that the version of aleph-message used supports the field.

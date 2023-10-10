@@ -25,14 +25,15 @@ from aleph_message.models import (
 from aleph_message.models.execution.program import Encoding
 from aleph_message.status import MessageStatus
 
-from ..models.message import MessageFilter
-from ..models.post import PostFilter, PostsResponse
+from ..query.filters import MessageFilter, PostFilter
+from ..query.responses import PostsResponse
 from ..types import GenericMessage, StorageEnum
+from ..utils import Writable
 
 DEFAULT_PAGE_SIZE = 200
 
 
-class BaseAlephClient(ABC):
+class AlephClient(ABC):
     @abstractmethod
     async def fetch_aggregate(self, address: str, key: str) -> Dict[str, Dict]:
         """
@@ -110,6 +111,44 @@ class BaseAlephClient(ABC):
         """
         pass
 
+    async def download_file_ipfs(
+        self,
+        file_hash: str,
+    ) -> bytes:
+        """
+        Get a file from the ipfs storage engine as raw bytes.
+
+        Warning: Downloading large files can be slow.
+
+        :param file_hash: The hash of the file to retrieve.
+        """
+        raise NotImplementedError()
+
+    async def download_file_ipfs_to_buffer(
+        self,
+        file_hash: str,
+        output_buffer: Writable[bytes],
+    ) -> None:
+        """
+        Download a file from the storage engine and write it to the specified output buffer.
+
+        :param file_hash: The hash of the file to retrieve.
+        :param output_buffer: The binary output buffer to write the file data to.
+        """
+        raise NotImplementedError()
+
+    async def download_file_to_buffer(
+        self,
+        file_hash: str,
+        output_buffer: Writable[bytes],
+    ) -> None:
+        """
+        Download a file from the storage engine and write it to the specified output buffer.
+        :param file_hash: The hash of the file to retrieve.
+        :param output_buffer: Writable binary buffer. The file will be written to this buffer.
+        """
+        raise NotImplementedError()
+
     @abstractmethod
     async def get_messages(
         self,
@@ -180,7 +219,7 @@ class BaseAlephClient(ABC):
         pass
 
 
-class BaseAuthenticatedAlephClient(BaseAlephClient):
+class AuthenticatedAlephClient(AlephClient):
     @abstractmethod
     async def create_post(
         self,
@@ -350,3 +389,19 @@ class BaseAuthenticatedAlephClient(BaseAlephClient):
         :param sync: If true, waits for the message to be processed by the API server (Default: False)
         """
         pass
+
+    async def ipfs_push(self, content: Mapping) -> str:
+        """
+        Push a file to IPFS.
+
+        :param content: Content of the file to push
+        """
+        raise NotImplementedError()
+
+    async def storage_push(self, content: Mapping) -> str:
+        """
+        Push arbitrary content as JSON to the storage service.
+
+        :param content: The dict-like content to upload
+        """
+        raise NotImplementedError()

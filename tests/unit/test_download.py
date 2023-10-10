@@ -1,6 +1,6 @@
 import pytest
 
-from aleph.sdk import AlephClient
+from aleph.sdk import AlephHttpClient
 from aleph.sdk.conf import settings as sdk_settings
 
 
@@ -13,7 +13,7 @@ from aleph.sdk.conf import settings as sdk_settings
 )
 @pytest.mark.asyncio
 async def test_download(file_hash: str, expected_size: int):
-    async with AlephClient(api_server=sdk_settings.API_HOST) as client:
+    async with AlephHttpClient(api_server=sdk_settings.API_HOST) as client:
         file_content = await client.download_file(file_hash)  # File is 5B
         file_size = len(file_content)
         assert file_size == expected_size
@@ -28,7 +28,7 @@ async def test_download(file_hash: str, expected_size: int):
 )
 @pytest.mark.asyncio
 async def test_download_ipfs(file_hash: str, expected_size: int):
-    async with AlephClient(api_server=sdk_settings.API_HOST) as client:
+    async with AlephHttpClient(api_server=sdk_settings.API_HOST) as client:
         file_content = await client.download_file_ipfs(file_hash)  # 5817703 B FILE
         file_size = len(file_content)
         assert file_size == expected_size
