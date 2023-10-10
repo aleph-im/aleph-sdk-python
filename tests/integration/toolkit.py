@@ -2,7 +2,7 @@ import asyncio
 import time
 from typing import Awaitable, Callable, TypeVar
 
-from aleph.sdk.models.message import MessagesResponse
+from aleph.sdk.query.responses import MessagesResponse
 
 T = TypeVar("T")
 

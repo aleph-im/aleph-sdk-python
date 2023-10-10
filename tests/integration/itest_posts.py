@@ -1,7 +1,7 @@
 import pytest
 
-from aleph.sdk.client import AuthenticatedAlephClient
-from aleph.sdk.models.message import MessageFilter
+from aleph.sdk.client import AuthenticatedAlephHttpClient
+from aleph.sdk.query.filters import MessageFilter
 from tests.integration.toolkit import has_messages, try_until
 
 from .config import REFERENCE_NODE, TARGET_NODE
@@ -11,7 +11,7 @@ async def create_message_on_target(account, emitter_node: str, receiver_node: st
     """
     Create a POST message on the target node, then fetch it from the reference node.
     """
-    async with AuthenticatedAlephClient(
+    async with AuthenticatedAlephHttpClient(
         account=account, api_server=emitter_node
     ) as tx_session:
         post_message, message_status = await tx_session.create_post(
@@ -20,7 +20,7 @@ async def create_message_on_target(account, emitter_node: str, receiver_node: st
             channel="INTEGRATION_TESTS",
         )
 
-    async with AuthenticatedAlephClient(
+    async with AuthenticatedAlephHttpClient(
         account=account, api_server=receiver_node
     ) as rx_session:
         responses = await try_until(

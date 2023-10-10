@@ -4,8 +4,8 @@ from typing import Tuple
 import pytest
 from aleph_message.models import ItemHash
 
-from aleph.sdk.client import AuthenticatedAlephClient
-from aleph.sdk.models.message import MessageFilter
+from aleph.sdk.client import AuthenticatedAlephHttpClient
+from aleph.sdk.query.filters import MessageFilter
 from aleph.sdk.types import Account
 
 from .config import REFERENCE_NODE, TARGET_NODE, TEST_CHANNEL
@@ -15,7 +15,7 @@ from .toolkit import has_messages, has_no_messages, try_until
 async def create_and_forget_post(
     account: Account, emitter_node: str, receiver_node: str, channel=TEST_CHANNEL
 ) -> Tuple[ItemHash, ItemHash]:
-    async with AuthenticatedAlephClient(
+    async with AuthenticatedAlephHttpClient(
         account=account, api_server=emitter_node
     ) as tx_session:
         post_message, message_status = await tx_session.create_post(
@@ -24,7 +24,7 @@ async def create_and_forget_post(
             channel="INTEGRATION_TESTS",
         )
 
-    async with AuthenticatedAlephClient(
+    async with AuthenticatedAlephHttpClient(
         account=account, api_server=receiver_node
     ) as rx_session:
         await try_until(
@@ -38,7 +38,7 @@ async def create_and_forget_post(
 
     post_hash = post_message.item_hash
     reason = "This well thought-out content offends me!"
-    async with AuthenticatedAlephClient(
+    async with AuthenticatedAlephHttpClient(
         account=account, api_server=emitter_node
     ) as tx_session:
         forget_message, forget_status = await tx_session.forget(
@@ -52,7 +52,7 @@ async def create_and_forget_post(
     forget_hash = forget_message.item_hash
 
     # Wait until the message is forgotten
-    async with AuthenticatedAlephClient(
+    async with AuthenticatedAlephHttpClient(
         account=account, api_server=receiver_node
     ) as rx_session:
         await try_until(
@@ -104,7 +104,7 @@ async def test_forget_a_forget_message(fixture_account):
     post_hash, forget_hash = await create_and_forget_post(
         fixture_account, TARGET_NODE, REFERENCE_NODE
     )
-    async with AuthenticatedAlephClient(
+    async with AuthenticatedAlephHttpClient(
         account=fixture_account, api_server=TARGET_NODE
     ) as tx_session:
         forget_message, forget_status = await tx_session.forget(
@@ -118,7 +118,7 @@ async def test_forget_a_forget_message(fixture_account):
     # wait 5 seconds
     await asyncio.sleep(5)
 
-    async with AuthenticatedAlephClient(
+    async with AuthenticatedAlephHttpClient(
         account=fixture_account, api_server=REFERENCE_NODE
     ) as rx_session:
         get_forget_message_response = await try_until(

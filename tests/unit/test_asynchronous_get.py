@@ -5,13 +5,13 @@ from unittest.mock import AsyncMock
 import pytest
 from aleph_message.models import MessagesResponse, MessageType
 
-from aleph.sdk import AlephClient
+from aleph.sdk import AlephHttpClient
 from aleph.sdk.conf import settings
-from aleph.sdk.models.message import MessageFilter
-from aleph.sdk.models.post import PostFilter, PostsResponse
+from aleph.sdk.query.filters import MessageFilter, PostFilter
+from aleph.sdk.query.responses import PostsResponse
 
 
-def make_mock_session(get_return_value: Dict[str, Any]) -> AlephClient:
+def make_mock_session(get_return_value: Dict[str, Any]) -> AlephHttpClient:
     class MockResponse:
         async def __aenter__(self):
             return self
@@ -35,7 +35,7 @@ def make_mock_session(get_return_value: Dict[str, Any]) -> AlephClient:
 
     http_session = MockHttpSession()
 
-    client = AlephClient(api_server="http://localhost")
+    client = AlephHttpClient(api_server="http://localhost")
     client.http_session = http_session
 
     return client
@@ -70,7 +70,7 @@ async def test_fetch_aggregates():
 
 @pytest.mark.asyncio
 async def test_get_posts():
-    async with AlephClient(api_server=settings.API_HOST) as session:
+    async with AlephHttpClient(api_server=settings.API_HOST) as session:
         response: PostsResponse = await session.get_posts(
             page_size=2,
             post_filter=PostFilter(
@@ -84,7 +84,7 @@ async def test_get_posts():
 
 @pytest.mark.asyncio
 async def test_get_messages():
-    async with AlephClient(api_server=settings.API_HOST) as session:
+    async with AlephHttpClient(api_server=settings.API_HOST) as session:
         response: MessagesResponse = await session.get_messages(
             page_size=2,
             message_filter=MessageFilter(
