@@ -26,8 +26,8 @@ def get_input_data(value):
         return value.decode("utf-8")
 
 
-def send_metrics(account, metrics):
-    with AuthenticatedAlephHttpClient(
+async def send_metrics(account, metrics):
+    async with AuthenticatedAlephHttpClient(
         account=account, api_server=settings.API_HOST
     ) as session:
         return session.create_aggregate(
