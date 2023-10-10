@@ -1,7 +1,6 @@
 """ Server metrics upload.
 """
-# -*- coding: utf-8 -*-
-
+import asyncio
 import os
 import platform
 import time
@@ -12,8 +11,10 @@ from aleph_message.models import AlephMessage
 from aleph_message.status import MessageStatus
 
 from aleph.sdk.chains.ethereum import get_fallback_account
-from aleph.sdk.client import AuthenticatedAlephClientSync, AuthenticatedAlephHttpClient
+from aleph.sdk.client import AuthenticatedAlephHttpClient
 from aleph.sdk.conf import settings
+
+# -*- coding: utf-8 -*-
 
 
 def get_sysinfo():
@@ -53,10 +54,12 @@ def get_cpu_cores():
     return [c._asdict() for c in psutil.cpu_times_percent(0, percpu=True)]
 
 
-def send_metrics(
-    session: AuthenticatedAlephClientSync, metrics
+async def send_metrics(
+    session: AuthenticatedAlephHttpClient, metrics
 ) -> Tuple[AlephMessage, MessageStatus]:
-    return session.create_aggregate(key="metrics", content=metrics, channel="SYSINFO")
+    return await session.create_aggregate(
+        key="metrics", content=metrics, channel="SYSINFO"
+    )
 
 
 def collect_metrics():
@@ -68,17 +71,17 @@ def collect_metrics():
     }
 
 
-def main():
+async def main():
     account = get_fallback_account()
-    with AuthenticatedAlephHttpClient(
+    async with AuthenticatedAlephHttpClient(
         account=account, api_server=settings.API_HOST
     ) as session:
         while True:
             metrics = collect_metrics()
-            message, status = send_metrics(session, metrics)
+            message, status = await send_metrics(session, metrics)
             print("sent", message.item_hash)
             time.sleep(10)
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())
