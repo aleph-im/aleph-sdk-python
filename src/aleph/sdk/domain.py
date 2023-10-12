@@ -1,7 +1,7 @@
 import logging
 from enum import Enum
 from ipaddress import IPv4Address, IPv6Address
-from typing import Dict, Iterable, List, NewType, Optional, Union
+from typing import Any, AsyncIterable, Dict, Iterable, List, NewType, Optional, Union
 from urllib.parse import urlparse
 
 import aiodns
@@ -47,11 +47,11 @@ class DomainValidator:
         fqdn = hostname
 
         stop = False
-        while stop == False:
+        while stop is False:
             """**Detect and get authoritative NS server of subdomains if delegated**"""
             try:
                 entries = await self.resolver.query(fqdn, "NS")
-                servers = []
+                servers: List[Any] = []
                 for entry in entries:
                     servers += await self.get_ipv6_addresses(entry.host)
                     servers += await self.get_ipv4_addresses(entry.host)
@@ -61,7 +61,7 @@ class DomainValidator:
             except aiodns.error.DNSError:
                 sub_domains = fqdn.split(".")
                 if len(sub_domains) > 2:
-                    fqdn = ".".join(sub_domains[1:])
+                    fqdn = Hostname(".".join(sub_domains[1:]))
                     continue
 
                 if len(sub_domains) == 2:
@@ -121,7 +121,7 @@ class DomainValidator:
 
     async def get_txt_values(
         self, hostname: Hostname, delimiter: Optional[str] = None
-    ) -> Iterable[str]:
+    ) -> AsyncIterable[str]:
         """Returns all TXT values for a domain"""
         entries: Iterable = await self.resolver.query(hostname, "TXT") or []
         for entry in entries:
