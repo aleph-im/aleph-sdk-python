@@ -4,10 +4,10 @@ import pytest
 from aleph_message.models import StoreMessage
 from aleph_message.status import MessageStatus
 
-from aleph.sdk import AuthenticatedAlephClient
-from aleph.sdk.chains.common import get_fallback_private_key
-from aleph.sdk.chains.ethereum import ETHAccount
-from aleph.sdk.types import StorageEnum
+from src.aleph.sdk.chains.common import get_fallback_private_key
+from src.aleph.sdk.chains.ethereum import ETHAccount
+from src.aleph.sdk.client import AuthenticatedAlephHttpClient
+from src.aleph.sdk.types import StorageEnum
 
 
 @pytest.mark.asyncio
@@ -17,8 +17,7 @@ async def test_upload_with_message():
 
     content = b"Test pyaleph upload\n"
     file_hash = hashlib.sha256(content).hexdigest()
-
-    async with AuthenticatedAlephClient(account=account, api_server=None) as client:
+    async with AuthenticatedAlephHttpClient(account=account, api_server=None) as client:
         message, status = await client.create_store(
             address=account.get_address(),
             file_content=content,
