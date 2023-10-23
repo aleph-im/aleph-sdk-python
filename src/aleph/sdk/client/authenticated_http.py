@@ -341,8 +341,19 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
                     file_content = Path(file_path).read_bytes()
 
             if storage_engine == StorageEnum.storage:
-                file_hash = await self.storage_push_file(file_content=file_content)
+                # Upload the file and message all at once using authenticated upload.
+                return await self._upload_file_native(
+                    address=address,
+                    file_content=file_content,
+                    guess_mime_type=guess_mime_type,
+                    ref=ref,
+                    extra_fields=extra_fields,
+                    channel=channel,
+                    sync=sync,
+                )
             elif storage_engine == StorageEnum.ipfs:
+                # We do not support authenticated upload for IPFS yet. Use the legacy method
+                # of uploading the file first then publishing the message using POST /messages.
                 file_hash = await self.ipfs_push_file(file_content=file_content)
             else:
                 raise ValueError(f"Unknown storage engine: '{storage_engine}'")
@@ -558,3 +569,77 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
         )
         message_status = await self._broadcast(message=message, sync=sync)
         return message, message_status
+
+    async def _storage_push_file_with_message(
+        self,
+        file_content: bytes,
+        store_content: StoreContent,
+        channel: Optional[str] = None,
+        sync: bool = False,
+    ) -> Tuple[StoreMessage, MessageStatus]:
+        """Push a file to the storage service."""
+        data = aiohttp.FormData()
+
+        # Prepare the STORE message
+        message = await self._prepare_aleph_message(
+            message_type=MessageType.store,
+            content=store_content.dict(exclude_none=True),
+            channel=channel,
+        )
+        metadata = {
+            "message": message.dict(exclude_none=True),
+            "sync": sync,
+        }
+        data.add_field(
+            "metadata", json.dumps(metadata), content_type="application/json"
+        )
+        # Add the file
+        data.add_field("file", file_content)
+
+        url = "/api/v0/storage/add_file"
+        logger.debug(f"Posting file on {url}")
+
+        async with self.http_session.post(url, data=data) as resp:
+            resp.raise_for_status()
+            message_status = (
+                MessageStatus.PENDING if resp.status == 202 else MessageStatus.PROCESSED
+            )
+            return message, message_status
+
+    async def _upload_file_native(
+        self,
+        address: str,
+        file_content: bytes,
+        guess_mime_type: bool = False,
+        ref: Optional[str] = None,
+        extra_fields: Optional[dict] = None,
+        channel: Optional[str] = None,
+        sync: bool = False,
+    ) -> Tuple[StoreMessage, MessageStatus]:
+        file_hash = hashlib.sha256(file_content).hexdigest()
+        if magic and guess_mime_type:
+            mime_type = magic.from_buffer(file_content, mime=True)
+        else:
+            mime_type = None
+
+        store_content = StoreContent(
+            address=address,
+            ref=ref,
+            item_type=StorageEnum.storage,
+            item_hash=file_hash,
+            mime_type=mime_type,
+            time=time.time(),
+            **extra_fields,
+        )
+        message, _ = await self._storage_push_file_with_message(
+            file_content=file_content,
+            store_content=store_content,
+            channel=channel,
+            sync=sync,
+        )
+
+        # Some nodes may not implement authenticated file upload yet. As we cannot detect
+        # this easily, broadcast the message a second time to ensure publication on older
+        # nodes.
+        status = await self._broadcast(message=message, sync=sync)
+        return message, status
