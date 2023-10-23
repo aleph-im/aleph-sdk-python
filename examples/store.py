@@ -11,7 +11,6 @@ from aleph.sdk.chains.ethereum import ETHAccount
 from aleph.sdk.client import AuthenticatedAlephHttpClient
 from aleph.sdk.conf import settings
 from aleph.sdk.types import Account, StorageEnum
-from aleph_message.utils import Mebibytes
 
 DEFAULT_SERVER = "https://api2.aleph.im"
 MiB = 2**20
@@ -34,7 +33,7 @@ async def do_upload(
     filename: Optional[str] = None,
     file_hash: Optional[str] = None,
 ):
-    async with AuthenticatedAlephClient(
+    async with AuthenticatedAlephHttpClient(
         account=account, api_server=settings.API_HOST
     ) as session:
         print(filename, account.get_address())
