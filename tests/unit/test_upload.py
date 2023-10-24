@@ -18,7 +18,7 @@ async def test_upload_with_message():
     content = b"Test pyaleph upload\n"
     file_hash = hashlib.sha256(content).hexdigest()
 
-    async with AuthenticatedAlephHttpClient(account=account, api_server="http://62.210.145.23:4024") as client:
+    async with AuthenticatedAlephHttpClient(account=account, api_server=None) as client:
         message, status = await client.create_store(
             address=account.get_address(),
             file_content=content,
