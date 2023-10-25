@@ -78,3 +78,11 @@ class InsufficientFundsError(Exception):
         super().__init__(
             f"Insufficient funds: required {required_funds}, available {available_funds}"
         )
+
+
+class InvalidCacheDatabaseSchema(Exception):
+    """
+    The cache's database schema is invalid.
+    """
+
+    pass

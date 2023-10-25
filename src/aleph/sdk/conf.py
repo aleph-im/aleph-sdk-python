@@ -43,6 +43,15 @@ class Settings(BaseSettings):
     DNS_STATIC_DOMAIN = "static.public.aleph.sh"
     DNS_RESOLVERS = ["9.9.9.9", "1.1.1.1"]
 
+    CACHE_DATABASE_PATH: Path = Field(
+        default=Path("cache", "message_cache.sqlite"),
+        description="Path to the db database",
+    )
+    CACHE_FILES_PATH: Path = Field(
+        default=Path("cache", "files"),
+        description="Path to the db files",
+    )
+
     class Config:
         env_prefix = "ALEPH_"
         case_sensitive = False

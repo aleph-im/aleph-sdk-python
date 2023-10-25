@@ -6,6 +6,7 @@ from typing import Any, AsyncIterable, Dict, Iterable, List, Optional, Type
 import aiohttp
 from aleph_message import parse_message
 from aleph_message.models import AlephMessage, ItemHash, ItemType
+from aleph_message.status import MessageStatus
 from pydantic import ValidationError
 
 from ..conf import settings
@@ -178,6 +179,8 @@ class AlephHttpClient(AlephClient):
                     )
                 else:
                     raise FileTooLarge(f"The file from {file_hash} is too large")
+            else:
+                response.raise_for_status()
 
     async def download_file_ipfs_to_buffer(
         self,
@@ -342,6 +345,11 @@ class AlephHttpClient(AlephClient):
             "error_code": message_raw["error_code"],
             "details": message_raw["details"],
         }
+
+    async def get_message_status(self, item_hash: str) -> MessageStatus:
+        async with self.http_session.get(f"/api/v0/messages/{item_hash}") as resp:
+            resp.raise_for_status()
+            return MessageStatus((await resp.json())["status"])
 
     async def watch_messages(
         self,

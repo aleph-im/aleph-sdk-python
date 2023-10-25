@@ -1,6 +1,6 @@
 from pkg_resources import DistributionNotFound, get_distribution
 
-from aleph.sdk.client import AlephHttpClient, AuthenticatedAlephHttpClient
+from aleph.sdk.client import AlephHttpClient, AuthenticatedAlephHttpClient, LightNode
 
 try:
     # Change here if project is renamed and does not equal the package name
@@ -11,4 +11,4 @@ except DistributionNotFound:
 finally:
     del get_distribution, DistributionNotFound
 
-__all__ = ["AlephHttpClient", "AuthenticatedAlephHttpClient"]
+__all__ = ["AlephHttpClient", "AuthenticatedAlephHttpClient", "LightNode"]
