@@ -32,7 +32,7 @@ def mock_session_with_post_success(
         @property
         def status(self):
             return 200 if self.sync else 202
-        
+
         async def raise_for_status(self):
             ...
 
