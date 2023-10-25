@@ -22,6 +22,14 @@ jobs:
         if: startsWith(matrix.os, 'ubuntu-')
         run: sudo echo RESET grub-efi/install_devices | sudo debconf-communicate grub-pc
 
+      - name: Cache dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-build-wheels-${{ hashFiles('setup.cfg', 'setup.py') }}
+          restore-keys: |
+            ${{ runner.os }}-build-wheels-
+
       - name: Install required system packages for macOS
         if: startsWith(matrix.os, 'macos-')
         run: |
