@@ -1,7 +1,7 @@
 import hashlib
 
 import pytest
-from aleph_message.models import StoreMessage
+from aleph_message.models import AlephMessage, StoreMessage
 from aleph_message.status import MessageStatus
 
 from aleph.sdk import AuthenticatedAlephHttpClient
@@ -33,7 +33,7 @@ async def test_upload_with_message():
         server_content = await client.download_file(file_hash=file_hash)
         assert server_content == content
 
-        server_message = await client.get_message(
+        server_message: AlephMessage = await client.get_message(
             item_hash=message.item_hash, message_type=StoreMessage
         )
         assert server_message.content.item_hash == file_hash
