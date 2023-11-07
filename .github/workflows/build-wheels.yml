@@ -23,7 +23,7 @@ jobs:
         run: sudo echo RESET grub-efi/install_devices | sudo debconf-communicate grub-pc
 
       - name: Set up Python
-        if: startsWith(matrix.os, 'macos-12')
+        if: startsWith(matrix.os, 'macos')
         uses: actions/setup-python@v2
         with:
           python-version: 3.11
