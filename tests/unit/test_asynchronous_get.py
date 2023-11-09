@@ -1,4 +1,5 @@
 import unittest
+from datetime import datetime
 from typing import Any, Dict
 from unittest.mock import AsyncMock
 
@@ -75,6 +76,7 @@ async def test_get_posts():
             page_size=2,
             post_filter=PostFilter(
                 channels=["TEST"],
+                start_date=datetime(2021, 1, 1),
             ),
         )
 
@@ -89,6 +91,7 @@ async def test_get_messages():
             page_size=2,
             message_filter=MessageFilter(
                 message_types=[MessageType.post],
+                start_date=datetime(2021, 1, 1),
             ),
         )
 
