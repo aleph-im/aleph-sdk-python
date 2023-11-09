@@ -3,7 +3,7 @@ from typing import Dict, Iterable, Optional, Union
 
 from aleph_message.models import MessageType
 
-from ..utils import _date_field_to_float, serialize_list
+from ..utils import _date_field_to_timestamp, serialize_list
 
 
 class MessageFilter:
@@ -79,8 +79,8 @@ class MessageFilter:
             "hashes": serialize_list(self.hashes),
             "channels": serialize_list(self.channels),
             "chains": serialize_list(self.chains),
-            "startDate": _date_field_to_float(self.start_date),
-            "endDate": _date_field_to_float(self.end_date),
+            "startDate": _date_field_to_timestamp(self.start_date),
+            "endDate": _date_field_to_timestamp(self.end_date),
         }
 
         # Ensure all values are strings.
@@ -146,8 +146,8 @@ class PostFilter:
             "hashes": serialize_list(self.hashes),
             "channels": serialize_list(self.channels),
             "chains": serialize_list(self.chains),
-            "startDate": _date_field_to_float(self.start_date),
-            "endDate": _date_field_to_float(self.end_date),
+            "startDate": _date_field_to_timestamp(self.start_date),
+            "endDate": _date_field_to_timestamp(self.end_date),
         }
 
         # Ensure all values are strings.

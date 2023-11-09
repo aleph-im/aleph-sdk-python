@@ -126,12 +126,12 @@ def serialize_list(values: Optional[Iterable[str]]) -> Optional[str]:
         return None
 
 
-def _date_field_to_float(date: Optional[Union[datetime, float]]) -> Optional[float]:
+def _date_field_to_timestamp(date: Optional[Union[datetime, float]]) -> Optional[str]:
     if date is None:
         return None
     elif isinstance(date, float):
-        return date
+        return str(date)
     elif hasattr(date, "timestamp"):
-        return date.timestamp()
+        return str(date.timestamp())
     else:
         raise TypeError(f"Invalid type: `{type(date)}`")
