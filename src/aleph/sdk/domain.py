@@ -46,8 +46,7 @@ class DomainValidator:
         dns_servers = settings.DNS_RESOLVERS
         fqdn = hostname
 
-        stop = False
-        while stop is False:
+        while True:
             """**Detect and get authoritative NS server of subdomains if delegated**"""
             try:
                 entries = await self.resolver.query(fqdn, "NS")
@@ -57,7 +56,7 @@ class DomainValidator:
                     servers += await self.get_ipv4_addresses(entry.host)
 
                 dns_servers = servers
-                stop = True
+                break
             except aiodns.error.DNSError:
                 sub_domains = fqdn.split(".")
                 if len(sub_domains) > 2:
@@ -65,7 +64,10 @@ class DomainValidator:
                     continue
 
                 if len(sub_domains) == 2:
-                    stop = True
+                    break
+            except Exception as err:
+                logger.debug(f"Unexpected {err=}, {type(err)=}")
+                break
 
         return dns_servers
 
