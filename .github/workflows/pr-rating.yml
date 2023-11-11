@@ -1,5 +1,8 @@
 name: Test PR Difficulty Rating Action
 
+permissions:
+  pull-requests: write
+
 on:
   pull_request:
     types: [opened, reopened, ready_for_review]
@@ -12,5 +15,5 @@ jobs:
       - name: PR Difficulty Rating
         uses: MHHukiewitz/pr-rating-action@main
         with:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_PR_RATING_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           LLAMA_URL: ${{ secrets.LLAMA_URL }}
