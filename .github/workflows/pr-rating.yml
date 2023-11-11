@@ -1,0 +1,16 @@
+name: Test PR Difficulty Rating Action
+
+on:
+  pull_request:
+    types: [opened, reopened, ready_for_review]
+
+jobs:
+  difficulty-rating:
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.draft == false
+    steps:
+      - name: PR Difficulty Rating
+        uses: MHHukiewitz/pr-rating-action@main
+        with:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_PR_RATING_TOKEN }}
+          LLAMA_URL: ${{ secrets.LLAMA_URL }}
