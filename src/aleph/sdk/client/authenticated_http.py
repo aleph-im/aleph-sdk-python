@@ -401,6 +401,9 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
         vcpus: Optional[int] = None,
         timeout_seconds: Optional[float] = None,
         persistent: bool = False,
+        allow_amend: bool = False,
+        internet: bool = True,
+        aleph_api: bool = True,
         encoding: Encoding = Encoding.zip,
         volumes: Optional[List[Mapping]] = None,
         subscriptions: Optional[List[Mapping]] = None,
@@ -434,7 +437,7 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
         content = ProgramContent(
             type="vm-function",
             address=address,
-            allow_amend=False,
+            allow_amend=allow_amend,
             code=CodeContent(
                 encoding=encoding,
                 entrypoint=entrypoint,
@@ -444,8 +447,8 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
             on=triggers,
             environment=FunctionEnvironment(
                 reproducible=False,
-                internet=True,
-                aleph_api=True,
+                internet=internet,
+                aleph_api=aleph_api,
             ),
             variables=environment_variables,
             resources=MachineResources(
