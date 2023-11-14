@@ -5,9 +5,10 @@ import pytest as pytest
 from aleph_message.models import (
     AggregateMessage,
     ForgetMessage,
+    InstanceMessage,
     PostMessage,
     ProgramMessage,
-    StoreMessage, InstanceMessage,
+    StoreMessage,
 )
 from aleph_message.status import MessageStatus
 

@@ -13,6 +13,8 @@ from aleph_message.models import (
     AlephMessage,
     ForgetContent,
     ForgetMessage,
+    InstanceContent,
+    InstanceMessage,
     ItemType,
     MessageType,
     PostContent,
@@ -20,7 +22,7 @@ from aleph_message.models import (
     ProgramContent,
     ProgramMessage,
     StoreContent,
-    StoreMessage, InstanceMessage, InstanceContent,
+    StoreMessage,
 )
 from aleph_message.models.execution.base import Encoding
 from aleph_message.models.execution.environment import (
@@ -35,7 +37,6 @@ from pydantic.json import pydantic_encoder
 
 from ..conf import settings
 from ..exceptions import BroadcastError, InvalidMessageError
-from ..query.params import VmParams
 from ..types import Account, StorageEnum
 from .abstract import AuthenticatedAlephClient
 from .http import AlephHttpClient
@@ -465,9 +466,7 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
                 if runtime == settings.DEFAULT_RUNTIME_ID
                 else "",
             ),
-            volumes=[
-                MachineVolume.parse_obj(volume) for volume in volumes
-            ],
+            volumes=[MachineVolume.parse_obj(volume) for volume in volumes],
             time=time.time(),
             metadata=metadata,
         )
@@ -539,9 +538,7 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
                 if rootfs == settings.DEFAULT_RUNTIME_ID
                 else "",
             ),
-            volumes=[
-                MachineVolume.parse_obj(volume) for volume in volumes
-            ],
+            volumes=[MachineVolume.parse_obj(volume) for volume in volumes],
             time=time.time(),
             authorized_keys=ssh_keys,
             metadata=metadata,

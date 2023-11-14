@@ -26,7 +26,6 @@ from aleph_message.models.execution.program import Encoding
 from aleph_message.status import MessageStatus
 
 from ..query.filters import MessageFilter, PostFilter
-from ..query.params import VmParams
 from ..query.responses import PostsResponse
 from ..types import GenericMessage, StorageEnum
 from ..utils import Writable
@@ -368,6 +367,7 @@ class AuthenticatedAlephClient(AlephClient):
         aleph_api: bool = True,
         encoding: Encoding = Encoding.zip,
         volumes: Optional[List[Mapping]] = None,
+        volume_persistence: str = "host",
         ssh_keys: Optional[List[str]] = None,
         metadata: Optional[Mapping[str, Any]] = None,
     ) -> Tuple[AlephMessage, MessageStatus]:
@@ -390,6 +390,7 @@ class AuthenticatedAlephClient(AlephClient):
         :param aleph_api: Whether the VM needs access to Aleph messages API (Default: True)
         :param encoding: Encoding to use (Default: Encoding.zip)
         :param volumes: Volumes to mount
+        :param volume_persistence: Where volumes are persisted, can be "host" or "store", meaning distributed across Aleph.im (Default: "host")
         :param ssh_keys: SSH keys to authorize access to the VM
         :param metadata: Metadata to attach to the message
         """
