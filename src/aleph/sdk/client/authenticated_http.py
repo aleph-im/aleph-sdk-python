@@ -476,7 +476,7 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
 
         return await self.submit(
             content=content.dict(exclude_none=True),
-            message_type=MessageType.instance,
+            message_type=MessageType.program,
             channel=channel,
             storage_engine=storage_engine,
             sync=sync,
