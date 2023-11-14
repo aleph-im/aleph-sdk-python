@@ -26,6 +26,7 @@ from aleph_message.models.execution.program import Encoding
 from aleph_message.status import MessageStatus
 
 from ..query.filters import MessageFilter, PostFilter
+from ..query.params import VmParams
 from ..query.responses import PostsResponse
 from ..types import GenericMessage, StorageEnum
 from ..utils import Writable
@@ -344,6 +345,52 @@ class AuthenticatedAlephClient(AlephClient):
         :param encoding: Encoding to use (Default: Encoding.zip)
         :param volumes: Volumes to mount
         :param subscriptions: Patterns of aleph.im messages to forward to the program's event receiver
+        :param metadata: Metadata to attach to the message
+        """
+        pass
+
+    @abstractmethod
+    async def create_instance(
+        self,
+        rootfs: str,
+        rootfs_size: int,
+        rootfs_name: str,
+        environment_variables: Optional[Mapping[str, str]] = None,
+        storage_engine: StorageEnum = StorageEnum.storage,
+        channel: Optional[str] = None,
+        address: Optional[str] = None,
+        sync: bool = False,
+        memory: Optional[int] = None,
+        vcpus: Optional[int] = None,
+        timeout_seconds: Optional[float] = None,
+        allow_amend: bool = False,
+        internet: bool = True,
+        aleph_api: bool = True,
+        encoding: Encoding = Encoding.zip,
+        volumes: Optional[List[Mapping]] = None,
+        ssh_keys: Optional[List[str]] = None,
+        metadata: Optional[Mapping[str, Any]] = None,
+    ) -> Tuple[AlephMessage, MessageStatus]:
+        """
+        Post a (create) PROGRAM message.
+
+        :param rootfs: Root filesystem to use
+        :param rootfs_size: Size of root filesystem
+        :param rootfs_name: Name of root filesystem
+        :param environment_variables: Environment variables to pass to the program
+        :param storage_engine: Storage engine to use (Default: "storage")
+        :param channel: Channel to use (Default: "TEST")
+        :param address: Address to use (Default: account.get_address())
+        :param sync: If true, waits for the message to be processed by the API server
+        :param memory: Memory in MB for the VM to be allocated (Default: 128)
+        :param vcpus: Number of vCPUs to allocate (Default: 1)
+        :param timeout_seconds: Timeout in seconds (Default: 30.0)
+        :param allow_amend: Whether the deployed VM image may be changed (Default: False)
+        :param internet: Whether the VM should have internet connectivity. (Default: True)
+        :param aleph_api: Whether the VM needs access to Aleph messages API (Default: True)
+        :param encoding: Encoding to use (Default: Encoding.zip)
+        :param volumes: Volumes to mount
+        :param ssh_keys: SSH keys to authorize access to the VM
         :param metadata: Metadata to attach to the message
         """
         pass

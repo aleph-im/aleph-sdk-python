@@ -20,20 +20,22 @@ from aleph_message.models import (
     ProgramContent,
     ProgramMessage,
     StoreContent,
-    StoreMessage,
+    StoreMessage, InstanceMessage, InstanceContent,
 )
 from aleph_message.models.execution.base import Encoding
 from aleph_message.models.execution.environment import (
     FunctionEnvironment,
     MachineResources,
 )
+from aleph_message.models.execution.instance import RootfsVolume
 from aleph_message.models.execution.program import CodeContent, FunctionRuntime
-from aleph_message.models.execution.volume import MachineVolume
+from aleph_message.models.execution.volume import MachineVolume, ParentVolume
 from aleph_message.status import MessageStatus
 from pydantic.json import pydantic_encoder
 
 from ..conf import settings
 from ..exceptions import BroadcastError, InvalidMessageError
+from ..query.params import VmParams
 from ..types import Account, StorageEnum
 from .abstract import AuthenticatedAlephClient
 from .http import AlephHttpClient
@@ -463,7 +465,9 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
                 if runtime == settings.DEFAULT_RUNTIME_ID
                 else "",
             ),
-            volumes=volumes,
+            volumes=[
+                MachineVolume.parse_obj(volume) for volume in volumes
+            ],
             time=time.time(),
             metadata=metadata,
         )
@@ -473,7 +477,79 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
 
         return await self.submit(
             content=content.dict(exclude_none=True),
-            message_type=MessageType.program,
+            message_type=MessageType.instance,
+            channel=channel,
+            storage_engine=storage_engine,
+            sync=sync,
+        )
+
+    async def create_instance(
+        self,
+        rootfs: str,
+        rootfs_size: int,
+        rootfs_name: str,
+        environment_variables: Optional[Mapping[str, str]] = None,
+        storage_engine: StorageEnum = StorageEnum.storage,
+        channel: Optional[str] = None,
+        address: Optional[str] = None,
+        sync: bool = False,
+        memory: Optional[int] = None,
+        vcpus: Optional[int] = None,
+        timeout_seconds: Optional[float] = None,
+        allow_amend: bool = False,
+        internet: bool = True,
+        aleph_api: bool = True,
+        encoding: Encoding = Encoding.zip,
+        volumes: Optional[List[Mapping]] = None,
+        volume_persistence: str = "host",
+        ssh_keys: Optional[List[str]] = None,
+        metadata: Optional[Mapping[str, Any]] = None,
+    ) -> Tuple[InstanceMessage, MessageStatus]:
+        address = address or settings.ADDRESS_TO_USE or self.account.get_address()
+
+        volumes = volumes if volumes is not None else []
+        memory = memory or settings.DEFAULT_VM_MEMORY
+        vcpus = vcpus or settings.DEFAULT_VM_VCPUS
+        timeout_seconds = timeout_seconds or settings.DEFAULT_VM_TIMEOUT
+
+        content = InstanceContent(
+            address=address,
+            allow_amend=allow_amend,
+            environment=FunctionEnvironment(
+                reproducible=False,
+                internet=internet,
+                aleph_api=aleph_api,
+            ),
+            variables=environment_variables,
+            resources=MachineResources(
+                vcpus=vcpus,
+                memory=memory,
+                seconds=timeout_seconds,
+            ),
+            rootfs=RootfsVolume(
+                parent=ParentVolume(
+                    ref=rootfs,
+                    use_latest=True,
+                ),
+                name=rootfs_name,
+                size_mib=rootfs_size,
+                persistence="host",
+                use_latest=True,
+                comment="Official Aleph Debian root filesystem"
+                if rootfs == settings.DEFAULT_RUNTIME_ID
+                else "",
+            ),
+            volumes=[
+                MachineVolume.parse_obj(volume) for volume in volumes
+            ],
+            time=time.time(),
+            authorized_keys=ssh_keys,
+            metadata=metadata,
+        )
+
+        return await self.submit(
+            content=content.dict(exclude_none=True),
+            message_type=MessageType.instance,
             channel=channel,
             storage_engine=storage_engine,
             sync=sync,
