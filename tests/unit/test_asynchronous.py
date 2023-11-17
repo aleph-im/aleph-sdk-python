@@ -5,6 +5,7 @@ import pytest as pytest
 from aleph_message.models import (
     AggregateMessage,
     ForgetMessage,
+    InstanceMessage,
     PostMessage,
     ProgramMessage,
     StoreMessage,
@@ -139,6 +140,21 @@ async def test_create_program(mock_session_with_post_success):
 
     assert mock_session_with_post_success.http_session.post.called_once
     assert isinstance(program_message, ProgramMessage)
+
+
+@pytest.mark.asyncio
+async def test_create_instance(mock_session_with_post_success):
+    async with mock_session_with_post_success as session:
+        instance_message, message_status = await session.create_instance(
+            rootfs="cafecafecafecafecafecafecafecafecafecafecafecafecafecafecafecafe",
+            rootfs_size=1,
+            rootfs_name="rootfs",
+            channel="TEST",
+            metadata={"tags": ["test"]},
+        )
+
+    assert mock_session_with_post_success.http_session.post.called_once
+    assert isinstance(instance_message, InstanceMessage)
 
 
 @pytest.mark.asyncio
