@@ -315,6 +315,9 @@ class AuthenticatedAlephClient(AlephClient):
         vcpus: Optional[int] = None,
         timeout_seconds: Optional[float] = None,
         persistent: bool = False,
+        allow_amend: bool = False,
+        internet: bool = True,
+        aleph_api: bool = True,
         encoding: Encoding = Encoding.zip,
         volumes: Optional[List[Mapping]] = None,
         subscriptions: Optional[List[Mapping]] = None,
@@ -335,6 +338,9 @@ class AuthenticatedAlephClient(AlephClient):
         :param vcpus: Number of vCPUs to allocate (Default: 1)
         :param timeout_seconds: Timeout in seconds (Default: 30.0)
         :param persistent: Whether the program should be persistent or not (Default: False)
+        :param allow_amend: Whether the deployed VM image may be changed (Default: False)
+        :param internet: Whether the VM should have internet connectivity. (Default: True)
+        :param aleph_api: Whether the VM needs access to Aleph messages API (Default: True)
         :param encoding: Encoding to use (Default: Encoding.zip)
         :param volumes: Volumes to mount
         :param subscriptions: Patterns of aleph.im messages to forward to the program's event receiver
