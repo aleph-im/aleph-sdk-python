@@ -1,8 +1,7 @@
 import pytest
 
-from aleph.sdk.domain import DomainValidator
+from aleph.sdk.domain import DomainValidator, TargetType, hostname_from_url
 from aleph.sdk.exceptions import DomainConfigurationError
-from src.aleph.sdk.domain import TargetType, hostname_from_url
 
 
 def test_hostname():
@@ -30,7 +29,7 @@ async def test_get_ipv6_address():
     ipv6_addresses = await alephdns.get_ipv6_addresses(hostname)
     assert ipv6_addresses is not None
     assert len(ipv6_addresses) > 0
-    assert ":" in ipv6_addresses[0]
+    assert ":" in str(ipv6_addresses[0])
 
 
 @pytest.mark.asyncio

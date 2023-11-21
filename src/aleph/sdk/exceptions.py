@@ -53,5 +53,6 @@ class FileTooLarge(Exception):
 
 
 class DomainConfigurationError(Exception):
-    "Raised when the domain checks are not satisfied"
+    """Raised when the domain checks are not satisfied"""
+
     pass

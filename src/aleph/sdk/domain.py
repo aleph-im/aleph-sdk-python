@@ -5,7 +5,7 @@ from typing import Any, AsyncIterable, Dict, Iterable, List, NewType, Optional, 
 from urllib.parse import urlparse
 
 import aiodns
-from pydantic import HttpUrl
+from pydantic import BaseModel, HttpUrl
 
 from .conf import settings
 from .exceptions import DomainConfigurationError
@@ -16,9 +16,37 @@ Hostname = NewType("Hostname", str)
 
 
 class TargetType(str, Enum):
+    """
+    The type of target that a domain points to.
+
+    - IPFS: The domain points to an IPFS hash.
+    - PROGRAM: The domain points to an aleph.im program.
+    - INSTANCE: The domain points to an aleph.im instance.
+    """
+
     IPFS = "ipfs"
     PROGRAM = "program"
     INSTANCE = "instance"
+
+
+class DNSRule(BaseModel):
+    """
+    A DNS rule is a DNS record that is required for a domain to be configured.
+
+    Args:
+        name: The name of the rule.
+        dns: The DNS record.
+        info: Instructions to configure the DNS record.
+        on_error: Error message when the rule is not found.
+    """
+
+    name: str
+    dns: Dict[str, Any]
+    info: str
+    on_error: str
+
+    def raise_error(self, status: Dict[str, bool]):
+        raise DomainConfigurationError((self.info, self.on_error, status))
 
 
 def hostname_from_url(url: Union[HttpUrl, str]) -> Hostname:
@@ -31,6 +59,25 @@ def hostname_from_url(url: Union[HttpUrl, str]) -> Hostname:
     return Hostname(url)
 
 
+async def get_target_type(fqdn: Hostname) -> Optional[TargetType]:
+    """Returns the aleph.im target type of the domain"""
+    domain_validator = DomainValidator()
+    resolver = await domain_validator.get_resolver_for(fqdn)
+    try:
+        entry = await resolver.query(fqdn, "CNAME")
+        cname = getattr(entry, "cname")
+        if settings.DNS_IPFS_DOMAIN in cname:
+            return TargetType.IPFS
+        elif settings.DNS_PROGRAM_DOMAIN in cname:
+            return TargetType.PROGRAM
+        elif settings.DNS_INSTANCE_DOMAIN in cname:
+            return TargetType.INSTANCE
+
+        return None
+    except aiodns.error.DNSError:
+        return None
+
+
 class DomainValidator:
     """
     Tools used to analyze domain names used on the aleph.im network.
@@ -41,13 +88,13 @@ class DomainValidator:
     def __init__(self):
         self.resolver = aiodns.DNSResolver(servers=settings.DNS_RESOLVERS)
 
-    async def get_ns_servers(self, hostname: Hostname):
-        """Get ns servers of a domain"""
+    async def get_name_servers(self, hostname: Hostname):
+        """Get DNS name servers (NS) of a domain"""
         dns_servers = settings.DNS_RESOLVERS
         fqdn = hostname
 
         while True:
-            """**Detect and get authoritative NS server of subdomains if delegated**"""
+            # Detect and get authoritative NS of subdomains if delegated
             try:
                 entries = await self.resolver.query(fqdn, "NS")
                 servers: List[Any] = []
@@ -72,25 +119,8 @@ class DomainValidator:
         return dns_servers
 
     async def get_resolver_for(self, hostname: Hostname):
-        dns_servers = await self.get_ns_servers(hostname)
+        dns_servers = await self.get_name_servers(hostname)
         return aiodns.DNSResolver(servers=dns_servers)
-
-    async def get_target_type(self, fqdn: Hostname) -> Optional[TargetType]:
-        domain_validator = DomainValidator()
-        resolver = await domain_validator.get_resolver_for(fqdn)
-        try:
-            entry = await resolver.query(fqdn, "CNAME")
-            cname = getattr(entry, "cname")
-            if settings.DNS_IPFS_DOMAIN in cname:
-                return TargetType.IPFS
-            elif settings.DNS_PROGRAM_DOMAIN in cname:
-                return TargetType.PROGRAM
-            elif settings.DNS_INSTANCE_DOMAIN in cname:
-                return TargetType.INSTANCE
-
-            return None
-        except aiodns.error.DNSError:
-            return None
 
     async def get_ipv4_addresses(self, hostname: Hostname) -> List[IPv4Address]:
         """Returns all IPv4 addresses for a domain"""
@@ -140,37 +170,39 @@ class DomainValidator:
             else:
                 yield entry.text
 
-    async def check_domain_configured(
-        self, hostname: Hostname, target: TargetType, owner
-    ):
-        """Check if a domain is configured... for what ?"""
-        try:
-            logger.debug(f"Checking {target}")
-            return await self.check_domain(hostname, target, owner)
-        except Exception as error:
-            # FIXME: Do not catch any exception
-            raise DomainConfigurationError(error)
-
     async def check_domain(
         self, hostname: Hostname, target: TargetType, owner: Optional[str] = None
     ) -> Dict:
-        """Check that the domain points towards the target."""
+        """
+        Checks that the domain points towards the given aleph.im target.
+
+        Args:
+            hostname: The hostname of the domain.
+            target: The aleph.im target type.
+            owner: The owner wallet address of the domain for ownership proof.
+
+        Raises:
+            DomainConfigurationError: If the domain is not configured.
+
+        Returns:
+            A dictionary containing the status of the domain configuration.
+        """
         status = {"cname": False, "owner_proof": False}
 
         dns_rules = self.get_required_dns_rules(hostname, target, owner)
 
         for dns_rule in dns_rules:
-            status[dns_rule["rule_name"]] = False
+            status[dns_rule.name] = False
 
-            record_name = dns_rule["dns"]["name"]
-            record_type = dns_rule["dns"]["type"]
-            record_value = dns_rule["dns"]["value"]
+            record_name = dns_rule.dns["name"]
+            record_type = dns_rule.dns["type"]
+            record_value = dns_rule.dns["value"]
 
             try:
                 resolver = await self.get_resolver_for(hostname)
                 entries = await resolver.query(record_name, record_type.upper())
             except aiodns.error.DNSError:
-                """Continue checks"""
+                # Continue checks
                 entries = None
 
             if entries and record_type == "txt":
@@ -178,25 +210,32 @@ class DomainValidator:
                     if hasattr(entry, "text") and entry.text == record_value:
                         break
                 else:
-                    raise DomainConfigurationError(
-                        (dns_rule["info"], dns_rule["on_error"], status)
-                    )
+                    return dns_rule.raise_error(status)
             elif (
                 entries is None
                 or not hasattr(entries, record_type)
                 or getattr(entries, record_type) != record_value
             ):
-                raise DomainConfigurationError(
-                    (dns_rule["info"], dns_rule["on_error"], status)
-                )
+                return dns_rule.raise_error(status)
 
-            status[dns_rule["rule_name"]] = True
+            status[dns_rule.name] = True
 
         return status
 
     def get_required_dns_rules(
         self, hostname: Hostname, target: TargetType, owner: Optional[str] = None
-    ) -> List[Dict]:
+    ) -> List[DNSRule]:
+        """
+        Returns the DNS rules (CNAME, TXT) required for a domain to be configured.
+
+        Args:
+            hostname: The hostname of the domain.
+            target: The aleph.im target type.
+            owner: The owner wallet address of the domain to add as an ownership proof.
+
+        Returns:
+            A list of DNS rules with
+        """
         target = target.lower()
         dns_rules = []
 
@@ -210,42 +249,46 @@ class DomainValidator:
 
         # cname rule
         dns_rules.append(
-            {
-                "rule_name": "cname",
-                "dns": {"type": "cname", "name": hostname, "value": cname_value},
-                "info": f"Create a CNAME record for {hostname} with value {cname_value}",
-                "on_error": f"CNAME record not found: {hostname}",
-            }
+            DNSRule(
+                name="cname",
+                dns={
+                    "type": "cname",
+                    "name": hostname,
+                    "value": cname_value,
+                },
+                info=f"Create a CNAME record for {hostname} with value {cname_value}",
+                on_error=f"CNAME record not found: {hostname}",
+            )
         )
 
         if target == TargetType.IPFS:
             # ipfs rule
             dns_rules.append(
-                {
-                    "rule_name": "delegation",
-                    "dns": {
+                DNSRule(
+                    name="delegation",
+                    dns={
                         "type": "cname",
                         "name": f"_dnslink.{hostname}",
                         "value": f"_dnslink.{hostname}.{settings.DNS_STATIC_DOMAIN}",
                     },
-                    "info": f"Create a CNAME record for _dnslink.{hostname} with value _dnslink.{hostname}.{settings.DNS_STATIC_DOMAIN}",
-                    "on_error": f"CNAME record not found: _dnslink.{hostname}",
-                }
+                    info=f"Create a CNAME record for _dnslink.{hostname} with value _dnslink.{hostname}.{settings.DNS_STATIC_DOMAIN}",
+                    on_error=f"CNAME record not found: _dnslink.{hostname}",
+                )
             )
 
         if owner:
             # ownership rule
             dns_rules.append(
-                {
-                    "rule_name": "owner_proof",
-                    "dns": {
+                DNSRule(
+                    name="owner_proof",
+                    dns={
                         "type": "txt",
                         "name": f"_control.{hostname}",
                         "value": owner,
                     },
-                    "info": f"Create a TXT record for _control.{hostname} with value {owner}",
-                    "on_error": "Owner address mismatch",
-                }
+                    info=f"Create a TXT record for _control.{hostname} with value {owner}",
+                    on_error="Owner address mismatch",
+                )
             )
 
         return dns_rules
