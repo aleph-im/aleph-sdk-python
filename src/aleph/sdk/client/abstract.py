@@ -195,14 +195,12 @@ class AlephClient(ABC):
         self,
         item_hash: str,
         message_type: Optional[Type[GenericMessage]] = None,
-        channel: Optional[str] = None,
     ) -> GenericMessage:
         """
         Get a single message from its `item_hash` and perform some basic validation.
 
         :param item_hash: Hash of the message to fetch
         :param message_type: Type of message to fetch
-        :param channel: Channel of the message to fetch
         """
         pass
 

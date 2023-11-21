@@ -56,3 +56,9 @@ class DomainConfigurationError(Exception):
     """Raised when the domain checks are not satisfied"""
 
     pass
+
+
+class ForgottenMessageError(QueryError):
+    """The requested message was forgotten"""
+
+    pass

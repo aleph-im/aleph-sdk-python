@@ -75,5 +75,15 @@ async def test_get_messages(raw_messages_response):
         assert messages[0].sender
 
 
+@pytest.mark.asyncio
+async def test_get_forgotten_message():
+    mock_session = make_mock_get_session(
+        {"status": "forgotten", "item_hash": "cafebabe", "forgotten_by": "OxBEEFDAD"}
+    )
+    async with mock_session as session:
+        with pytest.raises(ForgottenMessageError):
+            await session.get_message("cafebabe")
+
+
 if __name__ == "__main __":
     unittest.main()
