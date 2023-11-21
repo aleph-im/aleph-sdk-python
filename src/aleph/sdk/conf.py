@@ -36,6 +36,13 @@ class Settings(BaseSettings):
 
     CODE_USES_SQUASHFS: bool = which("mksquashfs") is not None  # True if command exists
 
+    # Dns resolver
+    DNS_IPFS_DOMAIN = "ipfs.public.aleph.sh"
+    DNS_PROGRAM_DOMAIN = "program.public.aleph.sh"
+    DNS_INSTANCE_DOMAIN = "instance.public.aleph.sh"
+    DNS_STATIC_DOMAIN = "static.public.aleph.sh"
+    DNS_RESOLVERS = ["9.9.9.9", "1.1.1.1"]
+
     class Config:
         env_prefix = "ALEPH_"
         case_sensitive = False
