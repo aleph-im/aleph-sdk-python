@@ -1,5 +1,4 @@
-import json
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock
 
 import pytest as pytest
 from aleph_message.models import (
@@ -12,53 +11,7 @@ from aleph_message.models import (
 )
 from aleph_message.status import MessageStatus
 
-from aleph.sdk.client import AuthenticatedAlephHttpClient
-from aleph.sdk.types import Account, StorageEnum
-
-
-@pytest.fixture
-def mock_session_with_post_success(
-    ethereum_account: Account,
-) -> AuthenticatedAlephHttpClient:
-    class MockResponse:
-        def __init__(self, sync: bool):
-            self.sync = sync
-
-        async def __aenter__(self):
-            return self
-
-        async def __aexit__(self, exc_type, exc_val, exc_tb):
-            ...
-
-        @property
-        def status(self):
-            return 200 if self.sync else 202
-
-        async def raise_for_status(self):
-            ...
-
-        async def json(self):
-            message_status = "processed" if self.sync else "pending"
-            return {
-                "message_status": message_status,
-                "publication_status": {"status": "success", "failed": []},
-            }
-
-        async def text(self):
-            return json.dumps(await self.json())
-
-    http_session = AsyncMock()
-    http_session.post = MagicMock()
-    http_session.post.side_effect = lambda *args, **kwargs: MockResponse(
-        sync=kwargs.get("sync", False)
-    )
-
-    client = AuthenticatedAlephHttpClient(
-        account=ethereum_account, api_server="http://localhost"
-    )
-    client.http_session = http_session
-
-    return client
+from aleph.sdk.types import StorageEnum
 
 
 @pytest.mark.asyncio

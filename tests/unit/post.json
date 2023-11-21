@@ -1,0 +1,49 @@
+{
+  "chain": "ETH",
+  "item_hash": "b917624e649b632232879c657891e02b09b07298f0f67430753d89acf7489ebe",
+  "sender": "0x4D52380D3191274a04846c89c069E6C3F2Ed94e4",
+  "type": "aleph-network-metrics",
+  "channel": "aleph-scoring",
+  "confirmed": false,
+  "content": {
+    "tags": [
+      "mainnet"
+    ],
+    "metrics": {
+      "ccn": [
+        {
+          "asn": 24940,
+          "url": "http://135.181.165.203:4024/",
+          "as_name": "HETZNER-AS, DE",
+          "node_id": "599de3dc1857b73d33bf616ab2f449df579e2f1270c9b04dc7bdc630524e1e6c",
+          "version": "v0.5.1",
+          "txs_total": 0,
+          "measured_at": 1700562026.269039,
+          "base_latency": 0.09740376472473145,
+          "metrics_latency": 0.3925642967224121,
+          "pending_messages": 0,
+          "aggregate_latency": 0.06854844093322754,
+          "base_latency_ipv4": 0.09740376472473145,
+          "eth_height_remaining": 0,
+          "file_download_latency": 0.10360932350158691
+        }
+      ],
+      "server": "151.115.63.76",
+      "server_asn": 12876,
+      "server_as_name": "Online SAS, FR"
+    },
+    "version": "1.0"
+  },
+  "item_content": null,
+  "item_type": "storage",
+  "signature": "0xc38c0ca2d683b2d0c629a640c156fbbce771c1d58d4c6f266bfa234f68b93302021981a9905d768510fb7fee050b6d5e48096258a2fec2aa531cc7594a4ede3e1b",
+  "size": 125810,
+  "time": 1700562222.942672,
+  "confirmations": [],
+  "original_item_hash": "b917624e649b632232879c657891e02b09b07298f0f67430753d89acf7489ebe",
+  "original_signature": "0xc38c0ca2d683b2d0c629a640c156fbbce771c1d58d4c6f266bfa234f68b93302021981a9905d768510fb7fee050b6d5e48096258a2fec2aa531cc7594a4ede3e1b",
+  "original_type": "aleph-network-metrics",
+  "hash": "b917624e649b632232879c657891e02b09b07298f0f67430753d89acf7489ebe",
+  "address": "0x4D52380D3191274a04846c89c069E6C3F2Ed94e4",
+  "ref": null
+}
