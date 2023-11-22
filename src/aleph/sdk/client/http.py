@@ -9,7 +9,7 @@ from aleph_message.models import AlephMessage, ItemHash, ItemType
 from pydantic import ValidationError
 
 from ..conf import settings
-from ..exceptions import FileTooLarge, MessageNotFoundError, MultipleMessagesError
+from ..exceptions import FileTooLarge, ForgottenMessageError, MessageNotFoundError
 from ..query.filters import MessageFilter, PostFilter
 from ..query.responses import MessagesResponse, Post, PostsResponse
 from ..types import GenericMessage
@@ -290,21 +290,20 @@ class AlephHttpClient(AlephClient):
         self,
         item_hash: str,
         message_type: Optional[Type[GenericMessage]] = None,
-        channel: Optional[str] = None,
     ) -> GenericMessage:
-        messages_response = await self.get_messages(
-            message_filter=MessageFilter(
-                hashes=[item_hash],
-                channels=[channel] if channel else None,
+        async with self.http_session.get(f"/api/v0/messages/{item_hash}") as resp:
+            try:
+                resp.raise_for_status()
+            except aiohttp.ClientResponseError as e:
+                if e.status == 404:
+                    raise MessageNotFoundError(f"No such hash {item_hash}")
+                raise e
+            message_raw = await resp.json()
+        if message_raw["status"] == "forgotten":
+            raise ForgottenMessageError(
+                f"The requested message {message_raw['item_hash']} has been forgotten by {', '.join(message_raw['forgotten_by'])}"
             )
-        )
-        if len(messages_response.messages) < 1:
-            raise MessageNotFoundError(f"No such hash {item_hash}")
-        if len(messages_response.messages) != 1:
-            raise MultipleMessagesError(
-                f"Multiple messages found for the same item_hash `{item_hash}`"
-            )
-        message: GenericMessage = messages_response.messages[0]
+        message = parse_message(message_raw["message"])
         if message_type:
             expected_type = get_message_type_value(message_type)
             if message.type != expected_type:

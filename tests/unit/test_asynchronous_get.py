@@ -1,50 +1,18 @@
 import unittest
 from datetime import datetime
-from typing import Any, Dict
-from unittest.mock import AsyncMock
 
 import pytest
 from aleph_message.models import MessagesResponse, MessageType
 
-from aleph.sdk import AlephHttpClient
-from aleph.sdk.conf import settings
+from aleph.sdk.exceptions import ForgottenMessageError
 from aleph.sdk.query.filters import MessageFilter, PostFilter
 from aleph.sdk.query.responses import PostsResponse
-
-
-def make_mock_session(get_return_value: Dict[str, Any]) -> AlephHttpClient:
-    class MockResponse:
-        async def __aenter__(self):
-            return self
-
-        async def __aexit__(self, exc_type, exc_val, exc_tb):
-            ...
-
-        @property
-        def status(self):
-            return 200
-
-        def raise_for_status(self):
-            ...
-
-        async def json(self):
-            return get_return_value
-
-    class MockHttpSession(AsyncMock):
-        def get(self, *_args, **_kwargs):
-            return MockResponse()
-
-    http_session = MockHttpSession()
-
-    client = AlephHttpClient(api_server="http://localhost")
-    client.http_session = http_session
-
-    return client
+from tests.unit.conftest import make_mock_get_session
 
 
 @pytest.mark.asyncio
 async def test_fetch_aggregate():
-    mock_session = make_mock_session(
+    mock_session = make_mock_get_session(
         {"data": {"corechannel": {"nodes": [], "resource_nodes": []}}}
     )
     async with mock_session:
@@ -57,7 +25,7 @@ async def test_fetch_aggregate():
 
 @pytest.mark.asyncio
 async def test_fetch_aggregates():
-    mock_session = make_mock_session(
+    mock_session = make_mock_get_session(
         {"data": {"corechannel": {"nodes": [], "resource_nodes": []}}}
     )
 
@@ -70,35 +38,51 @@ async def test_fetch_aggregates():
 
 
 @pytest.mark.asyncio
-async def test_get_posts():
-    async with AlephHttpClient(api_server=settings.API_HOST) as session:
+async def test_get_posts(raw_posts_response):
+    mock_session = make_mock_get_session(raw_posts_response(1))
+    post = raw_posts_response(1)["posts"][0]
+    async with mock_session as session:
         response: PostsResponse = await session.get_posts(
-            page_size=2,
+            page=1,
+            page_size=1,
             post_filter=PostFilter(
-                channels=["TEST"],
-                start_date=datetime(2021, 1, 1),
+                channels=post["channel"],
+                start_date=datetime.fromtimestamp(post["time"]),
             ),
+            ignore_invalid_messages=False,
         )
 
         posts = response.posts
-        assert len(posts) > 1
+        assert len(posts) == 1
 
 
 @pytest.mark.asyncio
-async def test_get_messages():
-    async with AlephHttpClient(api_server=settings.API_HOST) as session:
+async def test_get_messages(raw_messages_response):
+    mock_session = make_mock_get_session(raw_messages_response(1))
+    async with mock_session as session:
         response: MessagesResponse = await session.get_messages(
             page_size=2,
             message_filter=MessageFilter(
                 message_types=[MessageType.post],
                 start_date=datetime(2021, 1, 1),
             ),
+            ignore_invalid_messages=False,
         )
 
         messages = response.messages
-        assert len(messages) > 1
+        assert len(messages) >= 1
         assert messages[0].type
         assert messages[0].sender
+
+
+@pytest.mark.asyncio
+async def test_get_forgotten_message():
+    mock_session = make_mock_get_session(
+        {"status": "forgotten", "item_hash": "cafebabe", "forgotten_by": "OxBEEFDAD"}
+    )
+    async with mock_session as session:
+        with pytest.raises(ForgottenMessageError):
+            await session.get_message("cafebabe")
 
 
 if __name__ == "__main __":
