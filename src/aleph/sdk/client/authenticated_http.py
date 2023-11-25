@@ -1,3 +1,4 @@
+import datetime
 import hashlib
 import json
 import logging
@@ -48,6 +49,16 @@ try:
 except ImportError:
     logger.info("Could not import library 'magic', MIME type detection disabled")
     magic = None  # type:ignore
+
+
+def extended_json_encoder(obj: Any) -> str:
+    if (
+        isinstance(obj, datetime.datetime)
+        or isinstance(obj, datetime.date)
+        or isinstance(obj, datetime.time)
+    ):
+        return obj.isoformat()  # or any other format you prefer
+    return pydantic_encoder(obj)
 
 
 class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
@@ -604,7 +615,7 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
 
         # Use the Pydantic encoder to serialize types like UUID, datetimes, etc.
         item_content: str = json.dumps(
-            content, separators=(",", ":"), default=pydantic_encoder
+            content, separators=(",", ":"), default=extended_json_encoder
         )
 
         if allow_inlining and (len(item_content) < settings.MAX_INLINE_SIZE):
