@@ -260,7 +260,10 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
 
         async with self.http_session.post(
             url,
-            json={"sync": sync, "message": message_dict},
+            json={
+                "sync": sync,
+                "message": json.dumps(message_dict, default=extended_json_encoder),
+            },
         ) as response:
             # The endpoint may be unavailable on this node, try the deprecated version.
             if response.status in (404, 405):
