@@ -215,7 +215,10 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
 
         async with self.http_session.post(
             url,
-            json={"topic": "ALEPH-TEST", "data": json.dumps(message_dict)},
+            json={
+                "topic": "ALEPH-TEST",
+                "data": json.dumps(message_dict, default=extended_json_encoder),
+            },
         ) as response:
             await self._handle_broadcast_deprecated_response(response)
 
@@ -678,7 +681,9 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
             "sync": sync,
         }
         data.add_field(
-            "metadata", json.dumps(metadata), content_type="application/json"
+            "metadata",
+            json.dumps(metadata, default=extended_json_encoder),
+            content_type="application/json",
         )
         # Add the file
         data.add_field("file", file_content)
