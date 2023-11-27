@@ -2,7 +2,7 @@ from typing import Any, Dict, Iterable
 
 from aleph_message import parse_message
 from aleph_message.models import AlephMessage, MessageConfirmation
-from peewee import BooleanField, CharField, FloatField, IntegerField, Model
+from peewee import BooleanField, CharField, DateTimeField, IntegerField, Model
 from playhouse.shortcuts import model_to_dict
 from playhouse.sqlite_ext import JSONField
 
@@ -26,7 +26,7 @@ class MessageDBModel(Model):
     confirmed = BooleanField(null=True)
     signature = CharField(null=True)
     size = IntegerField(null=True)
-    time = FloatField()
+    time = DateTimeField()
     item_type = CharField(7)
     item_content = CharField(null=True)
     hash_type = CharField(6, null=True)

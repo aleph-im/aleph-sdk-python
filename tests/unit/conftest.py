@@ -161,7 +161,10 @@ class MockResponse:
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         ...
 
-    async def raise_for_status(self):
+    def raise_for_status(self):
+        ...
+
+    async def close(self):
         ...
 
     @property

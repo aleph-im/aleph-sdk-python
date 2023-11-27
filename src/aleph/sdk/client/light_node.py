@@ -319,6 +319,9 @@ class LightNode(MessageCache, AuthenticatedAlephClient):
         vcpus: Optional[int] = None,
         timeout_seconds: Optional[float] = None,
         persistent: bool = False,
+        allow_amend: bool = False,
+        internet: bool = True,
+        aleph_api: bool = True,
         encoding: Encoding = Encoding.zip,
         volumes: Optional[List[Mapping]] = None,
         subscriptions: Optional[List[Mapping]] = None,
@@ -340,9 +343,63 @@ class LightNode(MessageCache, AuthenticatedAlephClient):
             vcpus=vcpus,
             timeout_seconds=timeout_seconds,
             persistent=persistent,
+            allow_amend=allow_amend,
+            internet=internet,
+            aleph_api=aleph_api,
             encoding=encoding,
             volumes=volumes,
             subscriptions=subscriptions,
+            metadata=metadata,
+        )
+        if status in [MessageStatus.PENDING, MessageStatus.PROCESSED]:
+            self.add(resp)
+        asyncio.create_task(self.delete_if_rejected(resp.item_hash))
+        return resp, status
+
+    async def create_instance(
+        self,
+        rootfs: str,
+        rootfs_size: int,
+        rootfs_name: str,
+        environment_variables: Optional[Mapping[str, str]] = None,
+        storage_engine: StorageEnum = StorageEnum.storage,
+        channel: Optional[str] = None,
+        address: Optional[str] = None,
+        sync: bool = False,
+        memory: Optional[int] = None,
+        vcpus: Optional[int] = None,
+        timeout_seconds: Optional[float] = None,
+        allow_amend: bool = False,
+        internet: bool = True,
+        aleph_api: bool = True,
+        encoding: Encoding = Encoding.zip,
+        volumes: Optional[List[Mapping]] = None,
+        volume_persistence: str = "host",
+        ssh_keys: Optional[List[str]] = None,
+        metadata: Optional[Mapping[str, Any]] = None,
+    ) -> Tuple[AlephMessage, MessageStatus]:
+        self.check_validity(
+            MessageType.instance, address, channel, dict(metadata) if metadata else None
+        )
+        resp, status = await self.session.create_instance(
+            rootfs=rootfs,
+            rootfs_size=rootfs_size,
+            rootfs_name=rootfs_name,
+            environment_variables=environment_variables,
+            storage_engine=storage_engine,
+            channel=channel,
+            address=address,
+            sync=sync,
+            memory=memory,
+            vcpus=vcpus,
+            timeout_seconds=timeout_seconds,
+            allow_amend=allow_amend,
+            internet=internet,
+            aleph_api=aleph_api,
+            encoding=encoding,
+            volumes=volumes,
+            volume_persistence=volume_persistence,
+            ssh_keys=ssh_keys,
             metadata=metadata,
         )
         if status in [MessageStatus.PENDING, MessageStatus.PROCESSED]:

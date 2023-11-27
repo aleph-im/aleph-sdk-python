@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Any, Dict, List, Optional, Union
 
 from aleph_message.models import (
@@ -35,7 +36,7 @@ class Post(BaseModel):
         description="Cryptographic signature of the message by the sender"
     )
     size: int = Field(description="Size of the post")
-    time: float = Field(description="Timestamp of the post")
+    time: datetime = Field(description="Timestamp of the post")
     confirmations: List[MessageConfirmation] = Field(
         description="Number of confirmations"
     )

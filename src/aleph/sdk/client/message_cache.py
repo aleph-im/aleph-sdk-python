@@ -1,6 +1,6 @@
+import datetime
 import logging
 import typing
-from datetime import datetime
 from pathlib import Path
 from typing import (
     AsyncIterable,
@@ -230,7 +230,7 @@ class MessageCache(AlephClient):
                     self.missing_posts[ItemHash(amend.content.ref)] = amend
                 continue
 
-            if datetime.fromtimestamp(amend.time) < original_post.last_updated:
+            if amend.time < original_post.last_updated:
                 continue
 
             original_post.item_hash = amend.item_hash
@@ -239,7 +239,7 @@ class MessageCache(AlephClient):
             original_post.original_type = amend.content.type
             original_post.address = amend.sender
             original_post.channel = amend.channel
-            original_post.last_updated = datetime.fromtimestamp(amend.time)
+            original_post.last_updated = amend.time
             post_data.append(model_to_dict(original_post))
         with self.db.atomic():
             PostDBModel.insert_many(post_data).on_conflict_replace().execute()
@@ -254,7 +254,9 @@ class MessageCache(AlephClient):
             if not existing_aggregate:
                 aggregate_data.append(aggregate_to_model(aggregate))
                 continue
-            data = model_to_dict(existing_aggregate)
+            existing_aggregate.time = datetime.datetime.fromisoformat(
+                existing_aggregate.time
+            )
             if aggregate.time > existing_aggregate.time:
                 existing_aggregate.content.update(aggregate.content.content)
                 existing_aggregate.time = aggregate.time
