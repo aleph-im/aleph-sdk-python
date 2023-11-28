@@ -139,6 +139,9 @@ def _date_field_to_timestamp(date: Optional[Union[datetime, float]]) -> Optional
 
 
 def extended_json_encoder(obj: Any) -> Any:
+    """
+    Extended JSON encoder for dumping objects that contain pydantic models and datetime objects.
+    """
     if isinstance(obj, datetime):
         return obj.timestamp()
     elif isinstance(obj, date):
