@@ -1,15 +1,16 @@
 import errno
 import logging
 import os
-from datetime import datetime
+from datetime import date, datetime, time
 from enum import Enum
 from pathlib import Path
 from shutil import make_archive
-from typing import Iterable, Optional, Protocol, Tuple, Type, TypeVar, Union
+from typing import Any, Iterable, Optional, Protocol, Tuple, Type, TypeVar, Union
 from zipfile import BadZipFile, ZipFile
 
 from aleph_message.models import MessageType
 from aleph_message.models.execution.program import Encoding
+from pydantic.json import pydantic_encoder
 
 from aleph.sdk.conf import settings
 from aleph.sdk.types import GenericMessage
@@ -135,3 +136,14 @@ def _date_field_to_timestamp(date: Optional[Union[datetime, float]]) -> Optional
         return str(date.timestamp())
     else:
         raise TypeError(f"Invalid type: `{type(date)}`")
+
+
+def extended_json_encoder(obj: Any) -> Any:
+    if isinstance(obj, datetime):
+        return obj.timestamp()
+    elif isinstance(obj, date):
+        return obj.toordinal()
+    elif isinstance(obj, time):
+        return obj.hour * 3600 + obj.minute * 60 + obj.second + obj.microsecond / 1e6
+    else:
+        return pydantic_encoder(obj)

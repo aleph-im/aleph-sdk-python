@@ -1,4 +1,3 @@
-import datetime
 import hashlib
 import json
 import logging
@@ -34,11 +33,11 @@ from aleph_message.models.execution.instance import RootfsVolume
 from aleph_message.models.execution.program import CodeContent, FunctionRuntime
 from aleph_message.models.execution.volume import MachineVolume, ParentVolume
 from aleph_message.status import MessageStatus
-from pydantic.json import pydantic_encoder
 
 from ..conf import settings
 from ..exceptions import BroadcastError, InvalidMessageError
 from ..types import Account, StorageEnum
+from ..utils import extended_json_encoder
 from .abstract import AuthenticatedAlephClient
 from .http import AlephHttpClient
 
@@ -49,16 +48,6 @@ try:
 except ImportError:
     logger.info("Could not import library 'magic', MIME type detection disabled")
     magic = None  # type:ignore
-
-
-def extended_json_encoder(obj: Any) -> str:
-    if (
-        isinstance(obj, datetime.datetime)
-        or isinstance(obj, datetime.date)
-        or isinstance(obj, datetime.time)
-    ):
-        return obj.isoformat()  # or any other format you prefer
-    return pydantic_encoder(obj)
 
 
 class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
@@ -181,12 +170,20 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
             logger.error(error_msg)
             raise BroadcastError(error_msg)
         elif response.status == 422:
-            errors = await response.json()
-            logger.error(
-                "The message could not be processed because of the following errors: %s",
-                errors,
-            )
-            raise InvalidMessageError(errors)
+            try:
+                errors = await response.json()
+                logger.error(
+                    "The message could not be processed because of the following errors: %s",
+                    errors,
+                )
+                raise InvalidMessageError(errors)
+            except (json.JSONDecodeError, aiohttp.client_exceptions.ContentTypeError):
+                error = await response.text()
+                logger.error(
+                    "The message could not be processed because of the following errors: %s",
+                    error,
+                )
+                raise InvalidMessageError(error)
         else:
             error_msg = (
                 f"Unexpected HTTP response ({response.status}: {await response.text()})"
@@ -212,12 +209,11 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
 
         url = "/api/v0/ipfs/pubsub/pub"
         logger.debug(f"Posting message on {url}")
-
         async with self.http_session.post(
             url,
             json={
                 "topic": "ALEPH-TEST",
-                "data": json.dumps(message_dict, default=extended_json_encoder),
+                "data": message_dict,
             },
         ) as response:
             await self._handle_broadcast_deprecated_response(response)
@@ -257,12 +253,11 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
         logger.debug(f"Posting message on {url}")
 
         message_dict = message.dict(include=self.BROADCAST_MESSAGE_FIELDS)
-
         async with self.http_session.post(
             url,
             json={
                 "sync": sync,
-                "message": json.dumps(message_dict, default=extended_json_encoder),
+                "message": message_dict,
             },
         ) as response:
             # The endpoint may be unavailable on this node, try the deprecated version.
