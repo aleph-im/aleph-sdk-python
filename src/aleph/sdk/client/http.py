@@ -17,6 +17,7 @@ from ..utils import (
     Writable,
     check_unix_socket_valid,
     copy_async_readable_to_buffer,
+    extended_json_encoder,
     get_message_type_value,
 )
 from .abstract import AlephClient
@@ -53,12 +54,18 @@ class AlephHttpClient(AlephClient):
         # ClientSession timeout defaults to a private sentinel object and may not be None.
         self.http_session = (
             aiohttp.ClientSession(
-                base_url=self.api_server, connector=connector, timeout=timeout
+                base_url=self.api_server,
+                connector=connector,
+                timeout=timeout,
+                json_serialize=extended_json_encoder,
             )
             if timeout
             else aiohttp.ClientSession(
                 base_url=self.api_server,
                 connector=connector,
+                json_serialize=lambda obj: json.dumps(
+                    obj, default=extended_json_encoder
+                ),
             )
         )
 
