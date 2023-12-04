@@ -35,7 +35,7 @@ from aleph_message.models.execution.volume import MachineVolume, ParentVolume
 from aleph_message.status import MessageStatus
 
 from ..conf import settings
-from ..exceptions import BroadcastError, InvalidMessageError
+from ..exceptions import BroadcastError, InvalidMessageError, InsufficientFundsError
 from ..types import Account, StorageEnum
 from ..utils import extended_json_encoder
 from .abstract import AuthenticatedAlephClient
@@ -219,8 +219,8 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
             await self._handle_broadcast_deprecated_response(response)
 
     async def _handle_broadcast_response(
-        self, response: aiohttp.ClientResponse, sync: bool
-    ) -> MessageStatus:
+        self, response: aiohttp.ClientResponse, sync: bool, raise_on_rejected: bool
+    ) -> Tuple[Dict[str, Any], MessageStatus]:
         if response.status in (200, 202):
             status = await response.json()
             self._log_publication_status(status["publication_status"])
@@ -230,10 +230,11 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
                     logger.warning(
                         "Timed out while waiting for processing of sync message"
                     )
-                return MessageStatus.PENDING
+                return status, MessageStatus.PENDING
 
-            return MessageStatus.PROCESSED
-
+            return status, MessageStatus.PROCESSED
+        elif response.status == 422 and not raise_on_rejected:
+            return await response.json(), MessageStatus.REJECTED
         else:
             await self._handle_broadcast_error(response)
 
@@ -241,7 +242,8 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
         self,
         message: AlephMessage,
         sync: bool,
-    ) -> MessageStatus:
+        raise_on_rejected: bool = True,
+    ) -> Tuple[Dict[str, Any], MessageStatus]:
         """
         Broadcast a message on the aleph.im network.
 
@@ -266,12 +268,11 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
                     "POST /messages/ not found. Defaulting to legacy endpoint..."
                 )
                 await self._broadcast_deprecated(message_dict=message_dict)
-                return MessageStatus.PENDING
+                return await response.json(), MessageStatus.PENDING
             else:
-                message_status = await self._handle_broadcast_response(
-                    response=response, sync=sync
+                return await self._handle_broadcast_response(
+                    response=response, sync=sync, raise_on_rejected=raise_on_rejected
                 )
-                return message_status
 
     async def create_post(
         self,
@@ -294,7 +295,7 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
             ref=ref,
         )
 
-        return await self.submit(
+        message, status, _ = await self.submit(
             content=content.dict(exclude_none=True),
             message_type=MessageType.post,
             channel=channel,
@@ -302,6 +303,7 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
             storage_engine=storage_engine,
             sync=sync,
         )
+        return message, status
 
     async def create_aggregate(
         self,
@@ -321,13 +323,14 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
             time=time.time(),
         )
 
-        return await self.submit(
+        message, status, _ = await self.submit(
             content=content_.dict(exclude_none=True),
             message_type=MessageType.aggregate,
             channel=channel,
             allow_inlining=inline,
             sync=sync,
         )
+        return message, status
 
     async def create_store(
         self,
@@ -394,7 +397,7 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
 
         content = StoreContent(**values)
 
-        return await self.submit(
+        message, status, _ = await self.submit(
             content=content.dict(exclude_none=True),
             message_type=MessageType.store,
             channel=channel,
@@ -486,13 +489,14 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
         # Ensure that the version of aleph-message used supports the field.
         assert content.on.persistent == persistent
 
-        return await self.submit(
+        message, status, _ = await self.submit(
             content=content.dict(exclude_none=True),
             message_type=MessageType.program,
             channel=channel,
             storage_engine=storage_engine,
             sync=sync,
         )
+        return message, status
 
     async def create_instance(
         self,
@@ -555,14 +559,44 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
             authorized_keys=ssh_keys,
             metadata=metadata,
         )
-
-        return await self.submit(
+        message, status, response = await self.submit(
             content=content.dict(exclude_none=True),
             message_type=MessageType.instance,
             channel=channel,
             storage_engine=storage_engine,
             sync=sync,
+            raise_on_rejected=False,
         )
+        if status in (MessageStatus.PROCESSED, MessageStatus.PENDING):
+            return message, status
+
+        # get the reason for rejection
+        rejected_message = await self.get_message_error(message.item_hash)
+        assert rejected_message, "No rejected message found"
+        """
+            "error_code": 5,
+            "details": {
+                "errors": [
+                    {
+                        "account_balance": "0",
+                        "required_balance": "4213.265726725260407192763523"
+                    }
+                ]
+            }
+        """
+        error_code = rejected_message["error_code"]
+        if error_code == 5:
+            # not enough balance
+            details = rejected_message["details"]
+            errors = details["errors"]
+            error = errors[0]
+            account_balance = float(error["account_balance"])
+            required_balance = float(error["required_balance"])
+            raise InsufficientFundsError(
+                f"Account balance {account_balance} is not enough to create instance, required {required_balance}"
+            )
+        else:
+            raise ValueError(f"Unknown error code {error_code}: {rejected_message}")
 
     async def forget(
         self,
@@ -582,7 +616,7 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
             time=time.time(),
         )
 
-        return await self.submit(
+        message, status, _ = await self.submit(
             content=content.dict(exclude_none=True),
             message_type=MessageType.forget,
             channel=channel,
@@ -590,6 +624,7 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
             allow_inlining=True,
             sync=sync,
         )
+        return message, status
 
     @staticmethod
     def compute_sha256(s: str) -> str:
@@ -647,7 +682,8 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
         storage_engine: StorageEnum = StorageEnum.storage,
         allow_inlining: bool = True,
         sync: bool = False,
-    ) -> Tuple[AlephMessage, MessageStatus]:
+        raise_on_rejected: bool = True,
+    ) -> Tuple[AlephMessage, MessageStatus, Optional[Dict[str, Any]]]:
         message = await self._prepare_aleph_message(
             message_type=message_type,
             content=content,
@@ -655,8 +691,8 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
             allow_inlining=allow_inlining,
             storage_engine=storage_engine,
         )
-        message_status = await self._broadcast(message=message, sync=sync)
-        return message, message_status
+        response, message_status = await self._broadcast(message=message, sync=sync, raise_on_rejected=raise_on_rejected)
+        return message, message_status, response
 
     async def _storage_push_file_with_message(
         self,
@@ -731,5 +767,5 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
         # Some nodes may not implement authenticated file upload yet. As we cannot detect
         # this easily, broadcast the message a second time to ensure publication on older
         # nodes.
-        status = await self._broadcast(message=message, sync=sync)
+        _, status = await self._broadcast(message=message, sync=sync)
         return message, status
