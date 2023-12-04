@@ -404,6 +404,7 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
             allow_inlining=True,
             sync=sync,
         )
+        return message, status
 
     async def create_program(
         self,

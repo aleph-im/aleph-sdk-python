@@ -428,7 +428,8 @@ class AuthenticatedAlephClient(AlephClient):
         storage_engine: StorageEnum = StorageEnum.storage,
         allow_inlining: bool = True,
         sync: bool = False,
-    ) -> Tuple[AlephMessage, MessageStatus]:
+        raise_on_rejected: bool = True,
+    ) -> Tuple[AlephMessage, MessageStatus, Optional[Dict[str, Any]]]:
         """
         Submit a message to the network. This is a generic method that can be used to submit any type of message.
         Prefer using the more specific methods to submit messages.
@@ -439,6 +440,7 @@ class AuthenticatedAlephClient(AlephClient):
         :param storage_engine: Storage engine to use (Default: "storage")
         :param allow_inlining: Whether to allow inlining the content of the message (Default: True)
         :param sync: If true, waits for the message to be processed by the API server (Default: False)
+        :param raise_on_rejected: Whether to raise an exception if the message is rejected (Default: True)
         """
         pass
 
