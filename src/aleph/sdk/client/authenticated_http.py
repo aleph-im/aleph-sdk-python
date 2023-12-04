@@ -574,17 +574,6 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
         # get the reason for rejection
         rejected_message = await self.get_message_error(message.item_hash)
         assert rejected_message, "No rejected message found"
-        """
-            "error_code": 5,
-            "details": {
-                "errors": [
-                    {
-                        "account_balance": "0",
-                        "required_balance": "4213.265726725260407192763523"
-                    }
-                ]
-            }
-        """
         error_code = rejected_message["error_code"]
         if error_code == 5:
             # not enough balance
