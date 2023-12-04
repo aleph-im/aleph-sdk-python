@@ -583,7 +583,7 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
             account_balance = float(error["account_balance"])
             required_balance = float(error["required_balance"])
             raise InsufficientFundsError(
-                f"Account balance {account_balance} is not enough to create instance, required {required_balance}"
+                required_funds=required_balance, available_funds=account_balance
             )
         else:
             raise ValueError(f"Unknown error code {error_code}: {rejected_message}")

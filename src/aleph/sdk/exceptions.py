@@ -69,4 +69,12 @@ class ForgottenMessageError(QueryError):
 class InsufficientFundsError(Exception):
     """Raised when the account does not have enough funds to perform an action"""
 
-    pass
+    required_funds: float
+    available_funds: float
+
+    def __init__(self, required_funds: float, available_funds: float):
+        self.required_funds = required_funds
+        self.available_funds = available_funds
+        super().__init__(
+            f"Insufficient funds: required {required_funds}, available {available_funds}"
+        )
