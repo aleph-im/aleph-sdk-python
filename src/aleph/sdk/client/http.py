@@ -320,6 +320,29 @@ class AlephHttpClient(AlephClient):
                 )
         return message
 
+    async def get_message_error(
+        self,
+        item_hash: str,
+    ) -> Optional[Dict[str, Any]]:
+        async with self.http_session.get(f"/api/v0/messages/{item_hash}") as resp:
+            try:
+                resp.raise_for_status()
+            except aiohttp.ClientResponseError as e:
+                if e.status == 404:
+                    raise MessageNotFoundError(f"No such hash {item_hash}")
+                raise e
+            message_raw = await resp.json()
+        if message_raw["status"] == "forgotten":
+            raise ForgottenMessageError(
+                f"The requested message {message_raw['item_hash']} has been forgotten by {', '.join(message_raw['forgotten_by'])}"
+            )
+        if message_raw["status"] != "rejected":
+            return None
+        return {
+            "error_code": message_raw["error_code"],
+            "details": message_raw["details"],
+        }
+
     async def watch_messages(
         self,
         message_filter: Optional[MessageFilter] = None,

@@ -24,7 +24,9 @@ class BroadcastError(Exception):
     Data could not be broadcast to the aleph.im network.
     """
 
-    pass
+    def __init__(self, errors):
+        self.errors = errors
+        super().__init__(errors)
 
 
 class InvalidMessageError(BroadcastError):
@@ -60,5 +62,11 @@ class DomainConfigurationError(Exception):
 
 class ForgottenMessageError(QueryError):
     """The requested message was forgotten"""
+
+    pass
+
+
+class InsufficientFundsError(Exception):
+    """Raised when the account does not have enough funds to perform an action"""
 
     pass
