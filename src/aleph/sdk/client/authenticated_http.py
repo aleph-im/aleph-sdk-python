@@ -35,7 +35,7 @@ from aleph_message.models.execution.volume import MachineVolume, ParentVolume
 from aleph_message.status import MessageStatus
 
 from ..conf import settings
-from ..exceptions import BroadcastError, InvalidMessageError, InsufficientFundsError
+from ..exceptions import BroadcastError, InsufficientFundsError, InvalidMessageError
 from ..types import Account, StorageEnum
 from ..utils import extended_json_encoder
 from .abstract import AuthenticatedAlephClient
@@ -691,7 +691,9 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
             allow_inlining=allow_inlining,
             storage_engine=storage_engine,
         )
-        response, message_status = await self._broadcast(message=message, sync=sync, raise_on_rejected=raise_on_rejected)
+        response, message_status = await self._broadcast(
+            message=message, sync=sync, raise_on_rejected=raise_on_rejected
+        )
         return message, message_status, response
 
     async def _storage_push_file_with_message(

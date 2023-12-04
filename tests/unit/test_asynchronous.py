@@ -189,7 +189,7 @@ async def test_prepare_aleph_message(
 
 @pytest.mark.asyncio
 async def test_create_instance_insufficient_funds_error(
-    mock_session_with_rejected_message
+    mock_session_with_rejected_message,
 ):
     async with mock_session_with_rejected_message as session:
         with pytest.raises(InsufficientFundsError):
