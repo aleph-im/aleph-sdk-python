@@ -58,6 +58,13 @@ def json_messages():
 
 
 @pytest.fixture
+def rejected_message():
+    message_path = Path(__file__).parent / "rejected_message.json"
+    with open(message_path) as f:
+        return json.load(f)
+
+
+@pytest.fixture
 def aleph_messages() -> List[AlephMessage]:
     return [
         AggregateMessage.parse_obj(
@@ -210,6 +217,26 @@ def make_mock_get_session(get_return_value: Dict[str, Any]) -> AlephHttpClient:
     http_session = MockHttpSession()
 
     client = AlephHttpClient(api_server="http://localhost")
+    client.http_session = http_session
+
+    return client
+
+
+@pytest.fixture
+def mock_session_with_rejected_message(ethereum_account, rejected_message) -> AuthenticatedAlephHttpClient:
+    class MockHttpSession(AsyncMock):
+        def get(self, *_args, **_kwargs):
+            return make_custom_mock_response(rejected_message)
+
+        def post(self, *_args, **_kwargs):
+            return make_custom_mock_response({
+                "message_status": "rejected",
+                "publication_status": {"status": "success", "failed": []},
+            }, status=422)
+
+    http_session = MockHttpSession()
+
+    client = AuthenticatedAlephHttpClient(account=ethereum_account, api_server="http://localhost")
     client.http_session = http_session
 
     return client
