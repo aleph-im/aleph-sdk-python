@@ -1,3 +1,4 @@
+import datetime
 from unittest.mock import AsyncMock
 
 import pytest as pytest
@@ -5,12 +6,15 @@ from aleph_message.models import (
     AggregateMessage,
     ForgetMessage,
     InstanceMessage,
+    MessageType,
     PostMessage,
     ProgramMessage,
     StoreMessage,
 )
+from aleph_message.models.execution.environment import MachineResources
 from aleph_message.status import MessageStatus
 
+from aleph.sdk.exceptions import InsufficientFundsError
 from aleph.sdk.types import StorageEnum
 
 
@@ -121,3 +125,78 @@ async def test_forget(mock_session_with_post_success):
 
     assert mock_session_with_post_success.http_session.post.called_once
     assert isinstance(forget_message, ForgetMessage)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "message_type, content",
+    [
+        (
+            MessageType.aggregate,
+            {
+                "content": {"Hello": datetime.datetime.now()},
+                "key": "test",
+                "address": "0x1",
+                "time": 1.0,
+            },
+        ),
+        (
+            MessageType.aggregate,
+            {
+                "content": {"Hello": datetime.date.today()},
+                "key": "test",
+                "address": "0x1",
+                "time": 1.0,
+            },
+        ),
+        (
+            MessageType.aggregate,
+            {
+                "content": {"Hello": datetime.time()},
+                "key": "test",
+                "address": "0x1",
+                "time": 1.0,
+            },
+        ),
+        (
+            MessageType.aggregate,
+            {
+                "content": {
+                    "Hello": MachineResources(
+                        vcpus=1,
+                        memory=1024,
+                        seconds=1,
+                    )
+                },
+                "key": "test",
+                "address": "0x1",
+                "time": 1.0,
+            },
+        ),
+    ],
+)
+async def test_prepare_aleph_message(
+    mock_session_with_post_success, message_type, content
+):
+    # Call the function under test
+    async with mock_session_with_post_success as session:
+        await session._prepare_aleph_message(
+            message_type=message_type,
+            content=content,
+            channel="TEST",
+        )
+
+
+@pytest.mark.asyncio
+async def test_create_instance_insufficient_funds_error(
+    mock_session_with_rejected_message
+):
+    async with mock_session_with_rejected_message as session:
+        with pytest.raises(InsufficientFundsError):
+            await session.create_instance(
+                rootfs="cafecafecafecafecafecafecafecafecafecafecafecafecafecafecafecafe",
+                rootfs_size=1,
+                rootfs_name="rootfs",
+                channel="TEST",
+                metadata={"tags": ["test"]},
+            )

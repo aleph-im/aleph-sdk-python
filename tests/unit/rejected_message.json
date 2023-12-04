@@ -1,0 +1,53 @@
+{
+  "status": "rejected",
+  "item_hash": "7091b61632e0385adb6978dccbec1da40e9c400ffac7233076a3ad0219f49de0",
+  "reception_time": "2023-12-03T16:00:53.432607+00:00",
+  "message": {
+    "time": 1701619253.309467,
+    "type": "INSTANCE",
+    "chain": "ETH",
+    "sender": "0x48A87924135892bEE2F264547a0D69909b3bA5C6",
+    "channel": null,
+    "content": {
+      "time": 1701619253.3092096,
+      "rootfs": {
+        "parent": {
+          "ref": "549ec451d9b099cad112d4aaa2c00ac40fb6729a92ff252ff22eef0b5c3cb613",
+          "use_latest": true
+        },
+        "size_mib": 2000,
+        "persistence": "host"
+      },
+      "address": "0x48A87924135892bEE2F264547a0D69909b3bA5C6",
+      "volumes": [],
+      "resources": {
+        "vcpus": 1,
+        "memory": 256,
+        "seconds": 30
+      },
+      "allow_amend": false,
+      "environment": {
+        "internet": true,
+        "aleph_api": true,
+        "reproducible": false,
+        "shared_cache": false
+      },
+      "authorized_keys": [
+        "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCdU/B01GaUQ3l8aIt0XR6WajhM/5oTdxsON3b90quwQjH38Ba+Z3z74gf4+f56vxRw7XqtC8pg8zuh2L8+Fo3IHctULJD24YbLr2CagwrPsd9fsK+DsJSrcnTKaBBjvgloQi96hl4hPtlR9jA5bRYked0bFxdbFUMCmF17tpU0AC/dLeH3FwVDfh5dF11SX6ezg8brKd9SHYDRkOBHyOLIOWMtOgIgfEy9OsNdAS9OlOHyKxz4MEl5xkq5lRk9nS1n45A3rrIwi91qamjphHNrEutKaN/ramuW+davCP4xfnEVyu2DmoteDM+lmmf4skN90CwxhlrYpc5xpie5vTTYxgUCSnN0PyYiD0m7YHpZwMg1yHKB+aZghOIYUyKVJ8fIH/uU1DKwqcZ5qmH8sPvB4tCy3QOn7m7xTYVd/R3CECdG/R/55IUfGbg8KoAHBgmQ13/hSJ3IshMYOTWwMenma29D8UqKsyTfiMfof6Yf6NYOeDkAsUSIOEetxcv3MaE= mhh@mhh-TUXEDO"
+      ]
+    },
+    "item_hash": "7091b61632e0385adb6978dccbec1da40e9c400ffac7233076a3ad0219f49de0",
+    "item_type": "inline",
+    "signature": "0xa8e549c5228b379bede875016ed25215c6cd7c3e9131ec1b3bdb49af4859c8840251362c3c421995f520648026621245b4896c0a88d6a5735e5e2620812f22ff1b",
+    "item_content": "{\"address\":\"0x48A87924135892bEE2F264547a0D69909b3bA5C6\",\"time\":1701619253.3092096,\"allow_amend\":false,\"authorized_keys\":[\"ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCdU/B01GaUQ3l8aIt0XR6WajhM/5oTdxsON3b90quwQjH38Ba+Z3z74gf4+f56vxRw7XqtC8pg8zuh2L8+Fo3IHctULJD24YbLr2CagwrPsd9fsK+DsJSrcnTKaBBjvgloQi96hl4hPtlR9jA5bRYked0bFxdbFUMCmF17tpU0AC/dLeH3FwVDfh5dF11SX6ezg8brKd9SHYDRkOBHyOLIOWMtOgIgfEy9OsNdAS9OlOHyKxz4MEl5xkq5lRk9nS1n45A3rrIwi91qamjphHNrEutKaN/ramuW+davCP4xfnEVyu2DmoteDM+lmmf4skN90CwxhlrYpc5xpie5vTTYxgUCSnN0PyYiD0m7YHpZwMg1yHKB+aZghOIYUyKVJ8fIH/uU1DKwqcZ5qmH8sPvB4tCy3QOn7m7xTYVd/R3CECdG/R/55IUfGbg8KoAHBgmQ13/hSJ3IshMYOTWwMenma29D8UqKsyTfiMfof6Yf6NYOeDkAsUSIOEetxcv3MaE= mhh@mhh-TUXEDO\"],\"environment\":{\"reproducible\":false,\"internet\":true,\"aleph_api\":true,\"shared_cache\":false},\"resources\":{\"vcpus\":1,\"memory\":256,\"seconds\":30},\"volumes\":[],\"rootfs\":{\"parent\":{\"ref\":\"549ec451d9b099cad112d4aaa2c00ac40fb6729a92ff252ff22eef0b5c3cb613\",\"use_latest\":true},\"persistence\":\"host\",\"size_mib\":2000}}"
+  },
+  "error_code": 5,
+  "details": {
+    "errors": [
+      {
+        "account_balance": "0",
+        "required_balance": "4213.265726725260407192763523"
+      }
+    ]
+  }
+}
