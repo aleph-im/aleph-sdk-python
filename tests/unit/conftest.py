@@ -223,20 +223,27 @@ def make_mock_get_session(get_return_value: Dict[str, Any]) -> AlephHttpClient:
 
 
 @pytest.fixture
-def mock_session_with_rejected_message(ethereum_account, rejected_message) -> AuthenticatedAlephHttpClient:
+def mock_session_with_rejected_message(
+    ethereum_account, rejected_message
+) -> AuthenticatedAlephHttpClient:
     class MockHttpSession(AsyncMock):
         def get(self, *_args, **_kwargs):
             return make_custom_mock_response(rejected_message)
 
         def post(self, *_args, **_kwargs):
-            return make_custom_mock_response({
-                "message_status": "rejected",
-                "publication_status": {"status": "success", "failed": []},
-            }, status=422)
+            return make_custom_mock_response(
+                {
+                    "message_status": "rejected",
+                    "publication_status": {"status": "success", "failed": []},
+                },
+                status=422,
+            )
 
     http_session = MockHttpSession()
 
-    client = AuthenticatedAlephHttpClient(account=ethereum_account, api_server="http://localhost")
+    client = AuthenticatedAlephHttpClient(
+        account=ethereum_account, api_server="http://localhost"
+    )
     client.http_session = http_session
 
     return client

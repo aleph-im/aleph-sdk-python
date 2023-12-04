@@ -4,7 +4,7 @@ from datetime import datetime
 import pytest
 from aleph_message.models import MessagesResponse, MessageType
 
-from aleph.sdk.exceptions import ForgottenMessageError, InvalidMessageError
+from aleph.sdk.exceptions import ForgottenMessageError
 from aleph.sdk.query.filters import MessageFilter, PostFilter
 from aleph.sdk.query.responses import PostsResponse
 from tests.unit.conftest import make_mock_get_session
@@ -87,13 +87,13 @@ async def test_get_forgotten_message():
 
 @pytest.mark.asyncio
 async def test_get_message_error(rejected_message):
-    mock_session = make_mock_get_session(
-        rejected_message
-    )
+    mock_session = make_mock_get_session(rejected_message)
     async with mock_session as session:
         error = await session.get_message_error(rejected_message["item_hash"])
+        assert error
         assert error["error_code"] == rejected_message["error_code"]
         assert error["details"] == rejected_message["details"]
+
 
 if __name__ == "__main __":
     unittest.main()
