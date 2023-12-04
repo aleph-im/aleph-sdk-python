@@ -1,4 +1,4 @@
-name: Test PR Difficulty Rating Action
+name: PR Difficulty Rating Action
 
 permissions:
   pull-requests: write
