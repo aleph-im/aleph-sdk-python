@@ -432,7 +432,11 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
 
         volumes = volumes if volumes is not None else []
         memory = memory or settings.DEFAULT_VM_MEMORY
+        if memory < 2000:
+            raise ValueError("Minimum memory is 2000 MiB")
         vcpus = vcpus or settings.DEFAULT_VM_VCPUS
+        if vcpus < 1:
+            raise ValueError("Minimum vcpus is 1")
         timeout_seconds = timeout_seconds or settings.DEFAULT_VM_TIMEOUT
 
         # TODO: Check that program_ref, runtime and data_ref exist
@@ -525,7 +529,11 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
 
         volumes = volumes if volumes is not None else []
         memory = memory or settings.DEFAULT_VM_MEMORY
+        if memory < 2000:
+            raise ValueError("Minimum memory is 2000 MiB")
         vcpus = vcpus or settings.DEFAULT_VM_VCPUS
+        if vcpus < 1:
+            raise ValueError("Minimum vcpus is 1")
         timeout_seconds = timeout_seconds or settings.DEFAULT_VM_TIMEOUT
 
         content = InstanceContent(
