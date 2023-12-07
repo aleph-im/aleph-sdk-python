@@ -37,7 +37,12 @@ from aleph_message.status import MessageStatus
 from ..conf import settings
 from ..exceptions import BroadcastError, InsufficientFundsError, InvalidMessageError
 from ..types import Account, StorageEnum
-from ..utils import extended_json_encoder
+from ..utils import (
+    extended_json_encoder,
+    validate_memory,
+    validate_timeout,
+    validate_vcpus,
+)
 from .abstract import AuthenticatedAlephClient
 from .http import AlephHttpClient
 
@@ -432,12 +437,11 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
 
         volumes = volumes if volumes is not None else []
         memory = memory or settings.DEFAULT_VM_MEMORY
-        if memory < 2000:
-            raise ValueError("Minimum memory is 2000 MiB")
+        validate_memory(memory)
         vcpus = vcpus or settings.DEFAULT_VM_VCPUS
-        if vcpus < 1:
-            raise ValueError("Minimum vcpus is 1")
+        validate_vcpus(vcpus)
         timeout_seconds = timeout_seconds or settings.DEFAULT_VM_TIMEOUT
+        validate_timeout(timeout_seconds)
 
         # TODO: Check that program_ref, runtime and data_ref exist
 
@@ -529,12 +533,11 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
 
         volumes = volumes if volumes is not None else []
         memory = memory or settings.DEFAULT_VM_MEMORY
-        if memory < 2000:
-            raise ValueError("Minimum memory is 2000 MiB")
+        validate_memory(memory)
         vcpus = vcpus or settings.DEFAULT_VM_VCPUS
-        if vcpus < 1:
-            raise ValueError("Minimum vcpus is 1")
+        validate_vcpus(vcpus)
         timeout_seconds = timeout_seconds or settings.DEFAULT_VM_TIMEOUT
+        validate_timeout(timeout_seconds)
 
         content = InstanceContent(
             address=address,

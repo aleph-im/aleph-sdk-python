@@ -150,3 +150,24 @@ def extended_json_encoder(obj: Any) -> Any:
         return obj.hour * 3600 + obj.minute * 60 + obj.second + obj.microsecond / 1e6
     else:
         return pydantic_encoder(obj)
+
+
+def validate_vcpus(vcpus):
+    if vcpus < 1:
+        raise ValueError("Minimum vcpus is 1")
+    if vcpus > 4:
+        raise ValueError("Current maximum vcpus is 4")
+
+
+def validate_memory(memory):
+    if memory < 2000:
+        raise ValueError("Minimum memory is 2000 MiB")
+    if memory > 8000:
+        raise ValueError("Current maximum memory is 8000 MiB")
+
+
+def validate_timeout(timeout_seconds):
+    if timeout_seconds < 1:
+        raise ValueError("Minimum timeout is 1 second")
+    if timeout_seconds > 180:
+        raise ValueError("Current maximum timeout is 180 seconds")
