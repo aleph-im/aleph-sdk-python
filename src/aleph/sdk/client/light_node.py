@@ -445,7 +445,7 @@ class LightNode(MessageCache, AuthenticatedAlephClient):
             storage_engine=storage_engine,
             allow_inlining=allow_inlining,
             sync=sync,
-            raise_on_rejected=raise_on_rejected
+            raise_on_rejected=raise_on_rejected,
         )
         if status in [MessageStatus.PROCESSED, MessageStatus.PENDING]:
             self.add(message)
