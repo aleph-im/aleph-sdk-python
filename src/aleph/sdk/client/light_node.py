@@ -436,16 +436,18 @@ class LightNode(MessageCache, AuthenticatedAlephClient):
         storage_engine: StorageEnum = StorageEnum.storage,
         allow_inlining: bool = True,
         sync: bool = False,
-    ) -> Tuple[AlephMessage, MessageStatus]:
-        resp, status = await self.session.submit(
+        raise_on_rejected: bool = True,
+    ) -> Tuple[AlephMessage, MessageStatus, Optional[Dict[str, Any]]]:
+        message, status, response = await self.session.submit(
             content=content,
             message_type=message_type,
             channel=channel,
             storage_engine=storage_engine,
             allow_inlining=allow_inlining,
             sync=sync,
+            raise_on_rejected=raise_on_rejected
         )
         if status in [MessageStatus.PROCESSED, MessageStatus.PENDING]:
-            self.add(resp)
-        asyncio.create_task(self.delete_if_rejected(resp.item_hash))
-        return resp, status
+            self.add(message)
+        asyncio.create_task(self.delete_if_rejected(message.item_hash))
+        return message, status, response
