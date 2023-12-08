@@ -247,7 +247,7 @@ async def test_download_file(mock_node_with_post_success):
 async def test_submit_message(mock_node_with_post_success):
     content = {"Hello": "World"}
     async with mock_node_with_post_success as node:
-        message, status = await node.submit(
+        message, status, _ = await node.submit(
             content={
                 "address": "0x1234567890123456789012345678901234567890",
                 "time": 1234567890,
