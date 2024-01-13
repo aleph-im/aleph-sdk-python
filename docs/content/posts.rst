@@ -19,6 +19,19 @@ To get posts you have two options, either use the get_posts function, and get
 the posts in their amended state, or use get_message and only get the unique POST
 messages (with their content obviously).
 
+Since version 0.8.0, get_posts uses a PostFilter object to specify the filters:
+
+.. code-block:: python3
+
+    >>> from aleph.sdk.chains.sol import get_fallback_account
+    >>> from aleph.sdk.client import AuthenticatedAlephHttpClient
+    >>> from aleph.sdk.posts import PostFilter
+    >>> account = get_fallback_account()
+    >>> async with AuthenticatedAlephHttpClient(account) as client:
+    ...     posts, status = await client.get_posts(
+    ...         post_filter=PostFilter(channel='MY_CHANNEL')
+    ...     )
+
 
 Creating a Post
 ---------------
