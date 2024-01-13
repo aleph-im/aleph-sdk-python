@@ -68,7 +68,7 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
     def __init__(
         self,
         account: Account,
-        api_server: Optional[str],
+        api_server: Optional[str] = None,
         api_unix_socket: Optional[str] = None,
         allow_unix_sockets: bool = True,
         timeout: Optional[aiohttp.ClientTimeout] = None,
