@@ -187,10 +187,10 @@ class DomainValidator:
         Returns:
             A dictionary containing the status of the domain configuration.
         """
-        status = {"cname": False, "owner_proof": False}
+        status = {}
 
         dns_rules = self.get_required_dns_rules(hostname, target, owner)
-
+        resolver = await self.get_resolver_for(hostname)
         for dns_rule in dns_rules:
             status[dns_rule.name] = False
 
@@ -199,26 +199,25 @@ class DomainValidator:
             record_value = dns_rule.dns["value"]
 
             try:
-                resolver = await self.get_resolver_for(hostname)
                 entries = await resolver.query(record_name, record_type.upper())
             except aiodns.error.DNSError:
                 # Continue checks
                 entries = None
 
-            if entries and record_type == "txt":
-                for entry in entries:
-                    if hasattr(entry, "text") and entry.text == record_value:
-                        break
-                else:
-                    return dns_rule.raise_error(status)
-            elif (
-                entries is None
-                or not hasattr(entries, record_type)
-                or getattr(entries, record_type) != record_value
-            ):
-                return dns_rule.raise_error(status)
+            if entries:
+                if record_type == "txt":
+                    for entry in entries:
+                        if hasattr(entry, "text") and entry.text == record_value:
+                            status[dns_rule.name] = True
+                            break
+                elif (
+                    hasattr(entries, record_type)
+                    and getattr(entries, record_type) == record_value
+                ):
+                    status[dns_rule.name] = True
 
-            status[dns_rule.name] = True
+        if all(status.values()) is False:
+            dns_rule.raise_error(status)
 
         return status
 
