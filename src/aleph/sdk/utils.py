@@ -21,12 +21,7 @@ from zipfile import BadZipFile, ZipFile
 
 from aleph_message.models import MessageType
 from aleph_message.models.execution.program import Encoding
-from aleph_message.models.execution.volume import (
-    EphemeralVolume,
-    ImmutableVolume,
-    MachineVolume,
-    PersistentVolume,
-)
+from aleph_message.models.execution.volume import MachineVolume
 from pydantic.json import pydantic_encoder
 
 from aleph.sdk.conf import settings
