@@ -15,7 +15,6 @@ from aleph_message.models.execution.environment import MachineResources
 from aleph_message.models.execution.volume import (
     EphemeralVolume,
     ImmutableVolume,
-    MachineVolume,
     PersistentVolume,
 )
 
