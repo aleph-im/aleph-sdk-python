@@ -5,11 +5,12 @@ from datetime import date, datetime, time
 from enum import Enum
 from pathlib import Path
 from shutil import make_archive
-from typing import Any, Iterable, Optional, Protocol, Tuple, Type, TypeVar, Union
+from typing import Any, Iterable, Optional, Protocol, Tuple, Type, TypeVar, Union, get_args, Mapping
 from zipfile import BadZipFile, ZipFile
 
 from aleph_message.models import MessageType
 from aleph_message.models.execution.program import Encoding
+from aleph_message.models.execution.volume import MachineVolume, ImmutableVolume, PersistentVolume, EphemeralVolume
 from pydantic.json import pydantic_encoder
 
 from aleph.sdk.conf import settings
@@ -150,3 +151,15 @@ def extended_json_encoder(obj: Any) -> Any:
         return obj.hour * 3600 + obj.minute * 60 + obj.second + obj.microsecond / 1e6
     else:
         return pydantic_encoder(obj)
+
+
+def parse_volume(volume_dict: Union[Mapping, MachineVolume]) -> MachineVolume:
+    if isinstance(volume_dict, MachineVolume):
+        return volume_dict
+    for volume_type in get_args(MachineVolume):
+        try:
+            return volume_type.parse_obj(volume_dict)
+        except ValueError:
+            continue
+    else:
+        raise ValueError(f"Could not parse volume: {volume_dict}")

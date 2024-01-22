@@ -37,7 +37,7 @@ from aleph_message.status import MessageStatus
 from ..conf import settings
 from ..exceptions import BroadcastError, InsufficientFundsError, InvalidMessageError
 from ..types import Account, StorageEnum
-from ..utils import extended_json_encoder
+from ..utils import extended_json_encoder, parse_volume
 from .abstract import AuthenticatedAlephClient
 from .http import AlephHttpClient
 
@@ -450,7 +450,7 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
             triggers = {"http": True, "persistent": persistent}
 
         volumes: List[MachineVolume] = [
-            MachineVolume.parse_obj(volume) for volume in volumes
+            parse_volume(volume) for volume in volumes
         ]
 
         content = ProgramContent(
@@ -482,7 +482,7 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
                 if runtime == settings.DEFAULT_RUNTIME_ID
                 else "",
             ),
-            volumes=[MachineVolume.parse_obj(volume) for volume in volumes],
+            volumes=[parse_volume(volume) for volume in volumes],
             time=time.time(),
             metadata=metadata,
         )
@@ -555,7 +555,7 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
                 if rootfs == settings.DEFAULT_RUNTIME_ID
                 else "",
             ),
-            volumes=[MachineVolume.parse_obj(volume) for volume in volumes],
+            volumes=[parse_volume(volume) for volume in volumes],
             time=time.time(),
             authorized_keys=ssh_keys,
             metadata=metadata,
