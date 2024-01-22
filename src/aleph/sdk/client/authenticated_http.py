@@ -449,9 +449,7 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
             # Trigger on HTTP calls.
             triggers = {"http": True, "persistent": persistent}
 
-        volumes: List[MachineVolume] = [
-            parse_volume(volume) for volume in volumes
-        ]
+        volumes: List[MachineVolume] = [parse_volume(volume) for volume in volumes]
 
         content = ProgramContent(
             type="vm-function",

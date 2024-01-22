@@ -5,12 +5,28 @@ from datetime import date, datetime, time
 from enum import Enum
 from pathlib import Path
 from shutil import make_archive
-from typing import Any, Iterable, Optional, Protocol, Tuple, Type, TypeVar, Union, get_args, Mapping
+from typing import (
+    Any,
+    Iterable,
+    Mapping,
+    Optional,
+    Protocol,
+    Tuple,
+    Type,
+    TypeVar,
+    Union,
+    get_args,
+)
 from zipfile import BadZipFile, ZipFile
 
 from aleph_message.models import MessageType
 from aleph_message.models.execution.program import Encoding
-from aleph_message.models.execution.volume import MachineVolume, ImmutableVolume, PersistentVolume, EphemeralVolume
+from aleph_message.models.execution.volume import (
+    EphemeralVolume,
+    ImmutableVolume,
+    MachineVolume,
+    PersistentVolume,
+)
 from pydantic.json import pydantic_encoder
 
 from aleph.sdk.conf import settings
