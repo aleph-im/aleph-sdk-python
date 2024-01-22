@@ -165,7 +165,7 @@ def extended_json_encoder(obj: Any) -> Any:
 
 
 def parse_volume(volume_dict: Union[Mapping, MachineVolume]) -> MachineVolume:
-    # Python 3.9 does not support `isinstance(volume_dict, MachineVolume)`, 
+    # Python 3.9 does not support `isinstance(volume_dict, MachineVolume)`,
     # so we need to iterate over all types.
     if any(
         isinstance(volume_dict, volume_type) for volume_type in get_args(MachineVolume)
