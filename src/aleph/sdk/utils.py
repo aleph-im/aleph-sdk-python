@@ -165,7 +165,8 @@ def extended_json_encoder(obj: Any) -> Any:
 
 
 def parse_volume(volume_dict: Union[Mapping, MachineVolume]) -> MachineVolume:
-    if isinstance(volume_dict, MachineVolume):
+    # Fix for Python 3.9
+    if any(isinstance(volume_dict, volume_type) for volume_type in get_args(MachineVolume)):
         return volume_dict
     for volume_type in get_args(MachineVolume):
         try:
