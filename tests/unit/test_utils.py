@@ -12,8 +12,13 @@ from aleph_message.models import (
     StoreMessage,
 )
 from aleph_message.models.execution.environment import MachineResources
+from aleph_message.models.execution.volume import (
+    EphemeralVolume,
+    ImmutableVolume,
+    PersistentVolume,
+)
 
-from aleph.sdk.utils import enum_as_str, get_message_type_value
+from aleph.sdk.utils import enum_as_str, get_message_type_value, parse_volume
 
 
 def test_get_message_type_value():
@@ -128,3 +133,44 @@ async def test_prepare_aleph_message(
         )
 
     assert message.content.dict() == content
+
+
+def test_parse_immutable_volume():
+    volume_dict = {
+        "ref": "QmX8K1c22WmQBAww5ShWQqwMiFif7XFrJD6iFBj7skQZXW",
+        "use_latest": True,
+        "comment": "Dummy hash",
+    }
+    volume = parse_volume(volume_dict)
+    volume = parse_volume(volume)
+    assert volume
+    assert isinstance(volume, ImmutableVolume)
+
+
+def test_parse_ephemeral_volume():
+    volume_dict = {
+        "comment": "Dummy hash",
+        "ephemeral": True,
+        "size_mib": 1,
+    }
+    volume = parse_volume(volume_dict)
+    volume = parse_volume(volume)
+    assert volume
+    assert isinstance(volume, EphemeralVolume)
+
+
+def test_parse_persistent_volume():
+    volume_dict = {
+        "parent": {
+            "ref": "QmX8K1c22WmQBAww5ShWQqwMiFif7XFrJD6iFBj7skQZXW",
+            "use_latest": True,
+            "comment": "Dummy hash",
+        },
+        "persistence": "host",
+        "name": "test",
+        "size_mib": 1,
+    }
+    volume = parse_volume(volume_dict)
+    volume = parse_volume(volume)
+    assert volume
+    assert isinstance(volume, PersistentVolume)
