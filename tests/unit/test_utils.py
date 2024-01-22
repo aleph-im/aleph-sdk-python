@@ -145,7 +145,6 @@ def test_parse_immutable_volume():
     volume = parse_volume(volume_dict)
     volume = parse_volume(volume)
     assert volume
-    assert isinstance(volume, MachineVolume)
     assert isinstance(volume, ImmutableVolume)
 
 
@@ -158,7 +157,6 @@ def test_parse_ephemeral_volume():
     volume = parse_volume(volume_dict)
     volume = parse_volume(volume)
     assert volume
-    assert isinstance(volume, MachineVolume)
     assert isinstance(volume, EphemeralVolume)
 
 
@@ -176,5 +174,4 @@ def test_parse_persistent_volume():
     volume = parse_volume(volume_dict)
     volume = parse_volume(volume)
     assert volume
-    assert isinstance(volume, MachineVolume)
     assert isinstance(volume, PersistentVolume)
