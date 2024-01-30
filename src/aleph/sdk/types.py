@@ -18,23 +18,19 @@ class Account(Protocol):
     CURVE: str
 
     @abstractmethod
-    async def sign_message(self, message: Dict) -> Dict:
-        ...
+    async def sign_message(self, message: Dict) -> Dict: ...
 
     @abstractmethod
-    def get_address(self) -> str:
-        ...
+    def get_address(self) -> str: ...
 
     @abstractmethod
-    def get_public_key(self) -> str:
-        ...
+    def get_public_key(self) -> str: ...
 
 
 class AccountFromPrivateKey(Account, Protocol):
     """Only accounts that are initialized from a private key string are supported."""
 
-    def __init__(self, private_key: bytes):
-        ...
+    def __init__(self, private_key: bytes): ...
 
 
 GenericMessage = TypeVar("GenericMessage", bound=AlephMessage)

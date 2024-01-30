@@ -476,9 +476,11 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
             runtime=FunctionRuntime(
                 ref=runtime,
                 use_latest=True,
-                comment="Official aleph.im runtime"
-                if runtime == settings.DEFAULT_RUNTIME_ID
-                else "",
+                comment=(
+                    "Official aleph.im runtime"
+                    if runtime == settings.DEFAULT_RUNTIME_ID
+                    else ""
+                ),
             ),
             volumes=[parse_volume(volume) for volume in volumes],
             time=time.time(),
@@ -549,9 +551,11 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
                 size_mib=rootfs_size,
                 persistence="host",
                 use_latest=True,
-                comment="Official Aleph Debian root filesystem"
-                if rootfs == settings.DEFAULT_RUNTIME_ID
-                else "",
+                comment=(
+                    "Official Aleph Debian root filesystem"
+                    if rootfs == settings.DEFAULT_RUNTIME_ID
+                    else ""
+                ),
             ),
             volumes=[parse_volume(volume) for volume in volumes],
             time=time.time(),

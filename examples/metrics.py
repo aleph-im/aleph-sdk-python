@@ -1,5 +1,6 @@
 """ Server metrics upload.
 """
+
 import asyncio
 import os
 import platform

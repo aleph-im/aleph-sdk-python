@@ -2,6 +2,7 @@
 
 This file tests that both implementations returns identical results.
 """
+
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 
