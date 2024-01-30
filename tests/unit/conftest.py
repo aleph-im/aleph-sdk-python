@@ -130,9 +130,9 @@ def json_post() -> dict:
 @pytest.fixture
 def raw_messages_response(aleph_messages) -> Callable[[int], Dict[str, Any]]:
     return lambda page: {
-        "messages": [message.dict() for message in aleph_messages]
-        if int(page) == 1
-        else [],
+        "messages": (
+            [message.dict() for message in aleph_messages] if int(page) == 1 else []
+        ),
         "pagination_item": "messages",
         "pagination_page": int(page),
         "pagination_per_page": max(len(aleph_messages), 20),
@@ -158,11 +158,9 @@ class MockResponse:
     async def __aenter__(self):
         return self
 
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
-        ...
+    async def __aexit__(self, exc_type, exc_val, exc_tb): ...
 
-    async def raise_for_status(self):
-        ...
+    async def raise_for_status(self): ...
 
     @property
     def status(self):

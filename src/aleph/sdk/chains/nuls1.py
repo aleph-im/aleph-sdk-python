@@ -1,5 +1,6 @@
 """ Barebone NULS address and message signing support.
 """
+
 import hashlib
 import logging
 import struct

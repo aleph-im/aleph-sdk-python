@@ -1,5 +1,6 @@
 """ Server metrics upload.
 """
+
 # -*- coding: utf-8 -*-
 
 import click
