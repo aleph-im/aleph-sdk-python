@@ -161,12 +161,10 @@ class MessageCache(AlephClient):
         return repr(self)
 
     @typing.overload
-    def add(self, messages: Iterable[AlephMessage]):
-        ...
+    def add(self, messages: Iterable[AlephMessage]): ...
 
     @typing.overload
-    def add(self, messages: AlephMessage):
-        ...
+    def add(self, messages: AlephMessage): ...
 
     def add(self, messages: Union[AlephMessage, Iterable[AlephMessage]]):
         """
@@ -281,12 +279,10 @@ class MessageCache(AlephClient):
             ).execute()
 
     @typing.overload
-    def get(self, item_hashes: Iterable[ItemHash]) -> List[AlephMessage]:
-        ...
+    def get(self, item_hashes: Iterable[ItemHash]) -> List[AlephMessage]: ...
 
     @typing.overload
-    def get(self, item_hashes: ItemHash) -> Optional[AlephMessage]:
-        ...
+    def get(self, item_hashes: ItemHash) -> Optional[AlephMessage]: ...
 
     def get(
         self, item_hashes: Union[ItemHash, Iterable[ItemHash]]

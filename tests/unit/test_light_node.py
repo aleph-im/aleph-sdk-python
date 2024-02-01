@@ -30,8 +30,7 @@ class MockPostResponse:
     async def __aenter__(self):
         return self
 
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
-        ...
+    async def __aexit__(self, exc_type, exc_val, exc_tb): ...
 
     @property
     def status(self):
@@ -62,8 +61,7 @@ class MockGetResponse:
     async def __aenter__(self):
         return self
 
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
-        ...
+    async def __aexit__(self, exc_type, exc_val, exc_tb): ...
 
     @property
     def status(self):

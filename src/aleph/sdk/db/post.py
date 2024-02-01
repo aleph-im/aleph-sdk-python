@@ -57,15 +57,17 @@ def post_to_model(post: Post) -> Dict:
         "time": post.time,
         "original_item_hash": str(post.original_item_hash),
         "original_type": post.original_type if post.original_type else post.type,
-        "original_signature": post.original_signature
-        if post.original_signature
-        else post.signature,
+        "original_signature": (
+            post.original_signature if post.original_signature else post.signature
+        ),
         "item_type": post.item_type,
         "item_content": post.item_content,
         "content": post.content,
-        "tags": post.content.content.get("tags", None)
-        if hasattr(post.content, "content")
-        else None,
+        "tags": (
+            post.content.content.get("tags", None)
+            if hasattr(post.content, "content")
+            else None
+        ),
         "ref": post.ref,
     }
 
