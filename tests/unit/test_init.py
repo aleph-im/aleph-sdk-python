@@ -9,15 +9,21 @@ def test_version():
 
 def test_deprecation():
     with pytest.raises(ImportError):
-        from aleph.sdk import AlephClient
+        from aleph.sdk import AlephClient  # noqa
 
     with pytest.raises(ImportError):
-        from aleph.sdk import AuthenticatedAlephClient
+        from aleph.sdk import AuthenticatedAlephClient  # noqa
 
     with pytest.raises(ImportError):
-        from aleph.sdk import synchronous
+        from aleph.sdk import synchronous  # noqa
 
     with pytest.raises(ImportError):
-        from aleph.sdk import asynchronous
+        from aleph.sdk import asynchronous  # noqa
 
-    from aleph.sdk import AlephHttpClient
+    with pytest.raises(ImportError):
+        import aleph.sdk.synchronous  # noqa
+
+    with pytest.raises(ImportError):
+        import aleph.sdk.asynchronous  # noqa
+
+    from aleph.sdk import AlephHttpClient  # noqa
