@@ -37,7 +37,7 @@ from aleph_message.status import MessageStatus
 from ..conf import settings
 from ..exceptions import BroadcastError, InsufficientFundsError, InvalidMessageError
 from ..types import Account, StorageEnum
-from ..utils import extended_json_encoder
+from ..utils import extended_json_encoder, parse_volume
 from .abstract import AuthenticatedAlephClient
 from .http import AlephHttpClient
 
@@ -68,7 +68,7 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
     def __init__(
         self,
         account: Account,
-        api_server: Optional[str],
+        api_server: Optional[str] = None,
         api_unix_socket: Optional[str] = None,
         allow_unix_sockets: bool = True,
         timeout: Optional[aiohttp.ClientTimeout] = None,
@@ -449,9 +449,7 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
             # Trigger on HTTP calls.
             triggers = {"http": True, "persistent": persistent}
 
-        volumes: List[MachineVolume] = [
-            MachineVolume.parse_obj(volume) for volume in volumes
-        ]
+        volumes: List[MachineVolume] = [parse_volume(volume) for volume in volumes]
 
         content = ProgramContent(
             type="vm-function",
@@ -478,11 +476,13 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
             runtime=FunctionRuntime(
                 ref=runtime,
                 use_latest=True,
-                comment="Official aleph.im runtime"
-                if runtime == settings.DEFAULT_RUNTIME_ID
-                else "",
+                comment=(
+                    "Official aleph.im runtime"
+                    if runtime == settings.DEFAULT_RUNTIME_ID
+                    else ""
+                ),
             ),
-            volumes=[MachineVolume.parse_obj(volume) for volume in volumes],
+            volumes=[parse_volume(volume) for volume in volumes],
             time=time.time(),
             metadata=metadata,
         )
@@ -551,11 +551,13 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
                 size_mib=rootfs_size,
                 persistence="host",
                 use_latest=True,
-                comment="Official Aleph Debian root filesystem"
-                if rootfs == settings.DEFAULT_RUNTIME_ID
-                else "",
+                comment=(
+                    "Official Aleph Debian root filesystem"
+                    if rootfs == settings.DEFAULT_RUNTIME_ID
+                    else ""
+                ),
             ),
-            volumes=[MachineVolume.parse_obj(volume) for volume in volumes],
+            volumes=[parse_volume(volume) for volume in volumes],
             time=time.time(),
             authorized_keys=ssh_keys,
             metadata=metadata,
