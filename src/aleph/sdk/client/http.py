@@ -1,5 +1,6 @@
 import json
 import logging
+import ssl
 from io import BytesIO
 from typing import Any, AsyncIterable, Dict, Iterable, List, Optional, Type
 
@@ -30,11 +31,12 @@ class AlephHttpClient(AlephClient):
     http_session: aiohttp.ClientSession
 
     def __init__(
-        self,
-        api_server: Optional[str] = None,
-        api_unix_socket: Optional[str] = None,
-        allow_unix_sockets: bool = True,
-        timeout: Optional[aiohttp.ClientTimeout] = None,
+            self,
+            api_server: Optional[str] = None,
+            api_unix_socket: Optional[str] = None,
+            allow_unix_sockets: bool = True,
+            timeout: Optional[aiohttp.ClientTimeout] = None,
+            ssl_context: Optional[ssl.SSLContext] = None,
     ):
         """AlephClient can use HTTP(S) or HTTP over Unix sockets.
         Unix sockets are used when running inside a virtual machine,
@@ -48,6 +50,8 @@ class AlephHttpClient(AlephClient):
         if unix_socket_path and allow_unix_sockets:
             check_unix_socket_valid(unix_socket_path)
             connector = aiohttp.UnixConnector(path=unix_socket_path)
+        elif ssl_context:
+            connector = aiohttp.TCPConnector(ssl=ssl_context)
         else:
             connector = None
 
@@ -79,7 +83,7 @@ class AlephHttpClient(AlephClient):
         params: Dict[str, Any] = {"keys": key}
 
         async with self.http_session.get(
-            f"/api/v0/aggregates/{address}.json", params=params
+                f"/api/v0/aggregates/{address}.json", params=params
         ) as resp:
             resp.raise_for_status()
             result = await resp.json()
@@ -87,7 +91,7 @@ class AlephHttpClient(AlephClient):
             return data.get(key)
 
     async def fetch_aggregates(
-        self, address: str, keys: Optional[Iterable[str]] = None
+            self, address: str, keys: Optional[Iterable[str]] = None
     ) -> Dict[str, Dict]:
         keys_str = ",".join(keys) if keys else ""
         params: Dict[str, Any] = {}
@@ -95,8 +99,8 @@ class AlephHttpClient(AlephClient):
             params["keys"] = keys_str
 
         async with self.http_session.get(
-            f"/api/v0/aggregates/{address}.json",
-            params=params,
+                f"/api/v0/aggregates/{address}.json",
+                params=params,
         ) as resp:
             resp.raise_for_status()
             result = await resp.json()
@@ -104,12 +108,12 @@ class AlephHttpClient(AlephClient):
             return data
 
     async def get_posts(
-        self,
-        page_size: int = 200,
-        page: int = 1,
-        post_filter: Optional[PostFilter] = None,
-        ignore_invalid_messages: Optional[bool] = True,
-        invalid_messages_log_level: Optional[int] = logging.NOTSET,
+            self,
+            page_size: int = 200,
+            page: int = 1,
+            post_filter: Optional[PostFilter] = None,
+            ignore_invalid_messages: Optional[bool] = True,
+            invalid_messages_log_level: Optional[int] = logging.NOTSET,
     ) -> PostsResponse:
         ignore_invalid_messages = (
             True if ignore_invalid_messages is None else ignore_invalid_messages
@@ -153,9 +157,9 @@ class AlephHttpClient(AlephClient):
             )
 
     async def download_file_to_buffer(
-        self,
-        file_hash: str,
-        output_buffer: Writable[bytes],
+            self,
+            file_hash: str,
+            output_buffer: Writable[bytes],
     ) -> None:
         """
         Download a file from the storage engine and write it to the specified output buffer.
@@ -164,7 +168,7 @@ class AlephHttpClient(AlephClient):
         """
 
         async with self.http_session.get(
-            f"/api/v0/storage/raw/{file_hash}"
+                f"/api/v0/storage/raw/{file_hash}"
         ) as response:
             if response.status == 200:
                 await copy_async_readable_to_buffer(
@@ -180,9 +184,9 @@ class AlephHttpClient(AlephClient):
                     raise FileTooLarge(f"The file from {file_hash} is too large")
 
     async def download_file_ipfs_to_buffer(
-        self,
-        file_hash: str,
-        output_buffer: Writable[bytes],
+            self,
+            file_hash: str,
+            output_buffer: Writable[bytes],
     ) -> None:
         """
         Download a file from the storage engine and write it to the specified output buffer.
@@ -192,7 +196,7 @@ class AlephHttpClient(AlephClient):
         """
         async with aiohttp.ClientSession() as session:
             async with session.get(
-                f"https://ipfs.aleph.im/ipfs/{file_hash}"
+                    f"https://ipfs.aleph.im/ipfs/{file_hash}"
             ) as response:
                 if response.status == 200:
                     await copy_async_readable_to_buffer(
@@ -202,8 +206,8 @@ class AlephHttpClient(AlephClient):
                     response.raise_for_status()
 
     async def download_file(
-        self,
-        file_hash: str,
+            self,
+            file_hash: str,
     ) -> bytes:
         """
         Get a file from the storage engine as raw bytes.
@@ -217,8 +221,8 @@ class AlephHttpClient(AlephClient):
         return buffer.getvalue()
 
     async def download_file_ipfs(
-        self,
-        file_hash: str,
+            self,
+            file_hash: str,
     ) -> bytes:
         """
         Get a file from the ipfs storage engine as raw bytes.
@@ -232,12 +236,12 @@ class AlephHttpClient(AlephClient):
         return buffer.getvalue()
 
     async def get_messages(
-        self,
-        page_size: int = 200,
-        page: int = 1,
-        message_filter: Optional[MessageFilter] = None,
-        ignore_invalid_messages: Optional[bool] = True,
-        invalid_messages_log_level: Optional[int] = logging.NOTSET,
+            self,
+            page_size: int = 200,
+            page: int = 1,
+            message_filter: Optional[MessageFilter] = None,
+            ignore_invalid_messages: Optional[bool] = True,
+            invalid_messages_log_level: Optional[int] = logging.NOTSET,
     ) -> MessagesResponse:
         ignore_invalid_messages = (
             True if ignore_invalid_messages is None else ignore_invalid_messages
@@ -259,7 +263,7 @@ class AlephHttpClient(AlephClient):
             params["pagination"] = str(page_size)
 
         async with self.http_session.get(
-            "/api/v0/messages.json", params=params
+                "/api/v0/messages.json", params=params
         ) as resp:
             resp.raise_for_status()
             response_json = await resp.json()
@@ -294,9 +298,9 @@ class AlephHttpClient(AlephClient):
             )
 
     async def get_message(
-        self,
-        item_hash: str,
-        message_type: Optional[Type[GenericMessage]] = None,
+            self,
+            item_hash: str,
+            message_type: Optional[Type[GenericMessage]] = None,
     ) -> GenericMessage:
         async with self.http_session.get(f"/api/v0/messages/{item_hash}") as resp:
             try:
@@ -321,8 +325,8 @@ class AlephHttpClient(AlephClient):
         return message
 
     async def get_message_error(
-        self,
-        item_hash: str,
+            self,
+            item_hash: str,
     ) -> Optional[Dict[str, Any]]:
         async with self.http_session.get(f"/api/v0/messages/{item_hash}") as resp:
             try:
@@ -344,14 +348,14 @@ class AlephHttpClient(AlephClient):
         }
 
     async def watch_messages(
-        self,
-        message_filter: Optional[MessageFilter] = None,
+            self,
+            message_filter: Optional[MessageFilter] = None,
     ) -> AsyncIterable[AlephMessage]:
         message_filter = message_filter or MessageFilter()
         params = message_filter.as_http_params()
 
         async with self.http_session.ws_connect(
-            "/api/ws0/messages", params=params
+                "/api/ws0/messages", params=params
         ) as ws:
             logger.debug("Websocket connected")
             async for msg in ws:

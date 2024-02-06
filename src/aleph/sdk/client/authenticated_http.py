@@ -4,6 +4,7 @@ import logging
 import time
 from pathlib import Path
 from typing import Any, Dict, List, Mapping, NoReturn, Optional, Tuple, Union
+import ssl
 
 import aiohttp
 from aleph_message import parse_message
@@ -66,18 +67,20 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
     }
 
     def __init__(
-        self,
-        account: Account,
-        api_server: Optional[str] = None,
-        api_unix_socket: Optional[str] = None,
-        allow_unix_sockets: bool = True,
-        timeout: Optional[aiohttp.ClientTimeout] = None,
+            self,
+            account: Account,
+            api_server: Optional[str] = None,
+            api_unix_socket: Optional[str] = None,
+            allow_unix_sockets: bool = True,
+            timeout: Optional[aiohttp.ClientTimeout] = None,
+            ssl_context: Optional[ssl.SSLContext] = None,
     ):
         super().__init__(
             api_server=api_server,
             api_unix_socket=api_unix_socket,
             allow_unix_sockets=allow_unix_sockets,
             timeout=timeout,
+            ssl_context=ssl_context,
         )
         self.account = account
 
@@ -192,8 +195,8 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
             raise BroadcastError(error_msg)
 
     async def _handle_broadcast_deprecated_response(
-        self,
-        response: aiohttp.ClientResponse,
+            self,
+            response: aiohttp.ClientResponse,
     ) -> None:
         if response.status != 200:
             await self._handle_broadcast_error(response)
@@ -210,16 +213,16 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
         url = "/api/v0/ipfs/pubsub/pub"
         logger.debug(f"Posting message on {url}")
         async with self.http_session.post(
-            url,
-            json={
-                "topic": "ALEPH-TEST",
-                "data": message_dict,
-            },
+                url,
+                json={
+                    "topic": "ALEPH-TEST",
+                    "data": message_dict,
+                },
         ) as response:
             await self._handle_broadcast_deprecated_response(response)
 
     async def _handle_broadcast_response(
-        self, response: aiohttp.ClientResponse, sync: bool, raise_on_rejected: bool
+            self, response: aiohttp.ClientResponse, sync: bool, raise_on_rejected: bool
     ) -> Tuple[Dict[str, Any], MessageStatus]:
         if response.status in (200, 202):
             status = await response.json()
@@ -239,10 +242,10 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
             await self._handle_broadcast_error(response)
 
     async def _broadcast(
-        self,
-        message: AlephMessage,
-        sync: bool,
-        raise_on_rejected: bool = True,
+            self,
+            message: AlephMessage,
+            sync: bool,
+            raise_on_rejected: bool = True,
     ) -> Tuple[Dict[str, Any], MessageStatus]:
         """
         Broadcast a message on the aleph.im network.
@@ -256,11 +259,11 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
 
         message_dict = message.dict(include=self.BROADCAST_MESSAGE_FIELDS)
         async with self.http_session.post(
-            url,
-            json={
-                "sync": sync,
-                "message": message_dict,
-            },
+                url,
+                json={
+                    "sync": sync,
+                    "message": message_dict,
+                },
         ) as response:
             # The endpoint may be unavailable on this node, try the deprecated version.
             if response.status in (404, 405):
@@ -275,15 +278,15 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
                 )
 
     async def create_post(
-        self,
-        post_content,
-        post_type: str,
-        ref: Optional[str] = None,
-        address: Optional[str] = None,
-        channel: Optional[str] = None,
-        inline: bool = True,
-        storage_engine: StorageEnum = StorageEnum.storage,
-        sync: bool = False,
+            self,
+            post_content,
+            post_type: str,
+            ref: Optional[str] = None,
+            address: Optional[str] = None,
+            channel: Optional[str] = None,
+            inline: bool = True,
+            storage_engine: StorageEnum = StorageEnum.storage,
+            sync: bool = False,
     ) -> Tuple[PostMessage, MessageStatus]:
         address = address or settings.ADDRESS_TO_USE or self.account.get_address()
 
@@ -306,13 +309,13 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
         return message, status
 
     async def create_aggregate(
-        self,
-        key: str,
-        content: Mapping[str, Any],
-        address: Optional[str] = None,
-        channel: Optional[str] = None,
-        inline: bool = True,
-        sync: bool = False,
+            self,
+            key: str,
+            content: Mapping[str, Any],
+            address: Optional[str] = None,
+            channel: Optional[str] = None,
+            inline: bool = True,
+            sync: bool = False,
     ) -> Tuple[AggregateMessage, MessageStatus]:
         address = address or settings.ADDRESS_TO_USE or self.account.get_address()
 
@@ -333,17 +336,17 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
         return message, status
 
     async def create_store(
-        self,
-        address: Optional[str] = None,
-        file_content: Optional[bytes] = None,
-        file_path: Optional[Union[str, Path]] = None,
-        file_hash: Optional[str] = None,
-        guess_mime_type: bool = False,
-        ref: Optional[str] = None,
-        storage_engine: StorageEnum = StorageEnum.storage,
-        extra_fields: Optional[dict] = None,
-        channel: Optional[str] = None,
-        sync: bool = False,
+            self,
+            address: Optional[str] = None,
+            file_content: Optional[bytes] = None,
+            file_path: Optional[Union[str, Path]] = None,
+            file_hash: Optional[str] = None,
+            guess_mime_type: bool = False,
+            ref: Optional[str] = None,
+            storage_engine: StorageEnum = StorageEnum.storage,
+            extra_fields: Optional[dict] = None,
+            channel: Optional[str] = None,
+            sync: bool = False,
     ) -> Tuple[StoreMessage, MessageStatus]:
         address = address or settings.ADDRESS_TO_USE or self.account.get_address()
 
@@ -407,26 +410,26 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
         return message, status
 
     async def create_program(
-        self,
-        program_ref: str,
-        entrypoint: str,
-        runtime: str,
-        environment_variables: Optional[Mapping[str, str]] = None,
-        storage_engine: StorageEnum = StorageEnum.storage,
-        channel: Optional[str] = None,
-        address: Optional[str] = None,
-        sync: bool = False,
-        memory: Optional[int] = None,
-        vcpus: Optional[int] = None,
-        timeout_seconds: Optional[float] = None,
-        persistent: bool = False,
-        allow_amend: bool = False,
-        internet: bool = True,
-        aleph_api: bool = True,
-        encoding: Encoding = Encoding.zip,
-        volumes: Optional[List[Mapping]] = None,
-        subscriptions: Optional[List[Mapping]] = None,
-        metadata: Optional[Mapping[str, Any]] = None,
+            self,
+            program_ref: str,
+            entrypoint: str,
+            runtime: str,
+            environment_variables: Optional[Mapping[str, str]] = None,
+            storage_engine: StorageEnum = StorageEnum.storage,
+            channel: Optional[str] = None,
+            address: Optional[str] = None,
+            sync: bool = False,
+            memory: Optional[int] = None,
+            vcpus: Optional[int] = None,
+            timeout_seconds: Optional[float] = None,
+            persistent: bool = False,
+            allow_amend: bool = False,
+            internet: bool = True,
+            aleph_api: bool = True,
+            encoding: Encoding = Encoding.zip,
+            volumes: Optional[List[Mapping]] = None,
+            subscriptions: Optional[List[Mapping]] = None,
+            metadata: Optional[Mapping[str, Any]] = None,
     ) -> Tuple[ProgramMessage, MessageStatus]:
         address = address or settings.ADDRESS_TO_USE or self.account.get_address()
 
@@ -500,26 +503,26 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
         return message, status
 
     async def create_instance(
-        self,
-        rootfs: str,
-        rootfs_size: int,
-        rootfs_name: str,
-        environment_variables: Optional[Mapping[str, str]] = None,
-        storage_engine: StorageEnum = StorageEnum.storage,
-        channel: Optional[str] = None,
-        address: Optional[str] = None,
-        sync: bool = False,
-        memory: Optional[int] = None,
-        vcpus: Optional[int] = None,
-        timeout_seconds: Optional[float] = None,
-        allow_amend: bool = False,
-        internet: bool = True,
-        aleph_api: bool = True,
-        encoding: Encoding = Encoding.zip,
-        volumes: Optional[List[Mapping]] = None,
-        volume_persistence: str = "host",
-        ssh_keys: Optional[List[str]] = None,
-        metadata: Optional[Mapping[str, Any]] = None,
+            self,
+            rootfs: str,
+            rootfs_size: int,
+            rootfs_name: str,
+            environment_variables: Optional[Mapping[str, str]] = None,
+            storage_engine: StorageEnum = StorageEnum.storage,
+            channel: Optional[str] = None,
+            address: Optional[str] = None,
+            sync: bool = False,
+            memory: Optional[int] = None,
+            vcpus: Optional[int] = None,
+            timeout_seconds: Optional[float] = None,
+            allow_amend: bool = False,
+            internet: bool = True,
+            aleph_api: bool = True,
+            encoding: Encoding = Encoding.zip,
+            volumes: Optional[List[Mapping]] = None,
+            volume_persistence: str = "host",
+            ssh_keys: Optional[List[str]] = None,
+            metadata: Optional[Mapping[str, Any]] = None,
     ) -> Tuple[InstanceMessage, MessageStatus]:
         address = address or settings.ADDRESS_TO_USE or self.account.get_address()
 
@@ -591,13 +594,13 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
             raise ValueError(f"Unknown error code {error_code}: {rejected_message}")
 
     async def forget(
-        self,
-        hashes: List[str],
-        reason: Optional[str],
-        storage_engine: StorageEnum = StorageEnum.storage,
-        channel: Optional[str] = None,
-        address: Optional[str] = None,
-        sync: bool = False,
+            self,
+            hashes: List[str],
+            reason: Optional[str],
+            storage_engine: StorageEnum = StorageEnum.storage,
+            channel: Optional[str] = None,
+            address: Optional[str] = None,
+            sync: bool = False,
     ) -> Tuple[ForgetMessage, MessageStatus]:
         address = address or settings.ADDRESS_TO_USE or self.account.get_address()
 
@@ -625,12 +628,12 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
         return h.hexdigest()
 
     async def _prepare_aleph_message(
-        self,
-        message_type: MessageType,
-        content: Dict[str, Any],
-        channel: Optional[str],
-        allow_inlining: bool = True,
-        storage_engine: StorageEnum = StorageEnum.storage,
+            self,
+            message_type: MessageType,
+            content: Dict[str, Any],
+            channel: Optional[str],
+            allow_inlining: bool = True,
+            storage_engine: StorageEnum = StorageEnum.storage,
     ) -> AlephMessage:
         message_dict: Dict[str, Any] = {
             "sender": self.account.get_address(),
@@ -667,14 +670,14 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
         return parse_message(message_dict)
 
     async def submit(
-        self,
-        content: Dict[str, Any],
-        message_type: MessageType,
-        channel: Optional[str] = None,
-        storage_engine: StorageEnum = StorageEnum.storage,
-        allow_inlining: bool = True,
-        sync: bool = False,
-        raise_on_rejected: bool = True,
+            self,
+            content: Dict[str, Any],
+            message_type: MessageType,
+            channel: Optional[str] = None,
+            storage_engine: StorageEnum = StorageEnum.storage,
+            allow_inlining: bool = True,
+            sync: bool = False,
+            raise_on_rejected: bool = True,
     ) -> Tuple[AlephMessage, MessageStatus, Optional[Dict[str, Any]]]:
         message = await self._prepare_aleph_message(
             message_type=message_type,
@@ -689,11 +692,11 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
         return message, message_status, response
 
     async def _storage_push_file_with_message(
-        self,
-        file_content: bytes,
-        store_content: StoreContent,
-        channel: Optional[str] = None,
-        sync: bool = False,
+            self,
+            file_content: bytes,
+            store_content: StoreContent,
+            channel: Optional[str] = None,
+            sync: bool = False,
     ) -> Tuple[StoreMessage, MessageStatus]:
         """Push a file to the storage service."""
         data = aiohttp.FormData()
@@ -727,14 +730,14 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
             return message, message_status
 
     async def _upload_file_native(
-        self,
-        address: str,
-        file_content: bytes,
-        guess_mime_type: bool = False,
-        ref: Optional[str] = None,
-        extra_fields: Optional[dict] = None,
-        channel: Optional[str] = None,
-        sync: bool = False,
+            self,
+            address: str,
+            file_content: bytes,
+            guess_mime_type: bool = False,
+            ref: Optional[str] = None,
+            extra_fields: Optional[dict] = None,
+            channel: Optional[str] = None,
+            sync: bool = False,
     ) -> Tuple[StoreMessage, MessageStatus]:
         file_hash = hashlib.sha256(file_content).hexdigest()
         if magic and guess_mime_type:
