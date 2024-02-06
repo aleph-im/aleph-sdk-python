@@ -1,6 +1,7 @@
 import hashlib
 import json
 import logging
+import ssl
 import time
 from pathlib import Path
 from typing import Any, Dict, List, Mapping, NoReturn, Optional, Tuple, Union
@@ -72,12 +73,14 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
         api_unix_socket: Optional[str] = None,
         allow_unix_sockets: bool = True,
         timeout: Optional[aiohttp.ClientTimeout] = None,
+        ssl_context: Optional[ssl.SSLContext] = None,
     ):
         super().__init__(
             api_server=api_server,
             api_unix_socket=api_unix_socket,
             allow_unix_sockets=allow_unix_sockets,
             timeout=timeout,
+            ssl_context=ssl_context,
         )
         self.account = account
 
