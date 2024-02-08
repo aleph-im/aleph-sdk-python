@@ -363,7 +363,6 @@ class AuthenticatedAlephClient(AlephClient):
         allow_amend: bool = False,
         internet: bool = True,
         aleph_api: bool = True,
-        encoding: Encoding = Encoding.zip,
         volumes: Optional[List[Mapping]] = None,
         volume_persistence: str = "host",
         ssh_keys: Optional[List[str]] = None,
