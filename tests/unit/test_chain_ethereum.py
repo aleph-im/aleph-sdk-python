@@ -5,7 +5,7 @@ from tempfile import NamedTemporaryFile
 import pytest
 
 from aleph.sdk.chains.common import get_verification_buffer
-from aleph.sdk.chains.ethereum import get_fallback_account, verify_signature, ETHAccount
+from aleph.sdk.chains.ethereum import ETHAccount, get_fallback_account, verify_signature
 from aleph.sdk.exceptions import BadSignatureError
 
 
