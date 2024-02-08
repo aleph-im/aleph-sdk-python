@@ -36,6 +36,11 @@ class ETHAccount(BaseAccount):
     def get_public_key(self) -> str:
         return "0x" + get_public_key(private_key=self._account.key).hex()
 
+    @staticmethod
+    def from_mnemonic(mnemonic: str) -> "ETHAccount":
+        Account.enable_unaudited_hdwallet_features()
+        return ETHAccount(private_key=Account.from_mnemonic(mnemonic=mnemonic).key)
+
 
 def get_fallback_account(path: Optional[Path] = None) -> ETHAccount:
     return ETHAccount(private_key=get_fallback_private_key(path=path))
