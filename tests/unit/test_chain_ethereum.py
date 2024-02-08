@@ -5,7 +5,7 @@ from tempfile import NamedTemporaryFile
 import pytest
 
 from aleph.sdk.chains.common import get_verification_buffer
-from aleph.sdk.chains.ethereum import get_fallback_account, verify_signature
+from aleph.sdk.chains.ethereum import ETHAccount, get_fallback_account, verify_signature
 from aleph.sdk.exceptions import BadSignatureError
 
 
@@ -156,3 +156,14 @@ async def test_sign_raw(ethereum_account):
     assert isinstance(signature, bytes)
 
     verify_signature(signature, ethereum_account.get_address(), buffer)
+
+
+def test_from_mnemonic():
+    mnemonic = (
+        "indoor dish desk flag debris potato excuse depart ticket judge file exit"
+    )
+    account = ETHAccount.from_mnemonic(mnemonic)
+    assert (
+        account.get_public_key()
+        == "0x0226cc24348fbe0c2912fbb0aa4408e089bb0ae488a88ac46bb13290629a737646"
+    )
