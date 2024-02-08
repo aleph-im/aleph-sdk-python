@@ -1,10 +1,10 @@
 import hashlib
 import json
 import logging
+import ssl
 import time
 from pathlib import Path
 from typing import Any, Dict, List, Mapping, NoReturn, Optional, Tuple, Union
-import ssl
 
 import aiohttp
 from aleph_message import parse_message
