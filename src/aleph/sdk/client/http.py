@@ -1,8 +1,8 @@
 import json
 import logging
-from io import BytesIO
-from typing import Any, AsyncIterable, Dict, Iterable, List, Optional, Type
 import ssl
+from io import BytesIO
+from typing import Any, AsyncIterable, Dict, Iterable, List, Optional, Type, Union
 
 import aiohttp
 from aleph_message import parse_message
@@ -46,6 +46,7 @@ class AlephHttpClient(AlephClient):
         if not self.api_server:
             raise ValueError("Missing API host")
 
+        connector: Union[aiohttp.BaseConnector, None]
         unix_socket_path = api_unix_socket or settings.API_UNIX_SOCKET
         if ssl_context:
             connector = aiohttp.TCPConnector(ssl=ssl_context)
