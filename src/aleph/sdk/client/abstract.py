@@ -20,6 +20,7 @@ from aleph_message.models import (
     AlephMessage,
     MessagesResponse,
     MessageType,
+    Payment,
     PostMessage,
 )
 from aleph_message.models.execution.program import Encoding
@@ -352,6 +353,7 @@ class AuthenticatedAlephClient(AlephClient):
         rootfs: str,
         rootfs_size: int,
         rootfs_name: str,
+        payment: Optional[Payment] = None,
         environment_variables: Optional[Mapping[str, str]] = None,
         storage_engine: StorageEnum = StorageEnum.storage,
         channel: Optional[str] = None,
@@ -374,6 +376,7 @@ class AuthenticatedAlephClient(AlephClient):
         :param rootfs: Root filesystem to use
         :param rootfs_size: Size of root filesystem
         :param rootfs_name: Name of root filesystem
+        :param payment: Payment method used to pay for the instance
         :param environment_variables: Environment variables to pass to the program
         :param storage_engine: Storage engine to use (Default: "storage")
         :param channel: Channel to use (Default: "TEST")

@@ -12,6 +12,7 @@ from aleph_message.models import (
     AggregateContent,
     AggregateMessage,
     AlephMessage,
+    Chain,
     ForgetContent,
     ForgetMessage,
     InstanceContent,
@@ -25,7 +26,7 @@ from aleph_message.models import (
     StoreContent,
     StoreMessage,
 )
-from aleph_message.models.execution.base import Encoding
+from aleph_message.models.execution.base import Encoding, Payment, PaymentType
 from aleph_message.models.execution.environment import (
     FunctionEnvironment,
     MachineResources,
@@ -507,6 +508,7 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
         rootfs: str,
         rootfs_size: int,
         rootfs_name: str,
+        payment: Optional[Payment] = None,
         environment_variables: Optional[Mapping[str, str]] = None,
         storage_engine: StorageEnum = StorageEnum.storage,
         channel: Optional[str] = None,
@@ -529,6 +531,8 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
         memory = memory or settings.DEFAULT_VM_MEMORY
         vcpus = vcpus or settings.DEFAULT_VM_VCPUS
         timeout_seconds = timeout_seconds or settings.DEFAULT_VM_TIMEOUT
+
+        payment = payment or Payment(chain=Chain.ETH, type=PaymentType.hold)
 
         content = InstanceContent(
             address=address,
@@ -563,6 +567,7 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
             time=time.time(),
             authorized_keys=ssh_keys,
             metadata=metadata,
+            payment=payment,
         )
         message, status, response = await self.submit(
             content=content.dict(exclude_none=True),

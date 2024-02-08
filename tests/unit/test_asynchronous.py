@@ -4,9 +4,12 @@ from unittest.mock import AsyncMock
 import pytest as pytest
 from aleph_message.models import (
     AggregateMessage,
+    Chain,
     ForgetMessage,
     InstanceMessage,
     MessageType,
+    Payment,
+    PaymentType,
     PostMessage,
     ProgramMessage,
     StoreMessage,
@@ -108,7 +111,34 @@ async def test_create_instance(mock_session_with_post_success):
             rootfs_name="rootfs",
             channel="TEST",
             metadata={"tags": ["test"]},
+            payment=Payment(
+                chain=Chain.AVAX,
+                receiver="0x4145f182EF2F06b45E50468519C1B92C60FBd4A0",
+                type=PaymentType.superfluid,
+            ),
         )
+
+    assert mock_session_with_post_success.http_session.post.called_once
+    assert isinstance(instance_message, InstanceMessage)
+
+
+@pytest.mark.asyncio
+async def test_create_instance_no_payment(mock_session_with_post_success):
+    """Test that an instance can be created with no payment specified.
+    It should in this case default to "holding" on "ETH".
+    """
+    async with mock_session_with_post_success as session:
+        instance_message, message_status = await session.create_instance(
+            rootfs="cafecafecafecafecafecafecafecafecafecafecafecafecafecafecafecafe",
+            rootfs_size=1,
+            rootfs_name="rootfs",
+            channel="TEST",
+            metadata={"tags": ["test"]},
+            payment=None,
+        )
+
+    assert instance_message.content.payment.type == PaymentType.hold
+    assert instance_message.content.payment.chain == Chain.ETH
 
     assert mock_session_with_post_success.http_session.post.called_once
     assert isinstance(instance_message, InstanceMessage)
@@ -199,4 +229,8 @@ async def test_create_instance_insufficient_funds_error(
                 rootfs_name="rootfs",
                 channel="TEST",
                 metadata={"tags": ["test"]},
+                payment=Payment(
+                    chain=Chain.ETH,
+                    type=PaymentType.hold,
+                ),
             )
