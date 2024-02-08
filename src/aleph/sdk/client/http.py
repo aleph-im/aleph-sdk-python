@@ -47,11 +47,11 @@ class AlephHttpClient(AlephClient):
             raise ValueError("Missing API host")
 
         unix_socket_path = api_unix_socket or settings.API_UNIX_SOCKET
-        if unix_socket_path and allow_unix_sockets:
+        if ssl_context:
+            connector = aiohttp.TCPConnector(ssl=ssl_context)
+        elif unix_socket_path and allow_unix_sockets:
             check_unix_socket_valid(unix_socket_path)
             connector = aiohttp.UnixConnector(path=unix_socket_path)
-        elif ssl_context:
-            connector = aiohttp.TCPConnector(ssl=ssl_context)
         else:
             connector = None
 
