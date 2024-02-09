@@ -242,7 +242,9 @@ class AuthenticatedAlephClient(AlephClient):
         :param storage_engine: An optional storage engine to use for the message, if not inlined (Default: "storage")
         :param sync: If true, waits for the message to be processed by the API server (Default: False)
         """
-        raise NotImplementedError("Did you mean to import `AuthenticatedAlephHttpClient`?")
+        raise NotImplementedError(
+            "Did you mean to import `AuthenticatedAlephHttpClient`?"
+        )
 
     @abstractmethod
     async def create_aggregate(
@@ -264,7 +266,9 @@ class AuthenticatedAlephClient(AlephClient):
         :param inline: Whether to write content inside the message (Default: True)
         :param sync: If true, waits for the message to be processed by the API server (Default: False)
         """
-        raise NotImplementedError("Did you mean to import `AuthenticatedAlephHttpClient`?")
+        raise NotImplementedError(
+            "Did you mean to import `AuthenticatedAlephHttpClient`?"
+        )
 
     @abstractmethod
     async def create_store(
@@ -296,7 +300,9 @@ class AuthenticatedAlephClient(AlephClient):
         :param channel: Channel to post the message to (Default: "TEST")
         :param sync: If true, waits for the message to be processed by the API server (Default: False)
         """
-        raise NotImplementedError("Did you mean to import `AuthenticatedAlephHttpClient`?")
+        raise NotImplementedError(
+            "Did you mean to import `AuthenticatedAlephHttpClient`?"
+        )
 
     @abstractmethod
     async def create_program(
@@ -344,7 +350,9 @@ class AuthenticatedAlephClient(AlephClient):
         :param subscriptions: Patterns of aleph.im messages to forward to the program's event receiver
         :param metadata: Metadata to attach to the message
         """
-        raise NotImplementedError("Did you mean to import `AuthenticatedAlephHttpClient`?")
+        raise NotImplementedError(
+            "Did you mean to import `AuthenticatedAlephHttpClient`?"
+        )
 
     @abstractmethod
     async def create_instance(
@@ -392,7 +400,9 @@ class AuthenticatedAlephClient(AlephClient):
         :param ssh_keys: SSH keys to authorize access to the VM
         :param metadata: Metadata to attach to the message
         """
-        raise NotImplementedError("Did you mean to import `AuthenticatedAlephHttpClient`?")
+        raise NotImplementedError(
+            "Did you mean to import `AuthenticatedAlephHttpClient`?"
+        )
 
     @abstractmethod
     async def forget(
@@ -417,7 +427,9 @@ class AuthenticatedAlephClient(AlephClient):
         :param address: Address to use (Default: account.get_address())
         :param sync: If true, waits for the message to be processed by the API server (Default: False)
         """
-        raise NotImplementedError("Did you mean to import `AuthenticatedAlephHttpClient`?")
+        raise NotImplementedError(
+            "Did you mean to import `AuthenticatedAlephHttpClient`?"
+        )
 
     @abstractmethod
     async def submit(
@@ -442,7 +454,9 @@ class AuthenticatedAlephClient(AlephClient):
         :param sync: If true, waits for the message to be processed by the API server (Default: False)
         :param raise_on_rejected: Whether to raise an exception if the message is rejected (Default: True)
         """
-        raise NotImplementedError("Did you mean to import `AuthenticatedAlephHttpClient`?")
+        raise NotImplementedError(
+            "Did you mean to import `AuthenticatedAlephHttpClient`?"
+        )
 
     async def ipfs_push(self, content: Mapping) -> str:
         """
