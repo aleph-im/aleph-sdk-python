@@ -16,7 +16,7 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v3
 
       - name: Workaround github issue https://github.com/actions/runner-images/issues/7192
         if: startsWith(matrix.os, 'ubuntu-')
@@ -24,12 +24,12 @@ jobs:
 
       - name: Set up Python
         if: startsWith(matrix.os, 'macos')
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v2
         with:
           python-version: 3.11
 
       - name: Cache dependencies
-        uses: actions/cache@v4
+        uses: actions/cache@v3
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-build-wheels-${{ hashFiles('setup.cfg', 'setup.py') }}
