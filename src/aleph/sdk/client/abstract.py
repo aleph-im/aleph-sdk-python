@@ -43,7 +43,7 @@ class AlephClient(ABC):
         :param address: Address of the owner of the aggregate
         :param key: Key of the aggregate
         """
-        raise ImportError("Did you mean to import `AlephHttpClient`?")
+        pass
 
     @abstractmethod
     async def fetch_aggregates(
@@ -55,7 +55,7 @@ class AlephClient(ABC):
         :param address: Address of the owner of the aggregate
         :param keys: Keys of the aggregates to fetch (Default: all items)
         """
-        raise ImportError("Did you mean to import `AlephHttpClient`?")
+        pass
 
     @abstractmethod
     async def get_posts(
@@ -75,7 +75,7 @@ class AlephClient(ABC):
         :param ignore_invalid_messages: Ignore invalid messages (Default: True)
         :param invalid_messages_log_level: Log level to use for invalid messages (Default: logging.NOTSET)
         """
-        raise ImportError("Did you mean to import `AlephHttpClient`?")
+        pass
 
     async def get_posts_iterator(
         self,
@@ -110,7 +110,7 @@ class AlephClient(ABC):
 
         :param file_hash: The hash of the file to retrieve.
         """
-        raise ImportError("Did you mean to import `AlephHttpClient`?")
+        pass
 
     async def download_file_ipfs(
         self,
@@ -168,7 +168,7 @@ class AlephClient(ABC):
         :param ignore_invalid_messages: Ignore invalid messages (Default: True)
         :param invalid_messages_log_level: Log level to use for invalid messages (Default: logging.NOTSET)
         """
-        raise ImportError("Did you mean to import `AlephHttpClient`?")
+        pass
 
     async def get_messages_iterator(
         self,
@@ -203,7 +203,7 @@ class AlephClient(ABC):
         :param item_hash: Hash of the message to fetch
         :param message_type: Type of message to fetch
         """
-        raise ImportError("Did you mean to import `AlephHttpClient`?")
+        pass
 
     @abstractmethod
     def watch_messages(
@@ -215,7 +215,7 @@ class AlephClient(ABC):
 
         :param message_filter: Filter to apply to the messages
         """
-        raise ImportError("Did you mean to import `AlephHttpClient`?")
+        pass
 
 
 class AuthenticatedAlephClient(AlephClient):
@@ -243,7 +243,7 @@ class AuthenticatedAlephClient(AlephClient):
         :param storage_engine: An optional storage engine to use for the message, if not inlined (Default: "storage")
         :param sync: If true, waits for the message to be processed by the API server (Default: False)
         """
-        raise ImportError("Did you mean to import `AuthenticatedAlephHttpClient`?")
+        pass
 
     @abstractmethod
     async def create_aggregate(
@@ -265,7 +265,7 @@ class AuthenticatedAlephClient(AlephClient):
         :param inline: Whether to write content inside the message (Default: True)
         :param sync: If true, waits for the message to be processed by the API server (Default: False)
         """
-        raise ImportError("Did you mean to import `AuthenticatedAlephHttpClient`?")
+        pass
 
     @abstractmethod
     async def create_store(
@@ -297,7 +297,7 @@ class AuthenticatedAlephClient(AlephClient):
         :param channel: Channel to post the message to (Default: "TEST")
         :param sync: If true, waits for the message to be processed by the API server (Default: False)
         """
-        raise ImportError("Did you mean to import `AuthenticatedAlephHttpClient`?")
+        pass
 
     @abstractmethod
     async def create_program(
@@ -345,7 +345,7 @@ class AuthenticatedAlephClient(AlephClient):
         :param subscriptions: Patterns of aleph.im messages to forward to the program's event receiver
         :param metadata: Metadata to attach to the message
         """
-        raise ImportError("Did you mean to import `AuthenticatedAlephHttpClient`?")
+        pass
 
     @abstractmethod
     async def create_instance(
@@ -394,7 +394,7 @@ class AuthenticatedAlephClient(AlephClient):
         :param ssh_keys: SSH keys to authorize access to the VM
         :param metadata: Metadata to attach to the message
         """
-        raise ImportError("Did you mean to import `AuthenticatedAlephHttpClient`?")
+        pass
 
     @abstractmethod
     async def forget(
@@ -419,7 +419,7 @@ class AuthenticatedAlephClient(AlephClient):
         :param address: Address to use (Default: account.get_address())
         :param sync: If true, waits for the message to be processed by the API server (Default: False)
         """
-        raise ImportError("Did you mean to import `AuthenticatedAlephHttpClient`?")
+        pass
 
     @abstractmethod
     async def submit(
@@ -444,7 +444,7 @@ class AuthenticatedAlephClient(AlephClient):
         :param sync: If true, waits for the message to be processed by the API server (Default: False)
         :param raise_on_rejected: Whether to raise an exception if the message is rejected (Default: True)
         """
-        raise ImportError("Did you mean to import `AuthenticatedAlephHttpClient`?")
+        pass
 
     async def ipfs_push(self, content: Mapping) -> str:
         """
