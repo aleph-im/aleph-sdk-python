@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Any, Dict, Iterable, List, Mapping, Optional, Tuple, Union
 
 from aleph_message.models import AlephMessage, Chain, MessageType
-from aleph_message.models.execution.base import Encoding
+from aleph_message.models.execution.base import Encoding, Payment
 from aleph_message.status import MessageStatus
 
 from ..query.filters import MessageFilter
@@ -361,6 +361,7 @@ class LightNode(MessageCache, AuthenticatedAlephClient):
         rootfs: str,
         rootfs_size: int,
         rootfs_name: str,
+        payment: Optional[Payment] = None,
         environment_variables: Optional[Mapping[str, str]] = None,
         storage_engine: StorageEnum = StorageEnum.storage,
         channel: Optional[str] = None,
@@ -372,7 +373,6 @@ class LightNode(MessageCache, AuthenticatedAlephClient):
         allow_amend: bool = False,
         internet: bool = True,
         aleph_api: bool = True,
-        encoding: Encoding = Encoding.zip,
         volumes: Optional[List[Mapping]] = None,
         volume_persistence: str = "host",
         ssh_keys: Optional[List[str]] = None,
@@ -385,6 +385,7 @@ class LightNode(MessageCache, AuthenticatedAlephClient):
             rootfs=rootfs,
             rootfs_size=rootfs_size,
             rootfs_name=rootfs_name,
+            payment=payment,
             environment_variables=environment_variables,
             storage_engine=storage_engine,
             channel=channel,
@@ -396,7 +397,6 @@ class LightNode(MessageCache, AuthenticatedAlephClient):
             allow_amend=allow_amend,
             internet=internet,
             aleph_api=aleph_api,
-            encoding=encoding,
             volumes=volumes,
             volume_persistence=volume_persistence,
             ssh_keys=ssh_keys,
