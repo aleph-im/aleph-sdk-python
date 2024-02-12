@@ -19,7 +19,7 @@ def sanitize_cache_key(key: str) -> CacheKey:
 
 
 class BaseVmCache(abc.ABC):
-    """Virtual Machines can use this cache to store temporary data in memory on the host."""
+    """Virtual Machines can use this db to store temporary data in memory on the host."""
 
     @abc.abstractmethod
     async def get(self, key: str) -> Optional[bytes]:
@@ -43,7 +43,7 @@ class BaseVmCache(abc.ABC):
 
 
 class VmCache(BaseVmCache):
-    """Virtual Machines can use this cache to store temporary data in memory on the host."""
+    """Virtual Machines can use this db to store temporary data in memory on the host."""
 
     session: aiohttp.ClientSession
     cache: Dict[str, bytes]
@@ -74,7 +74,7 @@ class VmCache(BaseVmCache):
 
     async def get(self, key: str) -> Optional[bytes]:
         sanitized_key = sanitize_cache_key(key)
-        async with self.session.get(f"{self.api_host}/cache/{sanitized_key}") as resp:
+        async with self.session.get(f"{self.api_host}/db/{sanitized_key}") as resp:
             if resp.status == 404:
                 return None
 
@@ -85,16 +85,14 @@ class VmCache(BaseVmCache):
         sanitized_key = sanitize_cache_key(key)
         data = value if isinstance(value, bytes) else value.encode()
         async with self.session.put(
-            f"{self.api_host}/cache/{sanitized_key}", data=data
+            f"{self.api_host}/db/{sanitized_key}", data=data
         ) as resp:
             resp.raise_for_status()
             return await resp.json()
 
     async def delete(self, key: str) -> Any:
         sanitized_key = sanitize_cache_key(key)
-        async with self.session.delete(
-            f"{self.api_host}/cache/{sanitized_key}"
-        ) as resp:
+        async with self.session.delete(f"{self.api_host}/db/{sanitized_key}") as resp:
             resp.raise_for_status()
             return await resp.json()
 
@@ -103,15 +101,13 @@ class VmCache(BaseVmCache):
             raise ValueError(
                 "Pattern may only contain letters, numbers, underscore, ?, *, ^, -"
             )
-        async with self.session.get(
-            f"{self.api_host}/cache/?pattern={pattern}"
-        ) as resp:
+        async with self.session.get(f"{self.api_host}/db/?pattern={pattern}") as resp:
             resp.raise_for_status()
             return await resp.json()
 
 
 class LocalVmCache(BaseVmCache):
-    """This is a local, dict-based cache that can be used for testing purposes."""
+    """This is a local, dict-based db that can be used for testing purposes."""
 
     def __init__(self):
         self._cache: Dict[str, bytes] = {}
