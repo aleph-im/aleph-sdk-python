@@ -1,7 +1,8 @@
 import json
 import logging
+import ssl
 from io import BytesIO
-from typing import Any, AsyncIterable, Dict, Iterable, List, Optional, Type
+from typing import Any, AsyncIterable, Dict, Iterable, List, Optional, Type, Union
 
 import aiohttp
 from aleph_message import parse_message
@@ -36,6 +37,7 @@ class AlephHttpClient(AlephClient):
         api_unix_socket: Optional[str] = None,
         allow_unix_sockets: bool = True,
         timeout: Optional[aiohttp.ClientTimeout] = None,
+        ssl_context: Optional[ssl.SSLContext] = None,
     ):
         """AlephClient can use HTTP(S) or HTTP over Unix sockets.
         Unix sockets are used when running inside a virtual machine,
@@ -45,8 +47,11 @@ class AlephHttpClient(AlephClient):
         if not self.api_server:
             raise ValueError("Missing API host")
 
+        connector: Union[aiohttp.BaseConnector, None]
         unix_socket_path = api_unix_socket or settings.API_UNIX_SOCKET
-        if unix_socket_path and allow_unix_sockets:
+        if ssl_context:
+            connector = aiohttp.TCPConnector(ssl=ssl_context)
+        elif unix_socket_path and allow_unix_sockets:
             check_unix_socket_valid(unix_socket_path)
             connector = aiohttp.UnixConnector(path=unix_socket_path)
         else:
