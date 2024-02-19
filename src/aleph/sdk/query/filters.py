@@ -1,9 +1,22 @@
 from datetime import datetime
 from typing import Dict, Iterable, Optional, Union
-
 from aleph_message.models import MessageType
+from ..utils import _date_field_to_timestamp, serialize_list, enum_as_str
+from enum import Enum, IntEnum
 
-from ..utils import _date_field_to_timestamp, serialize_list
+
+class SortBy(str, Enum):
+    """Supported SortBy types"""
+
+    TIME = "time"
+    TX_TIME = "tx-time"
+
+
+class SortOrder(str, Enum):
+    """Supported SortOrder types"""
+
+    ASCENDING = "1"
+    DESCENDING = "-1"
 
 
 class MessageFilter:
@@ -20,6 +33,8 @@ class MessageFilter:
     :param chains: Filter by sender address chain
     :param start_date: Earliest date to fetch messages from
     :param end_date: Latest date to fetch messages from
+    :param sort_by: Sort by time or tx-time
+    :param sort_order: Sort by ascending or descending order
     """
 
     message_types: Optional[Iterable[MessageType]]
@@ -33,6 +48,8 @@ class MessageFilter:
     chains: Optional[Iterable[str]]
     start_date: Optional[Union[datetime, float]]
     end_date: Optional[Union[datetime, float]]
+    sort_by: Optional[SortBy]
+    sort_order: Optional[SortOrder]
 
     def __init__(
         self,
@@ -47,6 +64,8 @@ class MessageFilter:
         chains: Optional[Iterable[str]] = None,
         start_date: Optional[Union[datetime, float]] = None,
         end_date: Optional[Union[datetime, float]] = None,
+        sort_by: Optional[SortBy] = None,
+        sort_order: Optional[SortOrder] = None,
     ):
         self.message_types = message_types
         self.content_types = content_types
@@ -59,6 +78,8 @@ class MessageFilter:
         self.chains = chains
         self.start_date = start_date
         self.end_date = end_date
+        self.sort_by = sort_by
+        self.sort_order = sort_order
 
     def as_http_params(self) -> Dict[str, str]:
         """Convert the filters into a dict that can be used by an `aiohttp` client
@@ -66,7 +87,7 @@ class MessageFilter:
         """
 
         partial_result = {
-            "msgType": serialize_list(
+            "msgTypes": serialize_list(
                 [type.value for type in self.message_types]
                 if self.message_types
                 else None
@@ -81,6 +102,8 @@ class MessageFilter:
             "chains": serialize_list(self.chains),
             "startDate": _date_field_to_timestamp(self.start_date),
             "endDate": _date_field_to_timestamp(self.end_date),
+            "sortBy": enum_as_str(self.sort_by),
+            "sortOrder": enum_as_str(self.sort_order),
         }
 
         # Ensure all values are strings.
@@ -110,6 +133,8 @@ class PostFilter:
     chains: Optional[Iterable[str]]
     start_date: Optional[Union[datetime, float]]
     end_date: Optional[Union[datetime, float]]
+    sort_by: Optional[SortBy]
+    sort_order: Optional[SortOrder]
 
     def __init__(
         self,
@@ -122,6 +147,8 @@ class PostFilter:
         chains: Optional[Iterable[str]] = None,
         start_date: Optional[Union[datetime, float]] = None,
         end_date: Optional[Union[datetime, float]] = None,
+        sort_by: Optional[SortBy] = None,
+        sort_order: Optional[SortOrder] = None,
     ):
         self.types = types
         self.refs = refs
@@ -132,6 +159,8 @@ class PostFilter:
         self.chains = chains
         self.start_date = start_date
         self.end_date = end_date
+        self.sort_by = sort_by
+        self.sort_order = sort_order
 
     def as_http_params(self) -> Dict[str, str]:
         """Convert the filters into a dict that can be used by an `aiohttp` client
@@ -148,6 +177,8 @@ class PostFilter:
             "chains": serialize_list(self.chains),
             "startDate": _date_field_to_timestamp(self.start_date),
             "endDate": _date_field_to_timestamp(self.end_date),
+            "sortBy": enum_as_str(self.sort_by),
+            "sortOrder": enum_as_str(self.sort_order),
         }
 
         # Ensure all values are strings.
