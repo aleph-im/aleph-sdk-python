@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Dict, Iterable, Optional, Union
 from aleph_message.models import MessageType
 from ..utils import _date_field_to_timestamp, serialize_list, enum_as_str
-from enum import Enum, IntEnum
+from enum import Enum
 
 
 class SortBy(str, Enum):
