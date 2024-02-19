@@ -27,9 +27,9 @@ def get_verification_buffer(message: Dict) -> bytes:
     # Convert Enum values to strings
     return "\n".join(
         (
-            enum_as_str(message["chain"]),
+            enum_as_str(message["chain"]) or "",
             message["sender"],
-            enum_as_str(message["type"]),
+            enum_as_str(message["type"]) or "",
             message["item_hash"],
         )
     ).encode()
