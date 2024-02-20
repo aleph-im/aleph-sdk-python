@@ -115,14 +115,14 @@ async def copy_async_readable_to_buffer(
         buffer.write(chunk)
 
 
-def enum_as_str(obj: Optional[Union[str, Enum]]) -> str:
+def enum_as_str(obj: Optional[Union[str, Enum]]) -> Optional[str]:
     """Returns the value of an Enum, or the string itself when passing a string.
 
     Python 3.11 adds a new formatting of string enums.
     `str(MyEnum.value)` becomes `MyEnum.value` instead of `value`.
     """
-    if obj is None:
-        return ""
+    if not obj:
+        return None
     if not isinstance(obj, str):
         raise TypeError(f"Unsupported enum type: {type(obj)}")
 
