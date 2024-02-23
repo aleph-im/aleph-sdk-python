@@ -379,7 +379,7 @@ class AuthenticatedAlephClient(AlephClient):
         metadata: Optional[Mapping[str, Any]] = None,
     ) -> Tuple[AlephMessage, MessageStatus]:
         """
-        Post a (create) PROGRAM message.
+        Post a (create) INSTANCE message.
 
         :param rootfs: Root filesystem to use
         :param rootfs_size: Size of root filesystem
