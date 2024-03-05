@@ -30,6 +30,7 @@ from aleph_message.models.execution.base import Encoding, Payment, PaymentType
 from aleph_message.models.execution.environment import (
     FunctionEnvironment,
     MachineResources,
+    HypervisorType,
 )
 from aleph_message.models.execution.instance import RootfsVolume
 from aleph_message.models.execution.program import CodeContent, FunctionRuntime
@@ -520,6 +521,7 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
         allow_amend: bool = False,
         internet: bool = True,
         aleph_api: bool = True,
+        hypervisor: Optional[HypervisorType] = None,
         volumes: Optional[List[Mapping]] = None,
         volume_persistence: str = "host",
         ssh_keys: Optional[List[str]] = None,
@@ -533,6 +535,7 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
         timeout_seconds = timeout_seconds or settings.DEFAULT_VM_TIMEOUT
 
         payment = payment or Payment(chain=Chain.ETH, type=PaymentType.hold)
+        hypervisor = hypervisor or HypervisorType.firecracker
 
         content = InstanceContent(
             address=address,
@@ -541,6 +544,7 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
                 reproducible=False,
                 internet=internet,
                 aleph_api=aleph_api,
+                hypervisor=hypervisor,
             ),
             variables=environment_variables,
             resources=MachineResources(
