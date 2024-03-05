@@ -14,7 +14,7 @@ from aleph_message.models import (
     ProgramMessage,
     StoreMessage,
 )
-from aleph_message.models.execution.environment import MachineResources
+from aleph_message.models.execution.environment import MachineResources, HypervisorType
 from aleph_message.status import MessageStatus
 
 from aleph.sdk.exceptions import InsufficientFundsError
@@ -116,6 +116,7 @@ async def test_create_instance(mock_session_with_post_success):
                 receiver="0x4145f182EF2F06b45E50468519C1B92C60FBd4A0",
                 type=PaymentType.superfluid,
             ),
+            hypervisor=HypervisorType.qemu,
         )
 
     assert mock_session_with_post_success.http_session.post.called_once
@@ -139,6 +140,27 @@ async def test_create_instance_no_payment(mock_session_with_post_success):
 
     assert instance_message.content.payment.type == PaymentType.hold
     assert instance_message.content.payment.chain == Chain.ETH
+
+    assert mock_session_with_post_success.http_session.post.called_once
+    assert isinstance(instance_message, InstanceMessage)
+
+
+@pytest.mark.asyncio
+async def test_create_instance_no_hypervisor(mock_session_with_post_success):
+    """Test that an instance can be created with no hypervisor specified.
+    It should in this case default to "firecracker".
+    """
+    async with mock_session_with_post_success as session:
+        instance_message, message_status = await session.create_instance(
+            rootfs="cafecafecafecafecafecafecafecafecafecafecafecafecafecafecafecafe",
+            rootfs_size=1,
+            rootfs_name="rootfs",
+            channel="TEST",
+            metadata={"tags": ["test"]},
+            hypervisor=None,
+        )
+
+    assert instance_message.content.hypervisor == HypervisorType.firecracker
 
     assert mock_session_with_post_success.http_session.post.called_once
     assert isinstance(instance_message, InstanceMessage)
