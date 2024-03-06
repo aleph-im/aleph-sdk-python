@@ -14,7 +14,7 @@ from aleph_message.models import (
     ProgramMessage,
     StoreMessage,
 )
-from aleph_message.models.execution.environment import MachineResources, HypervisorType
+from aleph_message.models.execution.environment import HypervisorType, MachineResources
 from aleph_message.status import MessageStatus
 
 from aleph.sdk.exceptions import InsufficientFundsError
