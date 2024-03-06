@@ -98,13 +98,11 @@ U = TypeVar("U", str, bytes, contravariant=True)
 
 
 class AsyncReadable(Protocol[T]):
-    async def read(self, n: int = -1) -> T:
-        ...
+    async def read(self, n: int = -1) -> T: ...
 
 
 class Writable(Protocol[U]):
-    def write(self, buffer: U) -> int:
-        ...
+    def write(self, buffer: U) -> int: ...
 
 
 async def copy_async_readable_to_buffer(

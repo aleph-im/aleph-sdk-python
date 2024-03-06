@@ -158,11 +158,9 @@ class MockResponse:
     async def __aenter__(self):
         return self
 
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
-        ...
+    async def __aexit__(self, exc_type, exc_val, exc_tb): ...
 
-    async def raise_for_status(self):
-        ...
+    async def raise_for_status(self): ...
 
     @property
     def status(self):
