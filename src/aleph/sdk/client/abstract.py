@@ -23,6 +23,7 @@ from aleph_message.models import (
     Payment,
     PostMessage,
 )
+from aleph_message.models.execution.environment import HypervisorType
 from aleph_message.models.execution.program import Encoding
 from aleph_message.status import MessageStatus
 
@@ -373,6 +374,7 @@ class AuthenticatedAlephClient(AlephClient):
         allow_amend: bool = False,
         internet: bool = True,
         aleph_api: bool = True,
+        hypervisor: Optional[HypervisorType] = None,
         volumes: Optional[List[Mapping]] = None,
         volume_persistence: str = "host",
         ssh_keys: Optional[List[str]] = None,
