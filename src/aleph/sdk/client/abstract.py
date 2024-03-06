@@ -24,6 +24,7 @@ from aleph_message.models import (
     Payment,
     PostMessage,
 )
+from aleph_message.models.execution.environment import HypervisorType
 from aleph_message.models.execution.program import Encoding
 from aleph_message.status import MessageStatus
 
