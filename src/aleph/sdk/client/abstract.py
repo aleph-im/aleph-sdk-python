@@ -18,7 +18,6 @@ from typing import (
 
 from aleph_message.models import (
     AlephMessage,
-    HypervisorType,
     MessagesResponse,
     MessageType,
     Payment,
