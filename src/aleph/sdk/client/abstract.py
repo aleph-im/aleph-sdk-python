@@ -18,6 +18,7 @@ from typing import (
 
 from aleph_message.models import (
     AlephMessage,
+    HypervisorType,
     MessagesResponse,
     MessageType,
     Payment,
@@ -373,6 +374,7 @@ class AuthenticatedAlephClient(AlephClient):
         allow_amend: bool = False,
         internet: bool = True,
         aleph_api: bool = True,
+        hypervisor: Optional[HypervisorType] = None,
         volumes: Optional[List[Mapping]] = None,
         volume_persistence: str = "host",
         ssh_keys: Optional[List[str]] = None,

@@ -29,8 +29,8 @@ from aleph_message.models import (
 from aleph_message.models.execution.base import Encoding, Payment, PaymentType
 from aleph_message.models.execution.environment import (
     FunctionEnvironment,
-    MachineResources,
     HypervisorType,
+    MachineResources,
 )
 from aleph_message.models.execution.instance import RootfsVolume
 from aleph_message.models.execution.program import CodeContent, FunctionRuntime
