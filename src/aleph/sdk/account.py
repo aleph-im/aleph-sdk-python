@@ -4,7 +4,6 @@ from pathlib import Path
 from typing import Optional, Type, TypeVar
 
 from aleph.sdk.chains.common import get_fallback_private_key
-from aleph.sdk.chains.ethereum import ETHAccount
 from aleph.sdk.chains.remote import RemoteAccount
 from aleph.sdk.conf import settings
 from aleph.sdk.types import AccountFromPrivateKey
@@ -28,7 +27,7 @@ def account_from_file(private_key_path: Path, account_type: Type[T]) -> T:
 def _load_account(
     private_key_str: Optional[str] = None,
     private_key_path: Optional[Path] = None,
-    account_type: Type[AccountFromPrivateKey] = ETHAccount,
+    account_type: Optional[Type[AccountFromPrivateKey]] = None,
 ) -> AccountFromPrivateKey:
     """Load private key from a string or a file.
 
@@ -38,6 +37,27 @@ def _load_account(
     assert not (
         private_key_str and private_key_path
     ), "Private key should be a string or a filepath, not both."
+
+    account_types = {
+        "ETHAccount": "aleph.sdk.chains.ethereum",
+        "SOLAccount": "aleph.sdk.chains.sol",
+        "CSDKAccount": "aleph.sdk.chains.cosmos",
+        "DOTAccount": "aleph.sdk.chains.substrate",
+    }
+
+    if not account_type:
+        for account_name, module_name in account_types.items():
+            try:
+                account_type = getattr(
+                    __import__(module_name, fromlist=[account_name]), account_name
+                )
+                break
+            except ModuleNotFoundError:
+                pass
+        else:
+            raise ValueError(
+                "No account type found, please install one of the supported chains"
+            )
 
     if private_key_str:
         logger.debug("Using account from string")
