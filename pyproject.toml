@@ -1,0 +1,105 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "aleph-sdk-python"
+dynamic = ["version"]
+description = "Lightweight Python Client library for the Aleph.im network"
+readme = "README.md"
+license = "mit"
+authors = [
+    { name = "Aleph.im Team", email = "hello@aleph.im" },
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Programming Language :: Python :: 3",
+]
+dependencies = [
+    "aiohttp>=3.8.3",
+    "aleph-message~=0.4.3",
+    "coincurve; python_version<\"3.11\"",
+    "coincurve>=17.0.0; python_version>=\"3.11\"",
+    "eciespy; python_version<\"3.11\"",
+    "eciespy>=0.3.13; python_version>=\"3.11\"",
+    "eth_abi>=4.0.0; python_version>=\"3.11\"",
+    "eth_account>=0.4.0",
+    "python-magic",
+    "typer",
+    "typing_extensions",
+]
+
+[project.optional-dependencies]
+cosmos = [
+    "cosmospy",
+]
+dns = [
+    "aiodns",
+]
+docs = [
+    "sphinxcontrib-plantuml",
+]
+ethereum = [
+    "eth_abi>=4.0.0; python_version>=\"3.11\"",
+    "eth_account>=0.4.0",
+]
+ledger = [
+    "ledgereth==0.9.0",
+]
+mqtt = [
+    "aiomqtt<=0.1.3",
+    "certifi",
+    "Click",
+]
+nuls2 = [
+    "aleph-nuls2",
+]
+polkadot = [
+    "py-sr25519-bindings",
+    "substrate-interface",
+]
+solana = [
+    "base58",
+    "pynacl",
+]
+testing = [
+    "aiodns",
+    "aiomqtt<=0.1.3",
+    "aleph-pytezos==0.1.1",
+    "base58",
+    "black",
+    "fastapi",
+    "flake8",
+    "httpx",
+    "isort",
+    "ledgereth==0.9.0",
+    "mypy",
+    "psutil",
+    "py-sr25519-bindings",
+    "pynacl",
+    "pytest",
+    "pytest-asyncio",
+    "pytest-cov",
+    "pytest-mock",
+    "requests",
+    "secp256k1",
+    "substrate-interface",
+    "types-certifi",
+    "types-setuptools",
+]
+tezos = [
+    "aleph-pytezos==0.1.1",
+    "pynacl",
+]
+
+[project.urls]
+Documentation = "https://aleph.im/"
+Homepage = "https://github.com/aleph-im/aleph-sdk-python"
+
+[tool.hatch.version]
+path = "src/aleph/__init__.py"
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "/src",
+]
