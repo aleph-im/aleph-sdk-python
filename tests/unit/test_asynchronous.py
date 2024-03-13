@@ -108,7 +108,6 @@ async def test_create_instance(mock_session_with_post_success):
         instance_message, message_status = await session.create_instance(
             rootfs="cafecafecafecafecafecafecafecafecafecafecafecafecafecafecafecafe",
             rootfs_size=1,
-            rootfs_name="rootfs",
             channel="TEST",
             metadata={"tags": ["test"]},
             payment=Payment(
@@ -132,7 +131,6 @@ async def test_create_instance_no_payment(mock_session_with_post_success):
         instance_message, message_status = await session.create_instance(
             rootfs="cafecafecafecafecafecafecafecafecafecafecafecafecafecafecafecafe",
             rootfs_size=1,
-            rootfs_name="rootfs",
             channel="TEST",
             metadata={"tags": ["test"]},
             payment=None,
@@ -154,7 +152,6 @@ async def test_create_instance_no_hypervisor(mock_session_with_post_success):
         instance_message, message_status = await session.create_instance(
             rootfs="cafecafecafecafecafecafecafecafecafecafecafecafecafecafecafecafe",
             rootfs_size=1,
-            rootfs_name="rootfs",
             channel="TEST",
             metadata={"tags": ["test"]},
             hypervisor=None,
@@ -248,7 +245,6 @@ async def test_create_instance_insufficient_funds_error(
             await session.create_instance(
                 rootfs="cafecafecafecafecafecafecafecafecafecafecafecafecafecafecafecafe",
                 rootfs_size=1,
-                rootfs_name="rootfs",
                 channel="TEST",
                 metadata={"tags": ["test"]},
                 payment=Payment(
