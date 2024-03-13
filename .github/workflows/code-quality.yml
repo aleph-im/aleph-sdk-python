@@ -32,7 +32,7 @@ jobs:
 
       - name: Install required Python packages
         run: |
-          python3 -m pip install -e .[testing,ethereum]
+          python3 -m pip install -e .[testing]
 
       - name: Test with Black
         run: |

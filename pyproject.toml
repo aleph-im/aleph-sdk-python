@@ -68,8 +68,11 @@ testing = [
     "aleph-pytezos==0.1.1",
     "base58",
     "black",
+    "eth_abi>=4.0.0; python_version>=\"3.11\"",
+    "eth_account>=0.4.0",
     "fastapi",
     "flake8",
+    "Flake8-pyproject",
     "httpx",
     "isort",
     "ledgereth==0.9.0",
@@ -115,8 +118,8 @@ include = [
     "LICENSE.txt",
 ]
 
-[tool.pytest]
-addopts = ["--cov=aleph.sdk", "--cov-report=term-missing", "--verbose", "-m", "not ledger_hardware"]
+[tool.pytest.ini_options]
+addopts = "--cov=aleph.sdk --cov-report=term-missing --verbose -m \"not ledger_hardware\""
 norecursedirs = ["dist", "build", ".tox"]
 testpaths = ["tests"]
 markers = {ledger_hardware = "marks tests as requiring ledger hardware"}
