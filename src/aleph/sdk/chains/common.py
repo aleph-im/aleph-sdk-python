@@ -2,9 +2,9 @@ import logging
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Dict, Optional
-from typing_extensions import deprecated
 
 from coincurve.keys import PrivateKey
+from typing_extensions import deprecated
 
 from aleph.sdk.conf import settings
 from aleph.sdk.utils import enum_as_str
@@ -112,7 +112,9 @@ class BaseAccount(ABC):
         try:
             from ecies import encrypt
         except ImportError:
-            raise ImportError("Install `eciespy` or `aleph-sdk-python[encryption]` to use this method")
+            raise ImportError(
+                "Install `eciespy` or `aleph-sdk-python[encryption]` to use this method"
+            )
         if self.CURVE == "secp256k1":
             value: bytes = encrypt(self.get_public_key(), content)
             return value
@@ -131,7 +133,9 @@ class BaseAccount(ABC):
         try:
             from ecies import decrypt
         except ImportError:
-            raise ImportError("Install `eciespy` or `aleph-sdk-python[encryption]` to use this method")
+            raise ImportError(
+                "Install `eciespy` or `aleph-sdk-python[encryption]` to use this method"
+            )
         if self.CURVE == "secp256k1":
             value: bytes = decrypt(self.private_key, content)
             return value
