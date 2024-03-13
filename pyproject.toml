@@ -138,12 +138,17 @@ profile = "black"
 [tool.mypy]
 python_version = 3.8
 mypy_path = "src"
-exclude = "conftest.py"
+exclude = [
+    "conftest.py"
+]
 show_column_numbers = "True"
 
 # Import discovery
 # Suppresses error messages about imports that cannot be resolved (no py.typed file, no stub file, etc).
 ignore_missing_imports = "True"
+# Don't follow imports
+follow_imports = "silent"
+
 
 # Miscellaneous strictness flags
 # Allows variables to be redefined with an arbitrary type, as long as the redefinition is in the same block and nesting level as the original definition.
