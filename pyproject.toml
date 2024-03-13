@@ -106,6 +106,7 @@ packages = [
     "README.md",
     "LICENSE.txt",
 ]
+
 [tool.hatch.build.targets.sdist]
 include = [
     "src/aleph",
@@ -113,3 +114,20 @@ include = [
     "README.md",
     "LICENSE.txt",
 ]
+
+[tool.pytest]
+addopts = ["--cov=aleph.sdk", "--cov-report=term-missing", "--verbose", "-m", "not ledger_hardware"]
+norecursedirs = ["dist", "build", ".tox"]
+testpaths = ["tests"]
+markers = {ledger_hardware = "marks tests as requiring ledger hardware"}
+
+[tool.devpi.upload]
+no-vcs = 1
+formats = ["bdist_wheel"]
+
+[tool.flake8]
+exclude = [".tox", "build", "dist", ".eggs", "docs/conf.py"]
+ignore = ["E501", "W291", "W503", "E203", "E704"]
+
+[tool.isort]
+profile = "black"
