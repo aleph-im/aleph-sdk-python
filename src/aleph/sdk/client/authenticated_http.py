@@ -508,7 +508,6 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
         self,
         rootfs: str,
         rootfs_size: int,
-        rootfs_name: str,
         payment: Optional[Payment] = None,
         environment_variables: Optional[Mapping[str, str]] = None,
         storage_engine: StorageEnum = StorageEnum.storage,
@@ -557,15 +556,9 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
                     ref=rootfs,
                     use_latest=True,
                 ),
-                name=rootfs_name,
                 size_mib=rootfs_size,
                 persistence="host",
                 use_latest=True,
-                comment=(
-                    "Official Aleph Debian root filesystem"
-                    if rootfs == settings.DEFAULT_RUNTIME_ID
-                    else ""
-                ),
             ),
             volumes=[parse_volume(volume) for volume in volumes],
             time=time.time(),
