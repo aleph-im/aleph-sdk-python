@@ -361,7 +361,6 @@ class AuthenticatedAlephClient(AlephClient):
         self,
         rootfs: str,
         rootfs_size: int,
-        rootfs_name: str,
         payment: Optional[Payment] = None,
         environment_variables: Optional[Mapping[str, str]] = None,
         storage_engine: StorageEnum = StorageEnum.storage,
@@ -385,7 +384,6 @@ class AuthenticatedAlephClient(AlephClient):
 
         :param rootfs: Root filesystem to use
         :param rootfs_size: Size of root filesystem
-        :param rootfs_name: Name of root filesystem
         :param payment: Payment method used to pay for the instance
         :param environment_variables: Environment variables to pass to the program
         :param storage_engine: Storage engine to use (Default: "storage")
