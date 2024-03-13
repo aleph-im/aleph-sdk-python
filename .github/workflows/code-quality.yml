@@ -44,7 +44,7 @@ jobs:
 
       - name: Test with MyPy
         run: |
-          mypy --config-file ./mypy.ini ./src/ ./tests/ ./examples/
+          mypy ./src/ ./tests/ ./examples/
 
       - name: Test with flake8
         run: |
