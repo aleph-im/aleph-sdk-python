@@ -99,7 +99,17 @@ Homepage = "https://github.com/aleph-im/aleph-sdk-python"
 [tool.hatch.version]
 path = "src/aleph/__init__.py"
 
+[tool.hatch.build.targets.wheel]
+packages = [
+    "src/aleph",
+    "pyproject.toml",
+    "README.md",
+    "LICENSE.txt",
+]
 [tool.hatch.build.targets.sdist]
 include = [
-    "/src",
+    "src/aleph",
+    "pyproject.toml",
+    "README.md",
+    "LICENSE.txt",
 ]
