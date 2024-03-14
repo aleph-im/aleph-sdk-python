@@ -123,6 +123,7 @@ dependencies = [
     "pytest-asyncio==0.23.5",
     "fastapi",
     "httpx",
+    "secp256k1",
 ]
 [tool.hatch.envs.test.scripts]
 run-coverage = "pytest --cov-config=pyproject.toml --cov=pkg --cov=tests"
