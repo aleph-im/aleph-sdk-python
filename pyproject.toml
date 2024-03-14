@@ -127,7 +127,7 @@ dependencies = [
 ]
 [tool.hatch.envs.test.scripts]
 run-coverage = "pytest --cov-config=pyproject.toml --cov=pkg --cov=tests"
-run = "run-coverage --no-cov {args:.}"
+run = "pytest {args:.}"
 run-coverage-report = [
     "run-coverage",
     "- coverage combine",
