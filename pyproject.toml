@@ -12,8 +12,14 @@ authors = [
     { name = "Aleph.im Team", email = "hello@aleph.im" },
 ]
 classifiers = [
-    "Development Status :: 4 - Beta",
     "Programming Language :: Python :: 3",
+    "Development Status :: 4 - Beta",
+    "Framework :: aiohttp",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: POSIX :: Linux",
+    "Operating System :: MacOS :: MacOS X",
+    "Topic :: Software Development :: Libraries",
 ]
 dependencies = [
     "aiohttp>=3.8.3",
