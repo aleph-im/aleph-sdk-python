@@ -131,16 +131,61 @@ norecursedirs = ["dist", "build", ".tox"]
 testpaths = ["tests"]
 markers = {ledger_hardware = "marks tests as requiring ledger hardware"}
 
-[tool.devpi.upload]
-no-vcs = 1
-formats = ["bdist_wheel"]
-
 [tool.flake8]
 exclude = [".tox", "build", "dist", ".eggs", "docs/conf.py"]
 ignore = ["E501", "W291", "W503", "E203", "E704"]
 
 [tool.isort]
 profile = "black"
+
+[tool.hatch.envs.testing]
+dependencies = [
+    "pytest==8.0.1",
+    "pytest-cov==4.1.0",
+    "pytest-mock==3.12.0",
+    "pytest-asyncio==0.23.5",
+]
+[tool.hatch.envs.testing.scripts]
+test = "pytest {args:tests}"
+test-cov = "pytest --cov {args:tests}"
+cov-report = [
+    "- coverage combine",
+    "coverage report",
+]
+cov = [
+    "test-cov",
+    "cov-report",
+]
+
+[[tool.hatch.envs.all.matrix]]
+python = ["3.9", "3.10", "3.11", "3.12"]
+
+[tool.hatch.envs.lint]
+detached = true
+dependencies = [
+    "black==24.1.1",
+    "mypy==1.8.0",
+    "mypy-extensions==0.4.3",
+    "ruff==0.1.15",
+    "isort==5.13.2",
+]
+[tool.hatch.envs.lint.scripts]
+typing = "mypy {args:src/aleph/vm/ tests/ examples/example_fastapi runtimes/aleph-debian-12-python}"
+style = [
+    #  "ruff {args:.}",
+    "black --check --diff {args:.}",
+    "isort --check-only --profile black {args:.}",
+]
+fmt = [
+    "black {args:.}",
+    #  "ruff --fix {args:.}",
+    "isort --profile black {args:.}",
+    "style",
+]
+all = [
+    "style",
+    "typing",
+]
 
 [tool.mypy]
 python_version = 3.8
