@@ -7,7 +7,7 @@ name = "aleph-sdk-python"
 dynamic = ["version"]
 description = "Lightweight Python Client library for the Aleph.im network"
 readme = "README.md"
-license = "mit"
+license = { file = "LICENSE.txt" }
 authors = [
     { name = "Aleph.im Team", email = "hello@aleph.im" },
 ]
