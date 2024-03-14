@@ -66,35 +66,6 @@ solana = [
     "base58",
     "pynacl",
 ]
-testing = [
-    "aiodns",
-    "aiomqtt<=0.1.3",
-    "aleph-pytezos==0.1.1",
-    "base58",
-    "black",
-    "eth_abi>=4.0.0; python_version>=\"3.11\"",
-    "eth_account>=0.4.0",
-    "fastapi",
-    "flake8",
-    "Flake8-pyproject",
-    "httpx",
-    "isort",
-    "ledgereth==0.9.0",
-    "mypy",
-    "mypy-extensions",
-    "psutil",
-    "py-sr25519-bindings",
-    "pynacl",
-    "pytest",
-    "pytest-asyncio",
-    "pytest-cov",
-    "pytest-mock",
-    "requests",
-    "secp256k1",
-    "substrate-interface",
-    "eciespy; python_version<\"3.11\"",
-    "eciespy>=0.3.13; python_version>=\"3.11\"",
-]
 tezos = [
     "aleph-pytezos==0.1.1",
     "pynacl",
@@ -102,6 +73,9 @@ tezos = [
 encryption = [
     "eciespy; python_version<\"3.11\"",
     "eciespy>=0.3.13; python_version>=\"3.11\"",
+]
+all = [
+    "aleph-sdk-python[cosmos,dns,docs,ethereum,ledger,mqtt,nuls2,polkadot,solana,tezos,encryption]",
 ]
 
 [project.urls]
@@ -127,56 +101,59 @@ include = [
     "LICENSE.txt",
 ]
 
-[tool.flake8]
-exclude = [".tox", "build", "dist", ".eggs", "docs/conf.py"]
-ignore = ["E501", "W291", "W503", "E203", "E704"]
-
 [tool.isort]
 profile = "black"
 
-[tool.hatch.envs.testing]
-features = ["testing"]
+[tool.hatch.envs.test]
+features = [
+    "cosmos",
+    "dns",
+    "ethereum",
+    "ledger",
+    "nuls2",
+    "polkadot",
+    "solana",
+    "tezos",
+    "encryption",
+]
 dependencies = [
     "pytest==8.0.1",
     "pytest-cov==4.1.0",
     "pytest-mock==3.12.0",
     "pytest-asyncio==0.23.5",
 ]
-[tool.hatch.envs.testing.scripts]
+[tool.hatch.envs.test.scripts]
 run-coverage = "pytest --cov-config=pyproject.toml --cov=pkg --cov=tests"
-run = "run-coverage --no-cov"
-cov-report = [
+run = "run-coverage --no-cov {args:.}"
+run-coverage-report = [
+    "run-coverage",
     "- coverage combine",
     "coverage report",
 ]
-run-coverage-report = [
-    "run-coverage",
-    "cov-report",
-]
 
 [[tool.hatch.envs.all.matrix]]
-python = ["3.9", "3.10", "3.11", "3.12"]
+python = ["3.8", "3.9", "3.10", "3.11", "3.12"]
 
 [tool.hatch.envs.lint]
 detached = true
 dependencies = [
-    "black==24.1.1",
-    "mypy==1.8.0",
-    "mypy-extensions==0.4.3",
-    "ruff==0.1.15",
+    "black==24.2.0",
+    "mypy==1.9.0",
+    "mypy-extensions==1.0.0",
+    # "ruff==0.1.15",
     "isort==5.13.2",
 ]
 [tool.hatch.envs.lint.scripts]
-typing = "mypy {args:src/aleph/vm/ tests/ examples/example_fastapi runtimes/aleph-debian-12-python}"
+typing = "mypy --config-file=pyproject.toml {args:} ./src/ ./tests/ ./examples/"
 style = [
     #  "ruff {args:.}",
-    "black --check --diff {args:.}",
-    "isort --check-only --profile black {args:.}",
+    "black --check --diff {args:} ./src/ ./tests/ ./examples/",
+    "isort --check-only --profile black {args:} ./src/ ./tests/ ./examples/",
 ]
 fmt = [
-    "black {args:.}",
+    "black {args:} ./src/ ./tests/ ./examples/",
     #  "ruff --fix {args:.}",
-    "isort --profile black {args:.}",
+    "isort --profile black {args:} ./src/ ./tests/ ./examples/",
     "style",
 ]
 all = [

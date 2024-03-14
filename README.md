@@ -49,7 +49,7 @@ The following extra dependencies are available:
 - `mqtt` for MQTT-related functionalities, see [examples/mqtt.py](examples/mqtt.py)
 - `docs` for building the documentation, see [Documentation](#documentation)
 - `dns` for DNS-related functionalities
-- `testing` installs all dependencies required for running the tests
+- `all` installs all extra dependencies
 
 
 ## Installation for development
@@ -61,8 +61,17 @@ $ hatch shell
 Then install the SDK from source with all extra dependencies:
 
 ```shell
-$ pip install -e .[testing]
+$ pip install -e .[all]
 ```
+
+### Running tests & Hatch scripts
+You can use the test env defined for hatch to run the tests:
+
+```shell
+$ hatch run test:run
+```
+
+See `hatch env show` for more information about all the environments and their scripts.
 
 ### Generating the documentation [DEPRECATED]
 The documentation is built using [Sphinx](https://www.sphinx-doc.org/).
