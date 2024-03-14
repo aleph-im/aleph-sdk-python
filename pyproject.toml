@@ -26,8 +26,6 @@ dependencies = [
     "aleph-message~=0.4.3",
     "coincurve; python_version<\"3.11\"",
     "coincurve>=17.0.0; python_version>=\"3.11\"",
-    "eciespy; python_version<\"3.11\"",
-    "eciespy>=0.3.13; python_version>=\"3.11\"",
     "eth_abi>=4.0.0; python_version>=\"3.11\"",
     "eth_account>=0.4.0",
     "python-magic",
@@ -94,12 +92,16 @@ testing = [
     "requests",
     "secp256k1",
     "substrate-interface",
-    "types-certifi",
-    "types-setuptools",
+    "eciespy; python_version<\"3.11\"",
+    "eciespy>=0.3.13; python_version>=\"3.11\"",
 ]
 tezos = [
     "aleph-pytezos==0.1.1",
     "pynacl",
+]
+encryption = [
+    "eciespy; python_version<\"3.11\"",
+    "eciespy>=0.3.13; python_version>=\"3.11\"",
 ]
 
 [project.urls]
