@@ -29,7 +29,7 @@ RUN mkdir /opt/aleph-sdk-python/
 WORKDIR /opt/aleph-sdk-python/
 COPY . .
 
-RUN pip install -e .[testing,ethereum]
+RUN pip install -e .[testing]
 
 
 # - User 'aleph' to run the code itself
