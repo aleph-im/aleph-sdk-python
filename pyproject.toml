@@ -104,7 +104,10 @@ include = [
 [tool.isort]
 profile = "black"
 
-[tool.hatch.envs.test]
+[[tool.hatch.envs.all.matrix]]
+python = ["3.8", "3.9", "3.10", "3.11"]
+
+[tool.hatch.envs.testing]
 features = [
     "cosmos",
     "dns",
@@ -125,19 +128,19 @@ dependencies = [
     "httpx",
     "secp256k1",
 ]
-[tool.hatch.envs.test.scripts]
-run-coverage = "pytest --cov-config=pyproject.toml --cov=pkg --cov=tests"
-run = "pytest {args:.}"
-run-coverage-report = [
-    "run-coverage",
-    "- coverage combine",
-    "coverage report",
+[tool.hatch.envs.testing.scripts]
+test = "pytest {args:tests}"
+test-cov = "pytest --cov {args:tests}"
+cov-report = [
+  "- coverage combine",
+  "coverage report",
+]
+cov = [
+  "test-cov",
+  "cov-report",
 ]
 
-[[tool.hatch.envs.all.matrix]]
-python = ["3.8", "3.9", "3.10", "3.11"]
-
-[tool.hatch.envs.lint]
+[tool.hatch.envs.linting]
 detached = true
 dependencies = [
     "black==24.2.0",
@@ -146,7 +149,7 @@ dependencies = [
     # "ruff==0.1.15",
     "isort==5.13.2",
 ]
-[tool.hatch.envs.lint.scripts]
+[tool.hatch.envs.linting.scripts]
 typing = "mypy --config-file=pyproject.toml {args:} ./src/ ./tests/ ./examples/"
 style = [
     #  "ruff {args:.}",

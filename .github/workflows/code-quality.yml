@@ -33,4 +33,4 @@ jobs:
         run: sudo apt-get install -y libsecp256k1-dev
 
       - name: Run Hatch lint
-        run: hatch run lint:all
+        run: hatch run linting:all

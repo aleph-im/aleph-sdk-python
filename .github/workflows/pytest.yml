@@ -22,9 +22,9 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - run: sudo apt-get install -y python3-pip libsecp256k1-dev
       - run: python -m pip install --upgrade pip hatch
-      - run: hatch run test:run
+      - run: hatch run testing:test
         if: matrix.python-version != '3.11'
-      - run: hatch run test:run-coverage-report
+      - run: hatch run testing:cov
         if: matrix.python-version == '3.11'
       - uses: codecov/codecov-action@v4.0.1
         if: matrix.python-version == '3.11'
