@@ -30,4 +30,4 @@ jobs:
         if: matrix.python-version == '3.11'
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          slug: aleph-im/aleph-vm
+          slug: aleph-im/aleph-sdk-python
