@@ -8,7 +8,7 @@ import pytest
 from nacl.signing import VerifyKey
 
 from aleph.sdk.chains.common import get_verification_buffer
-from aleph.sdk.chains.sol import SOLAccount, get_fallback_account, verify_signature
+from aleph.sdk.chains.solana import SOLAccount, get_fallback_account, verify_signature
 from aleph.sdk.exceptions import BadSignatureError
 
 
