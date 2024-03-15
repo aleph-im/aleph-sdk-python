@@ -74,6 +74,7 @@ class AlephClient(ABC):
         post_filter: Optional[PostFilter] = None,
         ignore_invalid_messages: Optional[bool] = True,
         invalid_messages_log_level: Optional[int] = logging.NOTSET,
+        verify_signatures: bool = False,
     ) -> PostsResponse:
         """
         Fetch a list of posts from the network.
@@ -83,18 +84,25 @@ class AlephClient(ABC):
         :param post_filter: Filter to apply to the posts (Default: None)
         :param ignore_invalid_messages: Ignore invalid messages (Default: True)
         :param invalid_messages_log_level: Log level to use for invalid messages (Default: logging.NOTSET)
+        :param verify_signatures: Whether to verify the signatures of the messages (Default: False)
         """
         raise NotImplementedError("Did you mean to import `AlephHttpClient`?")
 
     async def get_posts_iterator(
         self,
         post_filter: Optional[PostFilter] = None,
+        ignore_invalid_messages: Optional[bool] = True,
+        invalid_messages_log_level: Optional[int] = logging.NOTSET,
+        verify_signatures: bool = False,
     ) -> AsyncIterable[PostMessage]:
         """
         Fetch all filtered posts, returning an async iterator and fetching them page by page. Might return duplicates
         but will always return all posts.
 
         :param post_filter: Filter to apply to the posts (Default: None)
+        :param ignore_invalid_messages: Ignore invalid messages (Default: True)
+        :param invalid_messages_log_level: Log level to use for invalid messages (Default: logging.NOTSET)
+        :param verify_signatures: Whether to verify the signatures of the messages (Default: False)
         """
         page = 1
         resp = None
@@ -102,6 +110,9 @@ class AlephClient(ABC):
             resp = await self.get_posts(
                 page=page,
                 post_filter=post_filter,
+                ignore_invalid_messages=ignore_invalid_messages,
+                invalid_messages_log_level=invalid_messages_log_level,
+                verify_signatures=verify_signatures,
             )
             page += 1
             for post in resp.posts:
@@ -178,6 +189,7 @@ class AlephClient(ABC):
         message_filter: Optional[MessageFilter] = None,
         ignore_invalid_messages: Optional[bool] = True,
         invalid_messages_log_level: Optional[int] = logging.NOTSET,
+        verify_signatures: bool = False,
     ) -> MessagesResponse:
         """
         Fetch a list of messages from the network.
@@ -187,18 +199,25 @@ class AlephClient(ABC):
         :param message_filter: Filter to apply to the messages
         :param ignore_invalid_messages: Ignore invalid messages (Default: True)
         :param invalid_messages_log_level: Log level to use for invalid messages (Default: logging.NOTSET)
+        :param verify_signatures: Whether to verify the signatures of the messages (Default: False)
         """
         raise NotImplementedError("Did you mean to import `AlephHttpClient`?")
 
     async def get_messages_iterator(
         self,
         message_filter: Optional[MessageFilter] = None,
+        ignore_invalid_messages: Optional[bool] = True,
+        invalid_messages_log_level: Optional[int] = logging.NOTSET,
+        verify_signatures: bool = False,
     ) -> AsyncIterable[AlephMessage]:
         """
         Fetch all filtered messages, returning an async iterator and fetching them page by page. Might return duplicates
         but will always return all messages.
 
         :param message_filter: Filter to apply to the messages
+        :param ignore_invalid_messages: Ignore invalid messages (Default: True)
+        :param invalid_messages_log_level: Log level to use for invalid messages (Default: logging.NOTSET)
+        :param verify_signatures: Whether to verify the signatures of the messages (Default: False)
         """
         page = 1
         resp = None
@@ -206,6 +225,9 @@ class AlephClient(ABC):
             resp = await self.get_messages(
                 page=page,
                 message_filter=message_filter,
+                ignore_invalid_messages=ignore_invalid_messages,
+                invalid_messages_log_level=invalid_messages_log_level,
+                verify_signatures=verify_signatures,
             )
             page += 1
             for message in resp.messages:
@@ -216,12 +238,14 @@ class AlephClient(ABC):
         self,
         item_hash: str,
         message_type: Optional[Type[GenericMessage]] = None,
+        verify_signature: bool = False,
     ) -> GenericMessage:
         """
         Get a single message from its `item_hash` and perform some basic validation.
 
         :param item_hash: Hash of the message to fetch
         :param message_type: Type of message to fetch
+        :param verify_signature: Whether to verify the signature of the message (Default: False)
         """
         raise NotImplementedError("Did you mean to import `AlephHttpClient`?")
 
@@ -229,11 +253,13 @@ class AlephClient(ABC):
     def watch_messages(
         self,
         message_filter: Optional[MessageFilter] = None,
+        verify_signatures: bool = False,
     ) -> AsyncIterable[AlephMessage]:
         """
         Iterate over current and future matching messages asynchronously.
 
         :param message_filter: Filter to apply to the messages
+        :param verify_signatures: Whether to verify the signatures of the messages (Default: False)
         """
         raise NotImplementedError("Did you mean to import `AlephHttpClient`?")
 

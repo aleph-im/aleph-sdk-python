@@ -1,9 +1,10 @@
-from typing import Any
 from importlib import import_module
+from typing import Any, Union
 
 from aleph_message.models import AlephMessage
 
 from aleph.sdk.chains.common import get_verification_buffer
+from aleph.sdk.query.responses import Post
 
 validator_chains_map = {
     # TODO: Add AVAX
@@ -30,13 +31,15 @@ validators = {
 }
 
 
-def verify_signature(message: AlephMessage) -> None:
+def verify_message_signature(message: Union[AlephMessage, Post]) -> None:
     """Verify the signature of a message."""
     if message.chain not in validators:
         raise ValueError(f"Chain {message.chain} is not supported.")
     validator = validators[message.chain]
     if validator is None:
-        raise ValueError(f"Chain {message.chain} is not installed. Install it with `aleph-sdk-python[{message.chain}]`.")
+        raise ValueError(
+            f"Chain {message.chain} is not installed. Install it with `aleph-sdk-python[{message.chain}]`."
+        )
     signature = message.signature
     public_key = message.sender
     message = get_verification_buffer(message.dict())
