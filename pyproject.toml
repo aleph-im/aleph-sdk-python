@@ -29,7 +29,6 @@ dependencies = [
     "eth_abi>=4.0.0; python_version>=\"3.11\"",
     "eth_account>=0.4.0",
     "python-magic",
-    "typer",
     "typing_extensions",
 ]
 
@@ -58,7 +57,7 @@ mqtt = [
 nuls2 = [
     "aleph-nuls2",
 ]
-polkadot = [
+substrate = [
     "py-sr25519-bindings",
     "substrate-interface",
 ]
@@ -114,7 +113,7 @@ features = [
     "ethereum",
     "ledger",
     "nuls2",
-    "polkadot",
+    "substrate",
     "solana",
     "tezos",
     "encryption",
