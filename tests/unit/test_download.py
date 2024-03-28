@@ -19,6 +19,7 @@ from aleph.sdk.conf import settings as sdk_settings
 async def test_download(file_hash: str, expected_size: int):
     async with AlephHttpClient(api_server=sdk_settings.API_HOST) as client:
         file_content = await client.download_file(file_hash)  # File is 5B
+        assert file_content
         file_size = len(file_content)
         assert file_size == expected_size
 

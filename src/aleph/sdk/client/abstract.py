@@ -103,7 +103,7 @@ class AlephClient(ABC):
     async def download_file(
         self,
         file_hash: str,
-        file_path: Optional[Union[Path, str]],
+        file_path: Optional[Union[Path, str]] = None,
     ) -> Optional[bytes]:
         """
         Get a file from the storage engine as raw bytes.

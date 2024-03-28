@@ -211,7 +211,7 @@ class AlephHttpClient(AlephClient):
     async def download_file(
         self,
         file_hash: str,
-        file_path: Optional[Union[Path, str]],
+        file_path: Optional[Union[Path, str]] = None,
     ) -> Optional[bytes]:
         """
         Get a file from the storage engine as raw bytes.
@@ -228,7 +228,7 @@ class AlephHttpClient(AlephClient):
             return buffer.getvalue()
 
         if file_path is str:
-            file_path = Path(str)
+            file_path = Path(file_path)
 
         if not os.path.exists(file_path):
             dir_path = os.path.dirname(file_path)
