@@ -1,19 +1,19 @@
 from importlib import import_module
 from typing import Any, Union
 
-from aleph_message.models import AlephMessage
+from aleph_message.models import AlephMessage, Chain
 
 from aleph.sdk.chains.common import get_verification_buffer
 from aleph.sdk.query.responses import Post
 
 validator_chains_map = {
     # TODO: Add AVAX
-    "ETH": "ethereum",
-    "SOL": "sol",
-    "CSDK": "cosmos",
-    "DOT": "substrate",
-    "NULS2": "nuls2",
-    "TEZOS": "tezos",
+    Chain.ETH: "ethereum",
+    Chain.SOL: "sol",
+    Chain.CSDK: "cosmos",
+    Chain.DOT: "substrate",
+    Chain.NULS2: "nuls2",
+    Chain.TEZOS: "tezos",
 }
 
 
