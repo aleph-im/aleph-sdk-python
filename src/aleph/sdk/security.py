@@ -29,6 +29,11 @@ validators = {
     key: try_import_verify_signature(value)
     for key, value in validator_chains_map.items()
 }
+"""
+This is a dict containing all currently available signature validators, indexed by their Chain abbreviation.
+
+Ex.: validators["SOL"] -> aleph.sdk.chains.solana.verify_signature()
+"""
 
 
 def verify_message_signature(message: Union[AlephMessage, Post]) -> None:
