@@ -84,7 +84,7 @@ class AlephClient(ABC):
         :param post_filter: Filter to apply to the posts (Default: None)
         :param ignore_invalid_messages: Ignore invalid messages (Default: True)
         :param invalid_messages_log_level: Log level to use for invalid messages (Default: logging.NOTSET)
-        :param verify_signatures: Whether to verify the signatures of the messages (Default: False)
+        :param verify_signatures: Verify the signatures of the messages (Default: False)
         """
         raise NotImplementedError("Did you mean to import `AlephHttpClient`?")
 
@@ -102,7 +102,7 @@ class AlephClient(ABC):
         :param post_filter: Filter to apply to the posts (Default: None)
         :param ignore_invalid_messages: Ignore invalid messages (Default: True)
         :param invalid_messages_log_level: Log level to use for invalid messages (Default: logging.NOTSET)
-        :param verify_signatures: Whether to verify the signatures of the messages (Default: False)
+        :param verify_signatures: Verify the signatures of the messages (Default: False)
         """
         page = 1
         resp = None
@@ -199,7 +199,7 @@ class AlephClient(ABC):
         :param message_filter: Filter to apply to the messages
         :param ignore_invalid_messages: Ignore invalid messages (Default: True)
         :param invalid_messages_log_level: Log level to use for invalid messages (Default: logging.NOTSET)
-        :param verify_signatures: Whether to verify the signatures of the messages (Default: False)
+        :param verify_signatures: Verify the signatures of the messages (Default: False)
         """
         raise NotImplementedError("Did you mean to import `AlephHttpClient`?")
 
