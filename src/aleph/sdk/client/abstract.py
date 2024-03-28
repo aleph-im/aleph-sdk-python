@@ -103,13 +103,16 @@ class AlephClient(ABC):
     async def download_file(
         self,
         file_hash: str,
-    ) -> bytes:
+        file_path: Optional[Union[Path, str]],
+    ) -> Optional[bytes]:
         """
         Get a file from the storage engine as raw bytes.
 
-        Warning: Downloading large files can be slow and memory intensive.
+        Warning: Downloading large files can be slow and memory intensive. Using the `file_path` parameter is encouraged to prevent storing the file in memory.
 
         :param file_hash: The hash of the file to retrieve.
+        :param file_path: The path to which the file should be saved.
+        :returns: The file's bytes, if no `file_path` is given, otherwise None.
         """
         raise NotImplementedError("Did you mean to import `AlephHttpClient`?")
 
