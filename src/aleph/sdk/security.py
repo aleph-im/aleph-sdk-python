@@ -32,7 +32,10 @@ validators = {
 
 
 def verify_message_signature(message: Union[AlephMessage, Post]) -> None:
-    """Verify the signature of a message."""
+    """Verify the signature of a message, raise an error if invalid or unsupported.
+    A BadSignatureError is raised when the signature is incorrect.
+    A ValueError is raised when the chain is not supported or required dependencies are  missing.
+    """
     if message.chain not in validators:
         raise ValueError(f"Chain {message.chain} is not supported.")
     validator = validators[message.chain]
