@@ -208,36 +208,44 @@ class AlephHttpClient(AlephClient):
                 else:
                     response.raise_for_status()
 
-    async def download_file(
-        self,
-        file_hash: str,
-        file_path: Optional[Union[Path, str]] = None,
-    ) -> Optional[bytes]:
+    async def download_file(self, file_hash: str) -> bytes:
         """
         Get a file from the storage engine as raw bytes.
 
-        Warning: Downloading large files can be slow and memory intensive. Using the `file_path` parameter is encouraged to prevent storing the file in memory.
+        Warning: Downloading large files can be slow and memory intensive. Use `download_file_to()` to download them directly to disk instead.
 
         :param file_hash: The hash of the file to retrieve.
-        :param file_path: The path to which the file should be saved.
-        :returns: The file's bytes, if no `file_path` is given, otherwise None.
         """
-        if not file_path:
-            buffer = BytesIO()
-            await self.download_file_to_buffer(file_hash, output_buffer=buffer)
-            return buffer.getvalue()
+        buffer = BytesIO()
+        await self.download_file_to_buffer(file_hash, output_buffer=buffer)
+        return buffer.getvalue()
 
-        if file_path is str:
-            file_path = Path(file_path)
+    async def download_file_to_path(
+        self,
+        file_hash: str,
+        path: Union[Path, str],
+    ) -> Path:
+        """
+        Download a file from the storage engine to given path.
 
-        if not os.path.exists(file_path):
-            dir_path = os.path.dirname(file_path)
+        :param file_hash: The hash of the file to retrieve.
+        :param path: The path to which the file should be saved.
+        """
+        if not isinstance(path, Path):
+            path = Path(path)
+
+        if not path.is_file():
+            path = path / file_hash
+
+        if not os.path.exists(path):
+            dir_path = os.path.dirname(path)
             if dir_path:
                 os.makedirs(dir_path, exist_ok=True)
 
-        with open(file_path, "wb") as file_buffer:
+        with open(path, "wb") as file_buffer:
             await self.download_file_to_buffer(file_hash, output_buffer=file_buffer)
-        return None
+
+        return path
 
     async def download_file_ipfs(
         self,

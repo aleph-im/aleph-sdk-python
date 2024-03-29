@@ -100,21 +100,29 @@ class AlephClient(ABC):
                 yield post
 
     @abstractmethod
-    async def download_file(
-        self,
-        file_hash: str,
-        file_path: Optional[Union[Path, str]] = None,
-    ) -> Optional[bytes]:
+    async def download_file(self, file_hash: str) -> bytes:
         """
         Get a file from the storage engine as raw bytes.
 
-        Warning: Downloading large files can be slow and memory intensive. Using the `file_path` parameter is encouraged to prevent storing the file in memory.
+        Warning: Downloading large files can be slow and memory intensive. Use `download_file_to()` to download them directly to disk instead.
 
         :param file_hash: The hash of the file to retrieve.
-        :param file_path: The path to which the file should be saved.
-        :returns: The file's bytes, if no `file_path` is given, otherwise None.
         """
         raise NotImplementedError("Did you mean to import `AlephHttpClient`?")
+
+    @abstractmethod
+    async def download_file_to_path(
+        self,
+        file_hash: str,
+        path: Union[Path, str],
+    ) -> Path:
+        """
+        Download a file from the storage engine to given path.
+
+        :param file_hash: The hash of the file to retrieve.
+        :param path: The path to which the file should be saved.
+        """
+        raise NotImplementedError()
 
     async def download_file_ipfs(
         self,
