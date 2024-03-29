@@ -234,9 +234,6 @@ class AlephHttpClient(AlephClient):
         if not isinstance(path, Path):
             path = Path(path)
 
-        if not path.is_file():
-            path = path / file_hash
-
         if not os.path.exists(path):
             dir_path = os.path.dirname(path)
             if dir_path:
