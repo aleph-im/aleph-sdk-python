@@ -57,6 +57,7 @@ jobs:
 
       - name: Build source and wheel packages
         run: |
+          python3 -m pip install .
           python3 -m build
 
       - name: Install the Python wheel
