@@ -32,7 +32,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.cache/pip
-          key: ${{ runner.os }}-build-wheels-${{ hashFiles('setup.cfg', 'setup.py') }}
+          key: ${{ runner.os }}-build-wheels-${{ hashFiles('pyproject.toml') }}
           restore-keys: |
             ${{ runner.os }}-build-wheels-
 
