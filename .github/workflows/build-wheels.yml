@@ -50,23 +50,19 @@ jobs:
           sudo apt-get -y upgrade
           sudo apt-get install -y libsecp256k1-dev
 
-      - name: Install required Python packages
+      - name: Install Hatch
         run: |
-          python3 -m pip install --upgrade build
-          python3 -m pip install --user --upgrade twine
+          python3 -m pip install --upgrade hatch
 
       - name: Build source and wheel packages
         run: |
-          python3 -m pip install .
-          python3 -m build
+          python3 -m hatch build
 
       - name: Install the Python wheel
         run: |
           python3 -m pip install dist/aleph_sdk_python-*.whl
 
       - name: Import and use the package
-        # macos tests fail this step because they use Python 3.11, which is not yet supported by our dependencies
-        if: startsWith(matrix.os, 'ubuntu-')
         run: |
           python3 -c "import aleph.sdk"
           python3 -c "from aleph.sdk.chains.ethereum import get_fallback_account; get_fallback_account()"
