@@ -27,7 +27,7 @@ dependencies = [
     "coincurve; python_version<\"3.11\"",
     "coincurve>=17.0.0; python_version>=\"3.11\"",
     "eth_abi>=4.0.0; python_version>=\"3.11\"",
-    "eth_account>=0.4.0,<0.12.0",
+    "eth_account>=0.4.0,<0.11.0",
     "python-magic",
     "typer",
     "typing_extensions",
