@@ -27,7 +27,7 @@ dependencies = [
     "coincurve; python_version<\"3.11\"",
     "coincurve>=17.0.0; python_version>=\"3.11\"",
     "eth_abi>=4.0.0; python_version>=\"3.11\"",
-    "eth_account>=0.4.0",
+    "eth_account>=0.4.0,<0.12.0",
     "python-magic",
     "typer",
     "typing_extensions",
@@ -42,10 +42,6 @@ dns = [
 ]
 docs = [
     "sphinxcontrib-plantuml",
-]
-ethereum = [
-    "eth_abi>=4.0.0; python_version>=\"3.11\"",
-    "eth_account>=0.4.0",
 ]
 ledger = [
     "ledgereth==0.9.0",
@@ -75,7 +71,7 @@ encryption = [
     "eciespy>=0.3.13; python_version>=\"3.11\"",
 ]
 all = [
-    "aleph-sdk-python[cosmos,dns,docs,ethereum,ledger,mqtt,nuls2,polkadot,solana,tezos,encryption]",
+    "aleph-sdk-python[cosmos,dns,docs,ledger,mqtt,nuls2,polkadot,solana,tezos,encryption]",
 ]
 
 [project.urls]
@@ -111,7 +107,6 @@ python = ["3.8", "3.9", "3.10", "3.11"]
 features = [
     "cosmos",
     "dns",
-    "ethereum",
     "ledger",
     "nuls2",
     "polkadot",

@@ -36,11 +36,10 @@ $ pip install aleph-sdk-python
 Some functionalities require additional dependencies. They can be installed like this:
 
 ```shell
-$ pip install aleph-sdk-python[ethereum, dns]
+$ pip install aleph-sdk-python[solana, dns]
 ```
 
 The following extra dependencies are available:
-- `ethereum` for Ethereum and Ethereum-compatible chains
 - `solana` for Solana accounts and signatures
 - `cosmos` for Substrate/Cosmos accounts and signatures
 - `nuls2` for NULS2 accounts and signatures
