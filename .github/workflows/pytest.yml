@@ -7,6 +7,11 @@ on:
   pull_request:
     branches:
       - main
+  schedule:
+    # Run every night at 04:00 (GitHub Actions timezone) 
+    # in order to catch when unfrozen dependency updates
+    # break the use of the library.
+    - cron: '4 0 * * *'
 
 jobs:
   build:
