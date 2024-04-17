@@ -1,7 +1,8 @@
 import json
+from io import BytesIO
 from pathlib import Path
 from tempfile import NamedTemporaryFile
-from typing import Any, Callable, Dict, List
+from typing import Any, Callable, Dict, List, Optional, Union
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest as pytest
@@ -195,19 +196,59 @@ def mock_session_with_post_success(
     return client
 
 
-def make_custom_mock_response(resp_json, status=200) -> MockResponse:
+import asyncio
+from functools import wraps
+
+
+def async_wrap(cls):
+    class AsyncWrapper:
+        def __init__(self, *args, **kwargs):
+            self._instance = cls(*args, **kwargs)
+
+        def __getattr__(self, item):
+            attr = getattr(self._instance, item)
+            if callable(attr):
+
+                @wraps(attr)
+                async def method(*args, **kwargs):
+                    loop = asyncio.get_running_loop()
+                    return await loop.run_in_executor(None, attr, *args, **kwargs)
+
+                return method
+            return attr
+
+    return AsyncWrapper
+
+
+AsyncBytesIO = async_wrap(BytesIO)
+
+
+def make_custom_mock_response(
+    resp: Union[Dict[str, Any], bytes], status=200
+) -> MockResponse:
     class CustomMockResponse(MockResponse):
+        content: Optional[AsyncBytesIO]
+
         async def json(self):
-            return resp_json
+            return resp
 
         @property
         def status(self):
             return status
 
-    return CustomMockResponse(sync=True)
+    mock = CustomMockResponse(sync=True)
+
+    try:
+        mock.content = AsyncBytesIO(resp)
+    except Exception as e:
+        print(e)
+
+    return mock
 
 
-def make_mock_get_session(get_return_value: Dict[str, Any]) -> AlephHttpClient:
+def make_mock_get_session(
+    get_return_value: Union[Dict[str, Any], bytes]
+) -> AlephHttpClient:
     class MockHttpSession(AsyncMock):
         def get(self, *_args, **_kwargs):
             return make_custom_mock_response(get_return_value)

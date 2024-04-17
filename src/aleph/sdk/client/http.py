@@ -1,7 +1,9 @@
 import json
 import logging
+import os.path
 import ssl
 from io import BytesIO
+from pathlib import Path
 from typing import Any, AsyncIterable, Dict, Iterable, List, Optional, Type, Union
 
 import aiohttp
@@ -206,20 +208,41 @@ class AlephHttpClient(AlephClient):
                 else:
                     response.raise_for_status()
 
-    async def download_file(
-        self,
-        file_hash: str,
-    ) -> bytes:
+    async def download_file(self, file_hash: str) -> bytes:
         """
         Get a file from the storage engine as raw bytes.
 
-        Warning: Downloading large files can be slow and memory intensive.
+        Warning: Downloading large files can be slow and memory intensive. Use `download_file_to()` to download them directly to disk instead.
 
         :param file_hash: The hash of the file to retrieve.
         """
         buffer = BytesIO()
         await self.download_file_to_buffer(file_hash, output_buffer=buffer)
         return buffer.getvalue()
+
+    async def download_file_to_path(
+        self,
+        file_hash: str,
+        path: Union[Path, str],
+    ) -> Path:
+        """
+        Download a file from the storage engine to given path.
+
+        :param file_hash: The hash of the file to retrieve.
+        :param path: The path to which the file should be saved.
+        """
+        if not isinstance(path, Path):
+            path = Path(path)
+
+        if not os.path.exists(path):
+            dir_path = os.path.dirname(path)
+            if dir_path:
+                os.makedirs(dir_path, exist_ok=True)
+
+        with open(path, "wb") as file_buffer:
+            await self.download_file_to_buffer(file_hash, output_buffer=file_buffer)
+
+        return path
 
     async def download_file_ipfs(
         self,
