@@ -1,6 +1,7 @@
 # An interface for all clients to implement.
-
+import json
 import logging
+import time
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import (
@@ -18,19 +19,25 @@ from typing import (
 
 from aleph_message.models import (
     AlephMessage,
+    ItemType,
     MessagesResponse,
     MessageType,
     Payment,
     PostMessage,
+    parse_message,
 )
 from aleph_message.models.execution.environment import HypervisorType
 from aleph_message.models.execution.program import Encoding
 from aleph_message.status import MessageStatus
 
+from aleph.sdk.conf import settings
+from aleph.sdk.types import Account
+from aleph.sdk.utils import extended_json_encoder
+
 from ..query.filters import MessageFilter, PostFilter
 from ..query.responses import PostsResponse
 from ..types import GenericMessage, StorageEnum
-from ..utils import Writable
+from ..utils import Writable, compute_sha256
 
 DEFAULT_PAGE_SIZE = 200
 
@@ -231,6 +238,8 @@ class AlephClient(ABC):
 
 
 class AuthenticatedAlephClient(AlephClient):
+    account: Account
+
     @abstractmethod
     async def create_post(
         self,
@@ -443,6 +452,62 @@ class AuthenticatedAlephClient(AlephClient):
         raise NotImplementedError(
             "Did you mean to import `AuthenticatedAlephHttpClient`?"
         )
+
+    async def generate_signed_message(
+        self,
+        message_type: MessageType,
+        content: Dict[str, Any],
+        channel: Optional[str],
+        allow_inlining: bool = True,
+        storage_engine: StorageEnum = StorageEnum.storage,
+    ) -> AlephMessage:
+        """Generate a signed aleph.im message ready to be sent to the network.
+
+        If the content is not inlined, it will be pushed to the storage engine via the API of a Core Channel Node.
+
+        :param message_type: Type of the message (PostMessage, ...)
+        :param content: User-defined content of the message
+        :param channel: Channel to use (Default: "TEST")
+        :param allow_inlining: Whether to allow inlining the content of the message (Default: True)
+        :param storage_engine: Storage engine to use (Default: "storage")
+        """
+
+        message_dict: Dict[str, Any] = {
+            "sender": self.account.get_address(),
+            "chain": self.account.CHAIN,
+            "type": message_type,
+            "content": content,
+            "time": time.time(),
+            "channel": channel,
+        }
+
+        # Use the Pydantic encoder to serialize types like UUID, datetimes, etc.
+        item_content: str = json.dumps(
+            content, separators=(",", ":"), default=extended_json_encoder
+        )
+
+        if allow_inlining and (len(item_content) < settings.MAX_INLINE_SIZE):
+            message_dict["item_content"] = item_content
+            message_dict["item_hash"] = compute_sha256(item_content)
+            message_dict["item_type"] = ItemType.inline
+        else:
+            if storage_engine == StorageEnum.ipfs:
+                message_dict["item_hash"] = await self.ipfs_push(
+                    content=content,
+                )
+                message_dict["item_type"] = ItemType.ipfs
+            else:  # storage
+                assert storage_engine == StorageEnum.storage
+                message_dict["item_hash"] = await self.storage_push(
+                    content=content,
+                )
+                message_dict["item_type"] = ItemType.storage
+
+        message_dict = await self.account.sign_message(message_dict)
+        return parse_message(message_dict)
+
+    # Alias for backwards compatibility
+    _prepare_aleph_message = generate_signed_message
 
     @abstractmethod
     async def submit(

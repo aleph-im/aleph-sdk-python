@@ -7,7 +7,6 @@ from pathlib import Path
 from typing import Any, Dict, List, Mapping, NoReturn, Optional, Tuple, Union
 
 import aiohttp
-from aleph_message import parse_message
 from aleph_message.models import (
     AggregateContent,
     AggregateMessage,
@@ -17,7 +16,6 @@ from aleph_message.models import (
     ForgetMessage,
     InstanceContent,
     InstanceMessage,
-    ItemType,
     MessageType,
     PostContent,
     PostMessage,
@@ -622,54 +620,6 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
         )
         return message, status
 
-    @staticmethod
-    def compute_sha256(s: str) -> str:
-        h = hashlib.sha256()
-        h.update(s.encode("utf-8"))
-        return h.hexdigest()
-
-    async def _prepare_aleph_message(
-        self,
-        message_type: MessageType,
-        content: Dict[str, Any],
-        channel: Optional[str],
-        allow_inlining: bool = True,
-        storage_engine: StorageEnum = StorageEnum.storage,
-    ) -> AlephMessage:
-        message_dict: Dict[str, Any] = {
-            "sender": self.account.get_address(),
-            "chain": self.account.CHAIN,
-            "type": message_type,
-            "content": content,
-            "time": time.time(),
-            "channel": channel,
-        }
-
-        # Use the Pydantic encoder to serialize types like UUID, datetimes, etc.
-        item_content: str = json.dumps(
-            content, separators=(",", ":"), default=extended_json_encoder
-        )
-
-        if allow_inlining and (len(item_content) < settings.MAX_INLINE_SIZE):
-            message_dict["item_content"] = item_content
-            message_dict["item_hash"] = self.compute_sha256(item_content)
-            message_dict["item_type"] = ItemType.inline
-        else:
-            if storage_engine == StorageEnum.ipfs:
-                message_dict["item_hash"] = await self.ipfs_push(
-                    content=content,
-                )
-                message_dict["item_type"] = ItemType.ipfs
-            else:  # storage
-                assert storage_engine == StorageEnum.storage
-                message_dict["item_hash"] = await self.storage_push(
-                    content=content,
-                )
-                message_dict["item_type"] = ItemType.storage
-
-        message_dict = await self.account.sign_message(message_dict)
-        return parse_message(message_dict)
-
     async def submit(
         self,
         content: Dict[str, Any],
@@ -680,7 +630,7 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
         sync: bool = False,
         raise_on_rejected: bool = True,
     ) -> Tuple[AlephMessage, MessageStatus, Optional[Dict[str, Any]]]:
-        message = await self._prepare_aleph_message(
+        message = await self.generate_signed_message(
             message_type=message_type,
             content=content,
             channel=channel,
@@ -703,7 +653,7 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
         data = aiohttp.FormData()
 
         # Prepare the STORE message
-        message = await self._prepare_aleph_message(
+        message = await self.generate_signed_message(
             message_type=MessageType.store,
             content=store_content.dict(exclude_none=True),
             channel=channel,

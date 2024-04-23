@@ -1,4 +1,5 @@
 import errno
+import hashlib
 import logging
 import os
 from datetime import date, datetime, time
@@ -178,3 +179,8 @@ def parse_volume(volume_dict: Union[Mapping, MachineVolume]) -> MachineVolume:
             continue
     else:
         raise ValueError(f"Could not parse volume: {volume_dict}")
+
+
+def compute_sha256(s: str) -> str:
+    """Compute the SHA256 hash of a string."""
+    return hashlib.sha256(s.encode()).hexdigest()
