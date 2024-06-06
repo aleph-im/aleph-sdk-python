@@ -184,3 +184,14 @@ def parse_volume(volume_dict: Union[Mapping, MachineVolume]) -> MachineVolume:
 def compute_sha256(s: str) -> str:
     """Compute the SHA256 hash of a string."""
     return hashlib.sha256(s.encode()).hexdigest()
+
+
+def to_0x_hex(b: bytes) -> str:
+    return "0x" + bytes.hex(b)
+
+
+def bytes_from_hex(hex_string: str) -> bytes:
+    if hex_string.startswith("0x"):
+        hex_string = hex_string[2:]
+    hex_string = bytes.fromhex(hex_string)
+    return hex_string
