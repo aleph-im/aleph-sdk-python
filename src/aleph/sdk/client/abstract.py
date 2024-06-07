@@ -19,6 +19,7 @@ from typing import (
 
 from aleph_message.models import (
     AlephMessage,
+    ItemHash,
     ItemType,
     MessagesResponse,
     MessageType,
@@ -429,7 +430,7 @@ class AuthenticatedAlephClient(AlephClient):
     @abstractmethod
     async def forget(
         self,
-        hashes: List[str],
+        hashes: List[ItemHash],
         reason: Optional[str],
         storage_engine: StorageEnum = StorageEnum.storage,
         channel: Optional[str] = None,
