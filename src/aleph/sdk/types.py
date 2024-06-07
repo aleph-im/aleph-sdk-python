@@ -32,5 +32,7 @@ class AccountFromPrivateKey(Account, Protocol):
 
     def __init__(self, private_key: bytes): ...
 
+    async def sign_raw(self, buffer: bytes) -> bytes: ...
+
 
 GenericMessage = TypeVar("GenericMessage", bound=AlephMessage)
