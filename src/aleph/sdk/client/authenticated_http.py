@@ -16,6 +16,7 @@ from aleph_message.models import (
     ForgetMessage,
     InstanceContent,
     InstanceMessage,
+    ItemHash,
     MessageType,
     PostContent,
     PostMessage,
@@ -594,7 +595,7 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
 
     async def forget(
         self,
-        hashes: List[str],
+        hashes: List[ItemHash],
         reason: Optional[str],
         storage_engine: StorageEnum = StorageEnum.storage,
         channel: Optional[str] = None,
