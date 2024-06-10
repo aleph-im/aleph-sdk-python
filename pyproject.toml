@@ -25,7 +25,7 @@ dependencies = [
     "aiohttp>=3.8.3",
     "aleph-message~=0.4.4",
     "coincurve; python_version<\"3.11\"",
-    "coincurve>=20.0.0; python_version>=\"3.11\"",
+    "coincurve>=19.0.0; python_version>=\"3.11\"",
     "eth_abi>=4.0.0; python_version>=\"3.11\"",
     "eth_account>=0.4.0,<0.11.0",
     "python-magic",
@@ -68,7 +68,7 @@ tezos = [
 ]
 encryption = [
     "eciespy; python_version<\"3.11\"",
-    "eciespy>=0.3.13; python_version>=\"3.11\"",
+    "eciespy>=0.4.1; python_version>=\"3.11\"",
 ]
 all = [
     "aleph-sdk-python[cosmos,dns,docs,ledger,mqtt,nuls2,polkadot,solana,tezos,encryption]",
