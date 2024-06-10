@@ -51,10 +51,6 @@ jobs:
           sudo apt-get -y upgrade
           sudo apt-get install -y libsecp256k1-dev
 
-      - name: Install `setuptools` on systems where it is missing by default
-        run: sudo apt-get install --reinstall python3-setuptools python3-pkg-resources
-        if: matrix.os == 'ubuntu-24.04'
-
       - name: Install Hatch
         run: |
           python3 -m venv /tmp/venv
@@ -67,6 +63,10 @@ jobs:
       - name: Install the Python wheel
         run: |
           /tmp/venv/bin/python3 -m pip install dist/aleph_sdk_python-*.whl
+
+      - name: Install `setuptools` on systems where it is missing by default
+        run: /tmp/venv/bin/python3 -m pip install --upgrade setuptools
+        if: matrix.os == 'ubuntu-24.04'
 
       - name: Import and use the package
         run: |
