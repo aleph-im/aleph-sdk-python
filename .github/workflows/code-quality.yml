@@ -31,7 +31,7 @@ jobs:
       - name: Install python dependencies
         run: |
           python3 -m venv /tmp/venv
-          /tmp/venv/pip install hatch
+          /tmp/venv/bin/pip install hatch
 
       - name: Run Hatch lint
-        run: /tmp/venv/hatch run linting:all
+        run: /tmp/venv/bin/hatch run linting:all
