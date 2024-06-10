@@ -11,6 +11,7 @@ on:
 jobs:
   build:
     strategy:
+      fail-fast: false
       matrix:
         os: [macos-11, macos-12, macos-13, macos-14, ubuntu-20.04, ubuntu-22.04, ubuntu-24.04]
     runs-on: ${{ matrix.os }}
@@ -49,6 +50,10 @@ jobs:
           sudo apt-get update
           sudo apt-get -y upgrade
           sudo apt-get install -y libsecp256k1-dev
+
+      - name: Install `setuptools` on systems where it is missing by default
+        run: sudo apt-get install --reinstall python-pkg-resources
+        if: matrix.is == 'ubuntu-24.04'
 
       - name: Install Hatch
         run: |
