@@ -33,7 +33,7 @@ async def test_create_post(mock_session_with_post_success):
             sync=False,
         )
 
-    assert mock_session_with_post_success.http_session.post.called_once
+    assert mock_session_with_post_success.http_session.post.assert_called_once
     assert isinstance(post_message, PostMessage)
     assert message_status == MessageStatus.PENDING
 
@@ -47,7 +47,7 @@ async def test_create_aggregate(mock_session_with_post_success):
             channel="TEST",
         )
 
-    assert mock_session_with_post_success.http_session.post.called_once
+    assert mock_session_with_post_success.http_session.post.assert_called_once
     assert isinstance(aggregate_message, AggregateMessage)
 
 
@@ -83,7 +83,7 @@ async def test_create_store(mock_session_with_post_success):
             storage_engine=StorageEnum.storage,
         )
 
-    assert mock_session_with_post_success.http_session.post.called
+    assert mock_session_with_post_success.http_session.post.assert_called
     assert isinstance(store_message, StoreMessage)
 
 
@@ -98,7 +98,7 @@ async def test_create_program(mock_session_with_post_success):
             metadata={"tags": ["test"]},
         )
 
-    assert mock_session_with_post_success.http_session.post.called_once
+    assert mock_session_with_post_success.http_session.post.assert_called_once
     assert isinstance(program_message, ProgramMessage)
 
 
@@ -118,7 +118,7 @@ async def test_create_instance(mock_session_with_post_success):
             hypervisor=HypervisorType.qemu,
         )
 
-    assert mock_session_with_post_success.http_session.post.called_once
+    assert mock_session_with_post_success.http_session.post.assert_called_once
     assert isinstance(instance_message, InstanceMessage)
 
 
@@ -139,7 +139,7 @@ async def test_create_instance_no_payment(mock_session_with_post_success):
     assert instance_message.content.payment.type == PaymentType.hold
     assert instance_message.content.payment.chain == Chain.ETH
 
-    assert mock_session_with_post_success.http_session.post.called_once
+    assert mock_session_with_post_success.http_session.post.assert_called_once
     assert isinstance(instance_message, InstanceMessage)
 
 
@@ -159,7 +159,7 @@ async def test_create_instance_no_hypervisor(mock_session_with_post_success):
 
     assert instance_message.content.environment.hypervisor == HypervisorType.firecracker
 
-    assert mock_session_with_post_success.http_session.post.called_once
+    assert mock_session_with_post_success.http_session.post.assert_called_once
     assert isinstance(instance_message, InstanceMessage)
 
 
@@ -172,7 +172,7 @@ async def test_forget(mock_session_with_post_success):
             channel="TEST",
         )
 
-    assert mock_session_with_post_success.http_session.post.called_once
+    assert mock_session_with_post_success.http_session.post.assert_called_once
     assert isinstance(forget_message, ForgetMessage)
 
 
