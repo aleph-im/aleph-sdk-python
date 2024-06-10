@@ -52,17 +52,18 @@ jobs:
 
       - name: Install Hatch
         run: |
-          python3 -m pip install --upgrade hatch
+          python3 -m venv /tmp/venv
+          /tmp/venv/bin/python3 -m pip install --upgrade hatch
 
       - name: Build source and wheel packages
         run: |
-          python3 -m hatch build
+          /tmp/venv/bin/python3 -m hatch build
 
       - name: Install the Python wheel
         run: |
-          python3 -m pip install dist/aleph_sdk_python-*.whl
+          /tmp/venv/bin/python3 -m pip install dist/aleph_sdk_python-*.whl
 
       - name: Import and use the package
         run: |
-          python3 -c "import aleph.sdk"
-          python3 -c "from aleph.sdk.chains.ethereum import get_fallback_account; get_fallback_account()"
+          /tmp/venv/bin/python3 -c "import aleph.sdk"
+          /tmp/venv/bin/python3 -c "from aleph.sdk.chains.ethereum import get_fallback_account; get_fallback_account()"

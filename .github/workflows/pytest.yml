@@ -25,12 +25,19 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
+
       - run: sudo apt-get install -y python3-pip libsecp256k1-dev
-      - run: python -m pip install --upgrade pip hatch coverage
-      - run: hatch run testing:test
+
+      - run: |
+          python3 -m venv /tmp/venv
+          /tmp/venv/bin/python -m pip install --upgrade pip hatch coverage
+
+      - run: /tmp/venv/bin/hatch run testing:test
         if: matrix.python-version != '3.11'
-      - run: hatch run testing:cov
+
+      - run: /tmp/venv/bin/hatch run testing:cov
         if: matrix.python-version == '3.11'
+
       - uses: codecov/codecov-action@v4.0.1
         if: matrix.python-version == '3.11'
         with:

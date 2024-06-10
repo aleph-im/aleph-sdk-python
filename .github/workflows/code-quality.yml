@@ -19,7 +19,8 @@ jobs:
       - name: Install pip and hatch
         run: |
           sudo apt-get install -y python3-pip
-          pip3 install hatch
+          python3 -m venv /tmp/venv
+          /tmp/venv/pip3 install hatch
 
       - name: Cache dependencies
         uses: actions/cache@v4
@@ -33,4 +34,4 @@ jobs:
         run: sudo apt-get install -y libsecp256k1-dev
 
       - name: Run Hatch lint
-        run: hatch run linting:all
+        run: /tmp/venv/hatch run linting:all
