@@ -52,7 +52,7 @@ jobs:
           sudo apt-get install -y libsecp256k1-dev
 
       - name: Install `setuptools` on systems where it is missing by default
-        run: sudo apt-get install python3-setuptools python3-pkg-resources
+        run: sudo apt-get install --reinstall python3-setuptools python3-pkg-resources
         if: matrix.os == 'ubuntu-24.04'
 
       - name: Install Hatch
