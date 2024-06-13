@@ -8,7 +8,7 @@ on:
 
 jobs:
   code-quality:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
 
     steps:
       - uses: actions/checkout@v4
@@ -16,10 +16,9 @@ jobs:
       - name: Workaround github issue https://github.com/actions/runner-images/issues/7192
         run: sudo echo RESET grub-efi/install_devices | sudo debconf-communicate grub-pc
 
-      - name: Install pip and hatch
+      - name: Install system dependencies
         run: |
-          sudo apt-get install -y python3-pip
-          pip3 install hatch
+          sudo apt-get install -y python3-pip libsecp256k1-dev
 
       - name: Cache dependencies
         uses: actions/cache@v4
@@ -29,8 +28,10 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-code-quality-
 
-      - name: Install required system packages only for Ubuntu Linux
-        run: sudo apt-get install -y libsecp256k1-dev
+      - name: Install python dependencies
+        run: |
+          python3 -m venv /tmp/venv
+          /tmp/venv/bin/pip install hatch
 
       - name: Run Hatch lint
-        run: hatch run linting:all
+        run: /tmp/venv/bin/hatch run linting:all
