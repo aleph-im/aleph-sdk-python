@@ -141,19 +141,19 @@ dependencies = [
     "black==24.2.0",
     "mypy==1.9.0",
     "mypy-extensions==1.0.0",
-    # "ruff==0.1.15",
+    "ruff==0.4.8",
     "isort==5.13.2",
 ]
 [tool.hatch.envs.linting.scripts]
 typing = "mypy --config-file=pyproject.toml {args:} ./src/ ./tests/ ./examples/"
 style = [
-    #  "ruff {args:.}",
+    "ruff {args:.} ./src/ ./tests/ ./examples/",
     "black --check --diff {args:} ./src/ ./tests/ ./examples/",
     "isort --check-only --profile black {args:} ./src/ ./tests/ ./examples/",
 ]
 fmt = [
     "black {args:} ./src/ ./tests/ ./examples/",
-    #  "ruff --fix {args:.}",
+    "ruff --fix {args:.} ./src/ ./tests/ ./examples/",
     "isort --profile black {args:} ./src/ ./tests/ ./examples/",
     "style",
 ]
@@ -169,6 +169,7 @@ exclude = [
     "conftest.py"
 ]
 show_column_numbers = true
+check_untyped_defs = true
 
 # Import discovery
 # Install types for third-party library stubs (e.g. from typeshed repository)

@@ -23,7 +23,7 @@ async def test_ledger_eth_account():
 
     address = account.get_address()
     assert address
-    assert type(address) is str
+    assert isinstance(address, str)
     assert len(address) == 42
 
     message = Message("ETH", account.get_address(), "SomeType", "ItemHash")
