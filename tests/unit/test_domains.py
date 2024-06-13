@@ -47,7 +47,7 @@ async def test_configured_domain():
     url = "https://custom-domain-unit-test.aleph.sh"
     hostname = hostname_from_url(url)
     status = await alephdns.check_domain(hostname, TargetType.IPFS, "0xfakeaddress")
-    assert type(status) is dict
+    assert isinstance(status, dict)
 
 
 @pytest.mark.asyncio
@@ -57,4 +57,4 @@ async def test_not_configured_domain():
     hostname = hostname_from_url(url)
     with pytest.raises(DomainConfigurationError):
         status = await alephdns.check_domain(hostname, TargetType.IPFS, "0xfakeaddress")
-        assert type(status) is None
+        assert status is None

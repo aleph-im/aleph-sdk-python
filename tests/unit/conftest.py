@@ -1,4 +1,6 @@
+import asyncio
 import json
+from functools import wraps
 from io import BytesIO
 from pathlib import Path
 from tempfile import NamedTemporaryFile
@@ -194,10 +196,6 @@ def mock_session_with_post_success(
     client.http_session = http_session
 
     return client
-
-
-import asyncio
-from functools import wraps
 
 
 def async_wrap(cls):
