@@ -67,10 +67,8 @@ tezos = [
     "pynacl",
 ]
 encryption = [
-    # Blocked by https://github.com/ecies/py/issues/356
-    # "eciespy; python_version<'3.11'",
-    # "eciespy @ git+https://github.com/ecies/py.git@4b4256cde1d8acd773dff76fd8ab855a8e9faa4f#egg=eciespy; python_version>='3.11'"
-    "eciespy@git+https://github.com/ecies/py.git@4b4256cde1d8acd773dff76fd8ab855a8e9faa4f#egg=eciespy"
+    "eciespy; python_version<\"3.11\"",
+    "eciespy>=0.3.13; python_version>=\"3.11\"",
 ]
 all = [
     "aleph-sdk-python[cosmos,dns,docs,ledger,mqtt,nuls2,polkadot,solana,tezos,encryption]",
