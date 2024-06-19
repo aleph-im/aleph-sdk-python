@@ -3,6 +3,7 @@ import json
 import logging
 import ssl
 import time
+from io import BytesIO
 from pathlib import Path
 from typing import Any, Dict, List, Mapping, NoReturn, Optional, Tuple, Union
 
@@ -114,14 +115,14 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
             resp.raise_for_status()
             return (await resp.json()).get("hash")
 
-    async def ipfs_push_file(self, file_content: Union[str, bytes]) -> str:
+    async def ipfs_push_file(self, file_content: bytes) -> str:
         """
         Push a file to the IPFS service.
 
         :param file_content: The file content to upload
         """
         data = aiohttp.FormData()
-        data.add_field("file", file_content)
+        data.add_field("file", BytesIO(file_content))
 
         url = "/api/v0/ipfs/add_file"
         logger.debug(f"Pushing file to IPFS on {url}")
@@ -130,12 +131,12 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
             resp.raise_for_status()
             return (await resp.json()).get("hash")
 
-    async def storage_push_file(self, file_content) -> str:
+    async def storage_push_file(self, file_content: bytes) -> Optional[str]:
         """
         Push a file to the storage service.
         """
         data = aiohttp.FormData()
-        data.add_field("file", file_content)
+        data.add_field("file", BytesIO(file_content))
 
         url = "/api/v0/storage/add_file"
         logger.debug(f"Posting file on {url}")
@@ -669,7 +670,7 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
             content_type="application/json",
         )
         # Add the file
-        data.add_field("file", file_content)
+        data.add_field("file", BytesIO(file_content))
 
         url = "/api/v0/storage/add_file"
         logger.debug(f"Posting file on {url}")
