@@ -1,7 +1,7 @@
 import datetime
 import json
 import logging
-from typing import Any, Dict, Tuple
+from typing import Any, Dict, Tuple, Optional
 
 import aiohttp
 from eth_account.messages import encode_defunct
@@ -15,19 +15,31 @@ logger = logging.getLogger(__name__)
 
 
 class VmClient:
-    def __init__(self, account: Account, domain: str = ""):
+    account: Account
+    ephemeral_key: jwk.JWK
+    node_url: str
+    pubkey_payload: Dict[str, Any]
+    pubkey_signature_header: str
+    session: aiohttp.ClientSession
+
+    def __init__(
+        self,
+        account: Account,
+        node_url: str = "",
+        session: Optional[aiohttp.ClientSession] = None,
+    ):
         self.account: Account = account
         self.ephemeral_key: jwk.JWK = jwk.JWK.generate(kty="EC", crv="P-256")
-        self.domain: str = domain
+        self.node_url: str = node_url
         self.pubkey_payload = self._generate_pubkey_payload()
         self.pubkey_signature_header: str = ""
-        self.session = aiohttp.ClientSession()
+        self.session = session or aiohttp.ClientSession()
 
     def _generate_pubkey_payload(self) -> Dict[str, Any]:
         return {
             "pubkey": json.loads(self.ephemeral_key.export_public()),
             "alg": "ECDSA",
-            "domain": self.domain,
+            "domain": self.node_url,
             "address": self.account.get_address(),
             "expires": (
                 datetime.datetime.utcnow() + datetime.timedelta(days=1)
@@ -48,14 +60,13 @@ class VmClient:
                 "sender": self.account.get_address(),
                 "payload": pubkey_payload,
                 "signature": pubkey_signature,
-                "content": {"domain": self.domain},
+                "content": {"domain": self.node_url},
             }
         )
 
     async def _generate_header(
         self, vm_id: str, operation: str
     ) -> Tuple[str, Dict[str, str]]:
-        base_url = f"http://{self.domain}"
         path = (
             f"/logs/{vm_id}"
             if operation == "logs"
@@ -79,7 +90,7 @@ class VmClient:
             }
         )
 
-        return f"{base_url}{path}", headers
+        return f"{self.node_url}{path}", headers
 
     async def perform_operation(self, vm_id, operation):
         if not self.pubkey_signature_header:
@@ -139,7 +150,7 @@ class VmClient:
     async def notify_allocation(self, vm_id) -> Tuple[Any, str]:
         json_data = {"instance": vm_id}
         async with self.session.post(
-            f"https://{self.domain}/control/allocation/notify", json=json_data
+            f"{self.node_url}/control/allocation/notify", json=json_data
         ) as s:
             form_response_text = await s.text()
             return s.status, form_response_text
