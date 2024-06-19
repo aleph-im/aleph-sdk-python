@@ -98,7 +98,9 @@ class VmClient:
         signed_operation = self.sign_payload(payload, self.ephemeral_key)
 
         if not self.pubkey_signature_header:
-            self.pubkey_signature_header = await self.generate_pubkey_signature_header()
+            self.pubkey_signature_header = (
+                await self._generate_pubkey_signature_header()
+            )
 
         headers = {
             "X-SignedPubKey": self.pubkey_signature_header,

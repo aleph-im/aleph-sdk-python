@@ -4,7 +4,7 @@ import functools
 import json
 import logging
 from collections.abc import Awaitable, Coroutine
-from typing import Any, Callable, Literal, Union
+from typing import Any, Callable, Dict, Literal, Union
 
 import cryptography.exceptions
 import pydantic
@@ -15,10 +15,10 @@ from jwcrypto import jwk
 from jwcrypto.jwa import JWA
 from pydantic import BaseModel, ValidationError, root_validator, validator
 
-
 logger = logging.getLogger(__name__)
 
 DOMAIN_NAME = "localhost"
+
 
 def is_token_still_valid(datestr: str):
     """
@@ -42,7 +42,7 @@ def verify_wallet_signature(signature, message, address):
 class SignedPubKeyPayload(BaseModel):
     """This payload is signed by the wallet of the user to authorize an ephemeral key to act on his behalf."""
 
-    pubkey: dict[str, Any]
+    pubkey: Dict[str, Any]
     # {'pubkey': {'alg': 'ES256', 'crv': 'P-256', 'ext': True, 'key_ops': ['verify'], 'kty': 'EC',
     #  'x': '4blJBYpltvQLFgRvLE-2H7dsMr5O0ImHkgOnjUbG2AU', 'y': '5VHnq_hUSogZBbVgsXMs0CjrVfMy4Pa3Uv2BEBqfrN4'}
     # alg: Literal["ECDSA"]
@@ -63,7 +63,7 @@ class SignedPubKeyHeader(BaseModel):
     @validator("signature")
     def signature_must_be_hex(cls, v: bytes) -> bytes:
         """Convert the signature from hexadecimal to bytes"""
-        return bytes.fromhex(v.removeprefix(b"0x").decode())
+        return bytes.fromhex(v.decode())
 
     @validator("payload")
     def payload_must_be_hex(cls, v: bytes) -> bytes:
@@ -71,7 +71,7 @@ class SignedPubKeyHeader(BaseModel):
         return bytes.fromhex(v.decode())
 
     @root_validator(pre=False, skip_on_failure=True)
-    def check_expiry(cls, values) -> dict[str, bytes]:
+    def check_expiry(cls, values) -> Dict[str, bytes]:
         """Check that the token has not expired"""
         payload: bytes = values["payload"]
         content = SignedPubKeyPayload.parse_raw(payload)
@@ -81,7 +81,7 @@ class SignedPubKeyHeader(BaseModel):
         return values
 
     @root_validator(pre=False, skip_on_failure=True)
-    def check_signature(cls, values) -> dict[str, bytes]:
+    def check_signature(cls, values) -> Dict[str, bytes]:
         """Check that the signature is valid"""
         signature: bytes = values["signature"]
         payload: bytes = values["payload"]
