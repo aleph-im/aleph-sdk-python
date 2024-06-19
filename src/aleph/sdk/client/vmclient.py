@@ -66,9 +66,7 @@ class VmClient:
         )
 
     def create_payload(self, vm_id: str, operation: str) -> Dict[str, str]:
-        path = (
-            f"/control/machine/{vm_id}/{operation}"
-        )
+        path = f"/control/machine/{vm_id}/{operation}"
         payload = {
             "time": datetime.datetime.utcnow().isoformat() + "Z",
             "method": "POST",
