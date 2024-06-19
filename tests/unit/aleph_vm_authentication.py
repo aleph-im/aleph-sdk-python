@@ -18,6 +18,7 @@ from pydantic import BaseModel, ValidationError, root_validator, validator
 
 logger = logging.getLogger(__name__)
 
+DOMAIN_NAME = "localhost"
 
 def is_token_still_valid(datestr: str):
     """
@@ -210,9 +211,9 @@ async def authenticate_jwk(request: web.Request) -> str:
     """Authenticate a request using the X-SignedPubKey and X-SignedOperation headers."""
     signed_pubkey = get_signed_pubkey(request)
     signed_operation = get_signed_operation(request)
-    if signed_pubkey.content.domain != settings.DOMAIN_NAME:
+    if signed_pubkey.content.domain != DOMAIN_NAME:
         logger.debug(
-            f"Invalid domain '{signed_pubkey.content.domain}' != '{settings.DOMAIN_NAME}'"
+            f"Invalid domain '{signed_pubkey.content.domain}' != '{DOMAIN_NAME}'"
         )
         raise web.HTTPUnauthorized(reason="Invalid domain")
     if signed_operation.content.path != request.path:
@@ -232,9 +233,9 @@ async def authenticate_websocket_message(message) -> str:
     """Authenticate a websocket message since JS cannot configure headers on WebSockets."""
     signed_pubkey = SignedPubKeyHeader.parse_obj(message["X-SignedPubKey"])
     signed_operation = SignedOperation.parse_obj(message["X-SignedOperation"])
-    if signed_pubkey.content.node_url != settings.DOMAIN_NAME:
+    if signed_pubkey.content.node_url != DOMAIN_NAME:
         logger.debug(
-            f"Invalid domain '{signed_pubkey.content.node_url}' != '{settings.DOMAIN_NAME}'"
+            f"Invalid domain '{signed_pubkey.content.node_url}' != '{DOMAIN_NAME}'"
         )
         raise web.HTTPUnauthorized(reason="Invalid domain")
     return verify_signed_operation(signed_operation, signed_pubkey)
