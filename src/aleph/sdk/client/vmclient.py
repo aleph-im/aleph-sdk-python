@@ -67,9 +67,7 @@ class VmClient:
 
     def create_payload(self, vm_id: str, operation: str) -> Dict[str, str]:
         path = (
-            f"/logs/{vm_id}"
-            if operation == "logs"
-            else f"/control/machine/{vm_id}/{operation}"
+            f"/control/machine/{vm_id}/{operation}"
         )
         payload = {
             "time": datetime.datetime.utcnow().isoformat() + "Z",
@@ -134,8 +132,8 @@ class VmClient:
 
         payload = self.create_payload(vm_id, "logs")
         signed_operation = self.sign_payload(payload, self.ephemeral_key)
-
-        ws_url, header = await self._generate_header(vm_id=vm_id, operation="logs")
+        path = payload["path"]
+        ws_url = f"{self.node_url}{path}"
 
         async with self.session.ws_connect(ws_url) as ws:
             auth_message = {
