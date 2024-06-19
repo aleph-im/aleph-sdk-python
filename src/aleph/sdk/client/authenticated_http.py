@@ -131,7 +131,7 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
             resp.raise_for_status()
             return (await resp.json()).get("hash")
 
-    async def storage_push_file(self, file_content) -> str:
+    async def storage_push_file(self, file_content: bytes) -> Optional[str]:
         """
         Push a file to the storage service.
         """
