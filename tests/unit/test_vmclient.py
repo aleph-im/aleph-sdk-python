@@ -21,3 +21,4 @@ async def test_notify_allocation():
         m.post("http://localhost/control/allocation/notify", status=200)
         await vm_client.notify_allocation(vm_id=vm_id)
         assert m.requests
+        await vm_client.session.close()
