@@ -1,7 +1,8 @@
 import datetime
 import json
 import logging
-from typing import Any, Dict, Tuple, Optional
+from typing import Any, Dict, Optional, Tuple
+from urllib.parse import urlparse
 
 import aiohttp
 from eth_account.messages import encode_defunct
@@ -39,7 +40,7 @@ class VmClient:
         return {
             "pubkey": json.loads(self.ephemeral_key.export_public()),
             "alg": "ECDSA",
-            "domain": self.node_url,
+            "domain": urlparse(self.node_url).netloc,
             "address": self.account.get_address(),
             "expires": (
                 datetime.datetime.utcnow() + datetime.timedelta(days=1)
@@ -60,36 +61,51 @@ class VmClient:
                 "sender": self.account.get_address(),
                 "payload": pubkey_payload,
                 "signature": pubkey_signature,
-                "content": {"domain": self.node_url},
+                "content": {"domain": urlparse(self.node_url).netloc},
             }
         )
 
-    async def _generate_header(
-        self, vm_id: str, operation: str
-    ) -> Tuple[str, Dict[str, str]]:
+    def create_payload(self, vm_id: str, operation: str) -> Dict[str, str]:
         path = (
             f"/logs/{vm_id}"
             if operation == "logs"
             else f"/control/machine/{vm_id}/{operation}"
         )
-
         payload = {
             "time": datetime.datetime.utcnow().isoformat() + "Z",
             "method": "POST",
             "path": path,
         }
+        return payload
+
+    def sign_payload(self, payload: Dict[str, str], ephemeral_key) -> str:
         payload_as_bytes = json.dumps(payload).encode("utf-8")
-        headers = {"X-SignedPubKey": self.pubkey_signature_header}
         payload_signature = JWA.signing_alg("ES256").sign(
-            self.ephemeral_key, payload_as_bytes
+            ephemeral_key, payload_as_bytes
         )
-        headers["X-SignedOperation"] = json.dumps(
+        signed_operation = json.dumps(
             {
                 "payload": payload_as_bytes.hex(),
                 "signature": payload_signature.hex(),
             }
         )
+        return signed_operation
 
+    async def _generate_header(
+        self, vm_id: str, operation: str
+    ) -> Tuple[str, Dict[str, str]]:
+        payload = self.create_payload(vm_id, operation)
+        signed_operation = self.sign_payload(payload, self.ephemeral_key)
+
+        if not self.pubkey_signature_header:
+            self.pubkey_signature_header = await self.generate_pubkey_signature_header()
+
+        headers = {
+            "X-SignedPubKey": self.pubkey_signature_header,
+            "X-SignedOperation": signed_operation,
+        }
+
+        path = payload["path"]
         return f"{self.node_url}{path}", headers
 
     async def perform_operation(self, vm_id, operation):
@@ -114,22 +130,24 @@ class VmClient:
                 await self._generate_pubkey_signature_header()
             )
 
+        payload = self.create_payload(vm_id, "logs")
+        signed_operation = self.sign_payload(payload, self.ephemeral_key)
+
         ws_url, header = await self._generate_header(vm_id=vm_id, operation="logs")
 
-        async with aiohttp.ClientSession() as session:
-            async with session.ws_connect(ws_url) as ws:
-                auth_message = {
-                    "auth": {
-                        "X-SignedPubKey": header["X-SignedPubKey"],
-                        "X-SignedOperation": header["X-SignedOperation"],
-                    }
+        async with self.session.ws_connect(ws_url) as ws:
+            auth_message = {
+                "auth": {
+                    "X-SignedPubKey": self.pubkey_signature_header,
+                    "X-SignedOperation": signed_operation,
                 }
-                await ws.send_json(auth_message)
-                async for msg in ws:  # msg is of type aiohttp.WSMessage
-                    if msg.type == aiohttp.WSMsgType.TEXT:
-                        yield msg.data
-                    elif msg.type == aiohttp.WSMsgType.ERROR:
-                        break
+            }
+            await ws.send_json(auth_message)
+            async for msg in ws:  # msg is of type aiohttp.WSMessage
+                if msg.type == aiohttp.WSMsgType.TEXT:
+                    yield msg.data
+                elif msg.type == aiohttp.WSMsgType.ERROR:
+                    break
 
     async def start_instance(self, vm_id):
         return await self.notify_allocation(vm_id)
