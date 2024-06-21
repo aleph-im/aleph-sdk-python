@@ -14,8 +14,11 @@ on:
 jobs:
   build:
     strategy:
+      fail-fast: false
       matrix:
-        python-version: [ "3.9", "3.10", "3.11", "3.12" ]
+        python-version: [ "3.9", "3.10", "3.11" ]
+        # An issue with secp256k1 prevents Python 3.12 from working
+        # See https://github.com/baking-bad/pytezos/issues/370
     runs-on: ubuntu-latest
 
     steps:
