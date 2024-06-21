@@ -25,7 +25,7 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      - run: sudo apt-get install -y python3-pip libsecp256k1-dev python3-venv build-essential python3-setuptools
+      - run: sudo apt-get install -y python3-pip libsecp256k1-dev python3-venv build-essential git
 
       - run: |
           python3 -m venv /tmp/venv
