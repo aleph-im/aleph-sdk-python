@@ -31,8 +31,6 @@ jobs:
           /tmp/venv/bin/python -m pip install --upgrade pip hatch coverage
 
       - run: |
-          /tmp/venv/bin/pip freeze
-          /tmp/venv/bin/hatch run testing:pip freeze
           /tmp/venv/bin/hatch run testing:test
         if: matrix.python-version != '3.11'
 
