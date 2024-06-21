@@ -23,7 +23,7 @@ classifiers = [
 ]
 dependencies = [
     "aiohttp>=3.8.3",
-    "aleph-message~=0.4.4",
+    "aleph-message>=0.4.7",
     "coincurve; python_version<\"3.11\"",
     "coincurve>=19.0.0; python_version>=\"3.11\"",
     "eth_abi>=4.0.0; python_version>=\"3.11\"",
