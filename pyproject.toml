@@ -125,6 +125,8 @@ dependencies = [
     "fastapi",
     "httpx",
     "secp256k1",
+    "coverage",
+    "wheel",
 ]
 [tool.hatch.envs.testing.scripts]
 test = "pytest {args:} ./src/ ./tests/ ./examples/"

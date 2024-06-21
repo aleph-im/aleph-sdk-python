@@ -29,7 +29,7 @@ jobs:
 
       - run: |
           python3 -m venv /tmp/venv
-          /tmp/venv/bin/python -m pip install --upgrade pip hatch coverage
+          /tmp/venv/bin/python -m pip install --upgrade pip hatch
 
       - run: |
           /tmp/venv/bin/hatch run testing:test
