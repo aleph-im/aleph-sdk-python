@@ -30,6 +30,7 @@ from aleph_message.models.execution.base import Encoding, Payment, PaymentType
 from aleph_message.models.execution.environment import (
     FunctionEnvironment,
     HypervisorType,
+    InstanceEnvironment,
     MachineResources,
 )
 from aleph_message.models.execution.instance import RootfsVolume
@@ -539,8 +540,7 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
         content = InstanceContent(
             address=address,
             allow_amend=allow_amend,
-            environment=FunctionEnvironment(
-                reproducible=False,
+            environment=InstanceEnvironment(
                 internet=internet,
                 aleph_api=aleph_api,
                 hypervisor=hypervisor,
