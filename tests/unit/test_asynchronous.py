@@ -157,7 +157,7 @@ async def test_create_instance_no_hypervisor(mock_session_with_post_success):
             hypervisor=None,
         )
 
-    assert instance_message.content.environment.hypervisor == HypervisorType.firecracker
+    assert instance_message.content.environment.hypervisor == HypervisorType.qemu
 
     assert mock_session_with_post_success.http_session.post.assert_called_once
     assert isinstance(instance_message, InstanceMessage)
