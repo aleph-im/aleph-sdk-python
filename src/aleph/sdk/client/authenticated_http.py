@@ -535,7 +535,9 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
         timeout_seconds = timeout_seconds or settings.DEFAULT_VM_TIMEOUT
 
         payment = payment or Payment(chain=Chain.ETH, type=PaymentType.hold)
-        hypervisor = hypervisor or HypervisorType.firecracker
+
+        # Default to the QEMU hypervisor for instances.
+        selected_hypervisor: HypervisorType = hypervisor or HypervisorType.qemu
 
         content = InstanceContent(
             address=address,
@@ -543,7 +545,7 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
             environment=InstanceEnvironment(
                 internet=internet,
                 aleph_api=aleph_api,
-                hypervisor=hypervisor,
+                hypervisor=selected_hypervisor,
             ),
             variables=environment_variables,
             resources=MachineResources(
