@@ -1,13 +1,15 @@
 import datetime
 import json
 import logging
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, Optional, Tuple, List, AsyncGenerator
 from urllib.parse import urlparse
 
 import aiohttp
 from eth_account.messages import encode_defunct
 from jwcrypto import jwk
 from jwcrypto.jwa import JWA
+
+from aleph_message.models import ItemHash
 
 from aleph.sdk.types import Account
 from aleph.sdk.utils import to_0x_hex
@@ -65,7 +67,7 @@ class VmClient:
             }
         )
 
-    def create_payload(self, vm_id: str, operation: str) -> Dict[str, str]:
+    def create_payload(self, vm_id: ItemHash, operation: str) -> Dict[str, str]:
         path = f"/control/machine/{vm_id}/{operation}"
         payload = {
             "time": datetime.datetime.utcnow().isoformat() + "Z",
@@ -88,7 +90,7 @@ class VmClient:
         return signed_operation
 
     async def _generate_header(
-        self, vm_id: str, operation: str
+        self, vm_id: ItemHash, operation: str
     ) -> Tuple[str, Dict[str, str]]:
         payload = self.create_payload(vm_id, operation)
         signed_operation = self.sign_payload(payload, self.ephemeral_key)
@@ -106,7 +108,7 @@ class VmClient:
         path = payload["path"]
         return f"{self.node_url}{path}", headers
 
-    async def perform_operation(self, vm_id, operation):
+    async def perform_operation(self, vm_id: ItemHash, operation: str) -> Tuple[Optional[int], str]:
         if not self.pubkey_signature_header:
             self.pubkey_signature_header = (
                 await self._generate_pubkey_signature_header()
@@ -118,11 +120,12 @@ class VmClient:
             async with self.session.post(url, headers=header) as response:
                 response_text = await response.text()
                 return response.status, response_text
+
         except aiohttp.ClientError as e:
             logger.error(f"HTTP error during operation {operation}: {str(e)}")
             return None, str(e)
 
-    async def get_logs(self, vm_id):
+    async def get_logs(self, vm_id: ItemHash) -> AsyncGenerator[str, None]:
         if not self.pubkey_signature_header:
             self.pubkey_signature_header = (
                 await self._generate_pubkey_signature_header()
@@ -147,23 +150,22 @@ class VmClient:
                 elif msg.type == aiohttp.WSMsgType.ERROR:
                     break
 
-    async def start_instance(self, vm_id):
+    async def start_instance(self, vm_id: ItemHash) -> Tuple[int, str]:
         return await self.notify_allocation(vm_id)
 
-    async def stop_instance(self, vm_id):
+    async def stop_instance(self, vm_id: ItemHash) -> Tuple[Optional[int], str]:
         return await self.perform_operation(vm_id, "stop")
 
-    async def reboot_instance(self, vm_id):
-
+    async def reboot_instance(self, vm_id: ItemHash) -> Tuple[Optional[int], str]:
         return await self.perform_operation(vm_id, "reboot")
 
-    async def erase_instance(self, vm_id):
+    async def erase_instance(self, vm_id: ItemHash) -> Tuple[Optional[int], str]:
         return await self.perform_operation(vm_id, "erase")
 
-    async def expire_instance(self, vm_id):
+    async def expire_instance(self, vm_id: ItemHash) -> Tuple[Optional[int], str]:
         return await self.perform_operation(vm_id, "expire")
 
-    async def notify_allocation(self, vm_id) -> Tuple[Any, str]:
+    async def notify_allocation(self, vm_id: ItemHash) -> Tuple[int, str]:
         json_data = {"instance": vm_id}
         async with self.session.post(
             f"{self.node_url}/control/allocation/notify", json=json_data
@@ -171,7 +173,7 @@ class VmClient:
             form_response_text = await s.text()
             return s.status, form_response_text
 
-    async def manage_instance(self, vm_id, operations):
+    async def manage_instance(self, vm_id: ItemHash, operations: List[str]):
         for operation in operations:
             status, response = await self.perform_operation(vm_id, operation)
             if status != 200:
