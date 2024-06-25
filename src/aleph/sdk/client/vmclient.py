@@ -31,11 +31,11 @@ class VmClient:
         node_url: str = "",
         session: Optional[aiohttp.ClientSession] = None,
     ):
-        self.account: Account = account
-        self.ephemeral_key: jwk.JWK = jwk.JWK.generate(kty="EC", crv="P-256")
-        self.node_url: str = node_url
+        self.account = account
+        self.ephemeral_key = jwk.JWK.generate(kty="EC", crv="P-256")
+        self.node_url = node_url
         self.pubkey_payload = self._generate_pubkey_payload()
-        self.pubkey_signature_header: str = ""
+        self.pubkey_signature_header = ""
         self.session = session or aiohttp.ClientSession()
 
     def _generate_pubkey_payload(self) -> Dict[str, Any]:
