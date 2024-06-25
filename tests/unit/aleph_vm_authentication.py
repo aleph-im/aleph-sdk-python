@@ -36,6 +36,7 @@ def verify_wallet_signature(signature: bytes, message: str, address: str) -> boo
     """
     enc_msg = encode_defunct(hexstr=message)
     computed_address = Account.recover_message(enc_msg, signature=signature)
+
     return computed_address.lower() == address.lower()
 
 
@@ -53,6 +54,7 @@ class SignedPubKeyPayload(BaseModel):
     @property
     def json_web_key(self) -> jwk.JWK:
         """Return the ephemeral public key as Json Web Key"""
+
         return jwk.JWK(**self.pubkey)
 
 
@@ -71,14 +73,17 @@ class SignedPubKeyHeader(BaseModel):
         """Convert the payload from hexadecimal to bytes"""
 
         return bytes.fromhex(value.decode())
+
     @root_validator(pre=False, skip_on_failure=True)
     def check_expiry(cls, values: Dict[str, bytes]) -> Dict[str, bytes]:
         """Check that the token has not expired"""
         payload: bytes = values["payload"]
         content = SignedPubKeyPayload.parse_raw(payload)
+
         if not is_token_still_valid(content.expires):
             msg = "Token expired"
             raise ValueError(msg)
+
         return values
 
     @root_validator(pre=False, skip_on_failure=True)
@@ -87,14 +92,17 @@ class SignedPubKeyHeader(BaseModel):
         signature: bytes = values["signature"]
         payload: bytes = values["payload"]
         content = SignedPubKeyPayload.parse_raw(payload)
+
         if not verify_wallet_signature(signature, payload.hex(), content.address):
             msg = "Invalid signature"
             raise ValueError(msg)
+
         return values
 
     @property
     def content(self) -> SignedPubKeyPayload:
         """Return the content of the header"""
+
         return SignedPubKeyPayload.parse_raw(self.payload)
 
 
@@ -139,6 +147,7 @@ class SignedOperation(BaseModel):
         except pydantic.ValidationError as error:
             print(value)
             logger.warning(value)
+
             raise error
 
     @validator("payload")
@@ -147,6 +156,7 @@ class SignedOperation(BaseModel):
 
         v = bytes.fromhex(value.decode())
         _ = SignedOperationPayload.parse_raw(v)
+
         return v
 
     @property
@@ -158,27 +168,35 @@ class SignedOperation(BaseModel):
 def get_signed_pubkey(request: web.Request) -> SignedPubKeyHeader:
     """Get the ephemeral public key that is signed by the wallet from the request headers."""
     signed_pubkey_header = request.headers.get("X-SignedPubKey")
+
     if not signed_pubkey_header:
         raise web.HTTPBadRequest(reason="Missing X-SignedPubKey header")
 
     try:
         return SignedPubKeyHeader.parse_raw(signed_pubkey_header)
+
     except KeyError as error:
         logger.debug(f"Missing X-SignedPubKey header: {error}")
         raise web.HTTPBadRequest(reason="Invalid X-SignedPubKey fields") from error
+
     except json.JSONDecodeError as error:
         raise web.HTTPBadRequest(reason="Invalid X-SignedPubKey format") from error
+
     except ValueError as errors:
         logging.debug(errors)
+
         for err in errors.args[0]:
             if isinstance(err.exc, json.JSONDecodeError):
                 raise web.HTTPBadRequest(
                     reason="Invalid X-SignedPubKey format"
                 ) from errors
+
             if str(err.exc) == "Token expired":
                 raise web.HTTPUnauthorized(reason="Token expired") from errors
+
             if str(err.exc) == "Invalid signature":
                 raise web.HTTPUnauthorized(reason="Invalid signature") from errors
+
         else:
             raise errors
 
@@ -188,10 +206,13 @@ def get_signed_operation(request: web.Request) -> SignedOperation:
     try:
         signed_operation = request.headers["X-SignedOperation"]
         return SignedOperation.parse_raw(signed_operation)
+
     except KeyError as error:
         raise web.HTTPBadRequest(reason="Missing X-SignedOperation header") from error
+
     except json.JSONDecodeError as error:
         raise web.HTTPBadRequest(reason="Invalid X-SignedOperation format") from error
+
     except ValidationError as error:
         logger.debug(f"Invalid X-SignedOperation fields: {error}")
         raise web.HTTPBadRequest(reason="Invalid X-SignedOperation fields") from error
@@ -208,9 +229,12 @@ def verify_signed_operation(
             pubkey, signed_operation.payload, signed_operation.signature
         )
         logger.debug("Signature verified")
+
         return signed_pubkey.content.address
+
     except cryptography.exceptions.InvalidSignature as e:
         logger.debug("Failing to validate signature for operation", e)
+
         raise web.HTTPUnauthorized(reason="Signature could not verified")
 
 
@@ -218,21 +242,25 @@ async def authenticate_jwk(request: web.Request) -> str:
     """Authenticate a request using the X-SignedPubKey and X-SignedOperation headers."""
     signed_pubkey = get_signed_pubkey(request)
     signed_operation = get_signed_operation(request)
+
     if signed_pubkey.content.domain != DOMAIN_NAME:
         logger.debug(
             f"Invalid domain '{signed_pubkey.content.domain}' != '{DOMAIN_NAME}'"
         )
         raise web.HTTPUnauthorized(reason="Invalid domain")
+
     if signed_operation.content.path != request.path:
         logger.debug(
             f"Invalid path '{signed_operation.content.path}' != '{request.path}'"
         )
         raise web.HTTPUnauthorized(reason="Invalid path")
+
     if signed_operation.content.method != request.method:
         logger.debug(
             f"Invalid method '{signed_operation.content.method}' != '{request.method}'"
         )
         raise web.HTTPUnauthorized(reason="Invalid method")
+
     return verify_signed_operation(signed_operation, signed_pubkey)
 
 
@@ -240,17 +268,20 @@ async def authenticate_websocket_message(message) -> str:
     """Authenticate a websocket message since JS cannot configure headers on WebSockets."""
     signed_pubkey = SignedPubKeyHeader.parse_obj(message["X-SignedPubKey"])
     signed_operation = SignedOperation.parse_obj(message["X-SignedOperation"])
+
     if signed_pubkey.content.node_url != DOMAIN_NAME:
         logger.debug(
             f"Invalid domain '{signed_pubkey.content.node_url}' != '{DOMAIN_NAME}'"
         )
         raise web.HTTPUnauthorized(reason="Invalid domain")
+
     return verify_signed_operation(signed_operation, signed_pubkey)
 
 
 def require_jwk_authentication(
     handler: Callable[[web.Request, str], Coroutine[Any, Any, web.StreamResponse]]
 ) -> Callable[[web.Request], Awaitable[web.StreamResponse]]:
+
     @functools.wraps(handler)
     async def wrapper(request):
         try:

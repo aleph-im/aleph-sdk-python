@@ -22,6 +22,7 @@ class Account(Protocol):
 
     @abstractmethod
     async def sign_raw(self, buffer: bytes) -> bytes: ...
+
     @abstractmethod
     def get_address(self) -> str: ...
 
