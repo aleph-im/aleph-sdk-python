@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 DOMAIN_NAME = "localhost"
 
 
-def is_token_still_valid(datestr: str):
+def is_token_still_valid(datestr: str) -> bool:
     """
     Checks if a token has expired based on its expiry timestamp
     """
@@ -30,7 +30,7 @@ def is_token_still_valid(datestr: str):
     return expiry_datetime > current_datetime
 
 
-def verify_wallet_signature(signature, message, address):
+def verify_wallet_signature(signature: bytes, message: str, address: str) -> bool:
     """
     Verifies a signature issued by a wallet
     """
@@ -71,7 +71,7 @@ class SignedPubKeyHeader(BaseModel):
         return bytes.fromhex(v.decode())
 
     @root_validator(pre=False, skip_on_failure=True)
-    def check_expiry(cls, values) -> Dict[str, bytes]:
+    def check_expiry(cls, values: Dict[str, bytes]) -> Dict[str, bytes]:
         """Check that the token has not expired"""
         payload: bytes = values["payload"]
         content = SignedPubKeyPayload.parse_raw(payload)
@@ -81,7 +81,7 @@ class SignedPubKeyHeader(BaseModel):
         return values
 
     @root_validator(pre=False, skip_on_failure=True)
-    def check_signature(cls, values) -> Dict[str, bytes]:
+    def check_signature(cls, values: Dict[str, bytes]) -> Dict[str, bytes]:
         """Check that the signature is valid"""
         signature: bytes = values["signature"]
         payload: bytes = values["payload"]
