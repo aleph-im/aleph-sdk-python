@@ -144,6 +144,7 @@ class VmClient:
                 }
             }
             await ws.send_json(auth_message)
+
             async for msg in ws:  # msg is of type aiohttp.WSMessage
                 if msg.type == aiohttp.WSMsgType.TEXT:
                     yield msg.data
@@ -167,6 +168,7 @@ class VmClient:
 
     async def notify_allocation(self, vm_id: ItemHash) -> Tuple[int, str]:
         json_data = {"instance": vm_id}
+
         async with self.session.post(
             f"{self.node_url}/control/allocation/notify", json=json_data
         ) as session:
