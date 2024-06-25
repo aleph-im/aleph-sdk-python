@@ -67,7 +67,7 @@ $ pip install -e .[all]
 You can use the test env defined for hatch to run the tests:
 
 ```shell
-$ hatch run test:run
+$ hatch run testing:run
 ```
 
 See `hatch env show` for more information about all the environments and their scripts.
