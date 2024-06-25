@@ -1,5 +1,8 @@
 import aiohttp
 import pytest
+
+from yarl import URL
+
 from aiohttp import web
 from aioresponses import aioresponses
 from aleph_message.models import ItemHash
@@ -21,7 +24,8 @@ async def test_notify_allocation():
         )
         m.post("http://localhost/control/allocation/notify", status=200)
         await vm_client.notify_allocation(vm_id=vm_id)
-        assert m.requests
+        assert len(m.requests) == 1
+        assert ('POST', URL('http://localhost/control/allocation/notify')) in m.requests
         await vm_client.session.close()
 
 
