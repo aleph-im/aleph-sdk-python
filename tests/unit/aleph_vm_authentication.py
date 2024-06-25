@@ -61,15 +61,16 @@ class SignedPubKeyHeader(BaseModel):
     payload: bytes
 
     @validator("signature")
-    def signature_must_be_hex(cls, v: bytes) -> bytes:
+    def signature_must_be_hex(cls, value: bytes) -> bytes:
         """Convert the signature from hexadecimal to bytes"""
-        return bytes.fromhex(v.decode())
+
+        return bytes.fromhex(value.decode())
 
     @validator("payload")
-    def payload_must_be_hex(cls, v: bytes) -> bytes:
+    def payload_must_be_hex(cls, value: bytes) -> bytes:
         """Convert the payload from hexadecimal to bytes"""
-        return bytes.fromhex(v.decode())
 
+        return bytes.fromhex(value.decode())
     @root_validator(pre=False, skip_on_failure=True)
     def check_expiry(cls, values: Dict[str, bytes]) -> Dict[str, bytes]:
         """Check that the token has not expired"""
@@ -104,7 +105,7 @@ class SignedOperationPayload(BaseModel):
     # body_sha256: str  # disabled since there is no body
 
     @validator("time")
-    def time_is_current(cls, v: datetime.datetime) -> datetime.datetime:
+    def time_is_current(cls, value: datetime.datetime) -> datetime.datetime:
         """Check that the time is current and the payload is not a replay attack."""
         max_past = datetime.datetime.now(tz=datetime.timezone.utc) - datetime.timedelta(
             minutes=2
@@ -112,11 +113,14 @@ class SignedOperationPayload(BaseModel):
         max_future = datetime.datetime.now(
             tz=datetime.timezone.utc
         ) + datetime.timedelta(minutes=2)
-        if v < max_past:
+
+        if value < max_past:
             raise ValueError("Time is too far in the past")
-        if v > max_future:
+
+        if value > max_future:
             raise ValueError("Time is too far in the future")
-        return v
+
+        return value
 
 
 class SignedOperation(BaseModel):
@@ -126,19 +130,22 @@ class SignedOperation(BaseModel):
     payload: bytes
 
     @validator("signature")
-    def signature_must_be_hex(cls, v) -> bytes:
+    def signature_must_be_hex(cls, value: str) -> bytes:
         """Convert the signature from hexadecimal to bytes"""
+
         try:
-            return bytes.fromhex(v.removeprefix(b"0x").decode())
+            return bytes.fromhex(value.removeprefix(b"0x").decode())
+
         except pydantic.ValidationError as error:
-            print(v)
-            logger.warning(v)
+            print(value)
+            logger.warning(value)
             raise error
 
     @validator("payload")
-    def payload_must_be_hex(cls, v) -> bytes:
+    def payload_must_be_hex(cls, value: bytes) -> bytes:
         """Convert the payload from hexadecimal to bytes"""
-        v = bytes.fromhex(v.decode())
+
+        v = bytes.fromhex(value.decode())
         _ = SignedOperationPayload.parse_raw(v)
         return v
 

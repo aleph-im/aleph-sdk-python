@@ -169,9 +169,10 @@ class VmClient:
         json_data = {"instance": vm_id}
         async with self.session.post(
             f"{self.node_url}/control/allocation/notify", json=json_data
-        ) as s:
-            form_response_text = await s.text()
-            return s.status, form_response_text
+        ) as session:
+            form_response_text = await session.text()
+
+            return session.status, form_response_text
 
     async def manage_instance(self, vm_id: ItemHash, operations: List[str]):
         for operation in operations:
