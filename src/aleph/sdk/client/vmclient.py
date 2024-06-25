@@ -1,15 +1,14 @@
 import datetime
 import json
 import logging
-from typing import Any, Dict, Optional, Tuple, List, AsyncGenerator
+from typing import Any, AsyncGenerator, Dict, List, Optional, Tuple
 from urllib.parse import urlparse
 
 import aiohttp
+from aleph_message.models import ItemHash
 from eth_account.messages import encode_defunct
 from jwcrypto import jwk
 from jwcrypto.jwa import JWA
-
-from aleph_message.models import ItemHash
 
 from aleph.sdk.types import Account
 from aleph.sdk.utils import to_0x_hex
@@ -108,7 +107,9 @@ class VmClient:
         path = payload["path"]
         return f"{self.node_url}{path}", headers
 
-    async def perform_operation(self, vm_id: ItemHash, operation: str) -> Tuple[Optional[int], str]:
+    async def perform_operation(
+        self, vm_id: ItemHash, operation: str
+    ) -> Tuple[Optional[int], str]:
         if not self.pubkey_signature_header:
             self.pubkey_signature_header = (
                 await self._generate_pubkey_signature_header()
