@@ -54,7 +54,7 @@ mqtt = [
 nuls2 = [
     "aleph-nuls2",
 ]
-polkadot = [
+substrate = [
     "py-sr25519-bindings",
     "substrate-interface",
 ]
@@ -71,7 +71,7 @@ encryption = [
     "eciespy>=0.3.13; python_version>=\"3.11\"",
 ]
 all = [
-    "aleph-sdk-python[cosmos,dns,docs,ledger,mqtt,nuls2,polkadot,solana,tezos,encryption]",
+    "aleph-sdk-python[cosmos,dns,docs,ledger,mqtt,nuls2,substrate,solana,tezos,encryption]",
 ]
 
 [tool.hatch.metadata]
@@ -112,7 +112,7 @@ features = [
     "dns",
     "ledger",
     "nuls2",
-    "polkadot",
+    "substrate",
     "solana",
     "tezos",
     "encryption",
