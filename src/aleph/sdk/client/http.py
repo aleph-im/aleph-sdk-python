@@ -15,6 +15,7 @@ from ..conf import settings
 from ..exceptions import FileTooLarge, ForgottenMessageError, MessageNotFoundError
 from ..query.filters import MessageFilter, PostFilter
 from ..query.responses import MessagesResponse, Post, PostsResponse
+from ..security import verify_message_signature
 from ..types import GenericMessage
 from ..utils import (
     Writable,
@@ -117,6 +118,7 @@ class AlephHttpClient(AlephClient):
         post_filter: Optional[PostFilter] = None,
         ignore_invalid_messages: Optional[bool] = True,
         invalid_messages_log_level: Optional[int] = logging.NOTSET,
+        verify_signatures: bool = False,
     ) -> PostsResponse:
         ignore_invalid_messages = (
             True if ignore_invalid_messages is None else ignore_invalid_messages
@@ -145,12 +147,15 @@ class AlephHttpClient(AlephClient):
             posts: List[Post] = []
             for post_raw in posts_raw:
                 try:
-                    posts.append(Post.parse_obj(post_raw))
+                    post = Post.parse_obj(post_raw)
+                    posts.append(post)
                 except ValidationError as e:
                     if not ignore_invalid_messages:
                         raise e
                     if invalid_messages_log_level:
                         logger.log(level=invalid_messages_log_level, msg=e)
+                if verify_signatures:
+                    verify_message_signature(post)
             return PostsResponse(
                 posts=posts,
                 pagination_page=response_json["pagination_page"],
@@ -266,6 +271,7 @@ class AlephHttpClient(AlephClient):
         message_filter: Optional[MessageFilter] = None,
         ignore_invalid_messages: Optional[bool] = True,
         invalid_messages_log_level: Optional[int] = logging.NOTSET,
+        verify_signatures: bool = False,
     ) -> MessagesResponse:
         ignore_invalid_messages = (
             True if ignore_invalid_messages is None else ignore_invalid_messages
@@ -312,6 +318,8 @@ class AlephHttpClient(AlephClient):
                         raise e
                     if invalid_messages_log_level:
                         logger.log(level=invalid_messages_log_level, msg=e)
+                if verify_signatures:
+                    verify_message_signature(message)
 
             return MessagesResponse(
                 messages=messages,
@@ -325,6 +333,7 @@ class AlephHttpClient(AlephClient):
         self,
         item_hash: str,
         message_type: Optional[Type[GenericMessage]] = None,
+        verify_signature: bool = False,
     ) -> GenericMessage:
         async with self.http_session.get(f"/api/v0/messages/{item_hash}") as resp:
             try:
@@ -339,6 +348,8 @@ class AlephHttpClient(AlephClient):
                 f"The requested message {message_raw['item_hash']} has been forgotten by {', '.join(message_raw['forgotten_by'])}"
             )
         message = parse_message(message_raw["message"])
+        if verify_signature:
+            verify_message_signature(message)
         if message_type:
             expected_type = get_message_type_value(message_type)
             if message.type != expected_type:
@@ -374,6 +385,7 @@ class AlephHttpClient(AlephClient):
     async def watch_messages(
         self,
         message_filter: Optional[MessageFilter] = None,
+        verify_signatures: bool = False,
     ) -> AsyncIterable[AlephMessage]:
         message_filter = message_filter or MessageFilter()
         params = message_filter.as_http_params()
@@ -389,6 +401,9 @@ class AlephHttpClient(AlephClient):
                         break
                     else:
                         data = json.loads(msg.data)
-                        yield parse_message(data)
+                        message = parse_message(data)
+                        if verify_signatures:
+                            verify_message_signature(message)
+                        yield message
                 elif msg.type == aiohttp.WSMsgType.ERROR:
                     break
