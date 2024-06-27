@@ -11,7 +11,7 @@ import pytest as pytest
 from aleph_message.models import AggregateMessage, AlephMessage, PostMessage
 
 import aleph.sdk.chains.ethereum as ethereum
-import aleph.sdk.chains.sol as solana
+import aleph.sdk.chains.solana as solana
 import aleph.sdk.chains.substrate as substrate
 import aleph.sdk.chains.tezos as tezos
 from aleph.sdk import AlephHttpClient, AuthenticatedAlephHttpClient
