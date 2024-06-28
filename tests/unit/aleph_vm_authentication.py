@@ -137,7 +137,6 @@ class SignedOperation(BaseModel):
     signature: bytes
     payload: bytes
 
-
     @validator("signature")
     def signature_must_be_hex(cls, value: str) -> bytes:
         """Convert the signature from hexadecimal to bytes"""
