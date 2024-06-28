@@ -137,12 +137,13 @@ class SignedOperation(BaseModel):
     signature: bytes
     payload: bytes
 
+
     @validator("signature")
     def signature_must_be_hex(cls, value: str) -> bytes:
         """Convert the signature from hexadecimal to bytes"""
 
         try:
-            return bytes.fromhex(value.removeprefix(b"0x").decode())
+            return bytes.fromhex(value[2:] if value.startswith("0x") else value)
 
         except pydantic.ValidationError as error:
             print(value)
@@ -269,9 +270,9 @@ async def authenticate_websocket_message(message) -> str:
     signed_pubkey = SignedPubKeyHeader.parse_obj(message["X-SignedPubKey"])
     signed_operation = SignedOperation.parse_obj(message["X-SignedOperation"])
 
-    if signed_pubkey.content.node_url != DOMAIN_NAME:
+    if signed_pubkey.content.domain != DOMAIN_NAME:
         logger.debug(
-            f"Invalid domain '{signed_pubkey.content.node_url}' != '{DOMAIN_NAME}'"
+            f"Invalid domain '{signed_pubkey.content.domain}' != '{DOMAIN_NAME}'"
         )
         raise web.HTTPUnauthorized(reason="Invalid domain")
 
