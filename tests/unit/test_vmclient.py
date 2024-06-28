@@ -175,15 +175,6 @@ async def test_get_logs(aiohttp_client):
         session=client.session,
     )
 
-    original_get_logs = vm_client.get_logs
-
-    async def debug_get_logs(vm_id):
-        url = f"{vm_client.node_url}/control/machine/{vm_id}/logs"
-        async for log in original_get_logs(vm_id):
-            yield log
-
-    vm_client.get_logs = debug_get_logs
-
     logs = []
     async for log in vm_client.get_logs(vm_id):
         logs.append(log)

@@ -163,7 +163,7 @@ class VmClient:
     ) -> Tuple[int, str]:
         for operation in operations:
             status, response = await self.perform_operation(vm_id, operation)
-            if status != 200:
+            if status != 200 and status:
                 return status, response
         return 200, "All operations completed successfully"
 

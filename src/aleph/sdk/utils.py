@@ -1,4 +1,3 @@
-import datetime
 import errno
 import hashlib
 import json
