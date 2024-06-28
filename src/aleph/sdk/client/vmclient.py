@@ -8,10 +8,13 @@ import aiohttp
 from aleph_message.models import ItemHash
 from eth_account.messages import encode_defunct
 from jwcrypto import jwk
-from jwcrypto.jwa import JWA
 
 from aleph.sdk.types import Account
-from aleph.sdk.utils import to_0x_hex
+from aleph.sdk.utils import (
+    create_vm_control_payload,
+    sign_vm_control_payload,
+    to_0x_hex,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -66,33 +69,11 @@ class VmClient:
             }
         )
 
-    def create_payload(self, vm_id: ItemHash, operation: str) -> Dict[str, str]:
-        path = f"/control/machine/{vm_id}/{operation}"
-        payload = {
-            "time": datetime.datetime.utcnow().isoformat() + "Z",
-            "method": "POST",
-            "path": path,
-        }
-        return payload
-
-    def sign_payload(self, payload: Dict[str, str], ephemeral_key) -> str:
-        payload_as_bytes = json.dumps(payload).encode("utf-8")
-        payload_signature = JWA.signing_alg("ES256").sign(
-            ephemeral_key, payload_as_bytes
-        )
-        signed_operation = json.dumps(
-            {
-                "payload": payload_as_bytes.hex(),
-                "signature": payload_signature.hex(),
-            }
-        )
-        return signed_operation
-
     async def _generate_header(
         self, vm_id: ItemHash, operation: str
     ) -> Tuple[str, Dict[str, str]]:
-        payload = self.create_payload(vm_id, operation)
-        signed_operation = self.sign_payload(payload, self.ephemeral_key)
+        payload = create_vm_control_payload(vm_id, operation)
+        signed_operation = sign_vm_control_payload(payload, self.ephemeral_key)
 
         if not self.pubkey_signature_header:
             self.pubkey_signature_header = (
@@ -132,8 +113,8 @@ class VmClient:
                 await self._generate_pubkey_signature_header()
             )
 
-        payload = self.create_payload(vm_id, "logs")
-        signed_operation = self.sign_payload(payload, self.ephemeral_key)
+        payload = create_vm_control_payload(vm_id, "logs")
+        signed_operation = sign_vm_control_payload(payload, self.ephemeral_key)
         path = payload["path"]
         ws_url = f"{self.node_url}{path}"
 
@@ -177,12 +158,14 @@ class VmClient:
 
             return session.status, form_response_text
 
-    async def manage_instance(self, vm_id: ItemHash, operations: List[str]):
+    async def manage_instance(
+        self, vm_id: ItemHash, operations: List[str]
+    ) -> Tuple[int, str]:
         for operation in operations:
             status, response = await self.perform_operation(vm_id, operation)
             if status != 200:
                 return status, response
-        return
+        return 200, "All operations completed successfully"
 
     async def close(self):
         await self.session.close()

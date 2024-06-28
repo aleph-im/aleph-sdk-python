@@ -1,5 +1,7 @@
+import datetime
 import errno
 import hashlib
+import json
 import logging
 import os
 from datetime import date, datetime, time
@@ -8,6 +10,7 @@ from pathlib import Path
 from shutil import make_archive
 from typing import (
     Any,
+    Dict,
     Iterable,
     Mapping,
     Optional,
@@ -20,9 +23,10 @@ from typing import (
 )
 from zipfile import BadZipFile, ZipFile
 
-from aleph_message.models import MessageType
+from aleph_message.models import ItemHash, MessageType
 from aleph_message.models.execution.program import Encoding
 from aleph_message.models.execution.volume import MachineVolume
+from jwcrypto.jwa import JWA
 from pydantic.json import pydantic_encoder
 
 from aleph.sdk.conf import settings
@@ -195,3 +199,25 @@ def bytes_from_hex(hex_string: str) -> bytes:
         hex_string = hex_string[2:]
     hex_string = bytes.fromhex(hex_string)
     return hex_string
+
+
+def create_vm_control_payload(vm_id: ItemHash, operation: str) -> Dict[str, str]:
+    path = f"/control/machine/{vm_id}/{operation}"
+    payload = {
+        "time": datetime.utcnow().isoformat() + "Z",
+        "method": "POST",
+        "path": path,
+    }
+    return payload
+
+
+def sign_vm_control_payload(payload: Dict[str, str], ephemeral_key) -> str:
+    payload_as_bytes = json.dumps(payload).encode("utf-8")
+    payload_signature = JWA.signing_alg("ES256").sign(ephemeral_key, payload_as_bytes)
+    signed_operation = json.dumps(
+        {
+            "payload": payload_as_bytes.hex(),
+            "signature": payload_signature.hex(),
+        }
+    )
+    return signed_operation
