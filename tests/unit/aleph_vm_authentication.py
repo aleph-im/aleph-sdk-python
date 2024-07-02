@@ -17,7 +17,6 @@ from pydantic import BaseModel, ValidationError, root_validator, validator
 
 from aleph.sdk.utils import bytes_from_hex
 
-
 logger = logging.getLogger(__name__)
 
 DOMAIN_NAME = "localhost"
@@ -243,14 +242,14 @@ def verify_signed_operation(
         raise web.HTTPUnauthorized(reason="Signature could not verified")
 
 
-async def authenticate_jwk(request: web.Request) -> str:
+async def authenticate_jwk(request: web.Request, domain_name: str = DOMAIN_NAME) -> str:
     """Authenticate a request using the X-SignedPubKey and X-SignedOperation headers."""
     signed_pubkey = get_signed_pubkey(request)
     signed_operation = get_signed_operation(request)
 
-    if signed_pubkey.content.domain != DOMAIN_NAME:
+    if signed_pubkey.content.domain != domain_name:
         logger.debug(
-            f"Invalid domain '{signed_pubkey.content.domain}' != '{DOMAIN_NAME}'"
+            f"Invalid domain '{signed_pubkey.content.domain}' != '{domain_name}'"
         )
         raise web.HTTPUnauthorized(reason="Invalid domain")
 
@@ -269,14 +268,16 @@ async def authenticate_jwk(request: web.Request) -> str:
     return verify_signed_operation(signed_operation, signed_pubkey)
 
 
-async def authenticate_websocket_message(message) -> str:
+async def authenticate_websocket_message(
+    message, domain_name: str = DOMAIN_NAME
+) -> str:
     """Authenticate a websocket message since JS cannot configure headers on WebSockets."""
     signed_pubkey = SignedPubKeyHeader.parse_obj(message["X-SignedPubKey"])
     signed_operation = SignedOperation.parse_obj(message["X-SignedOperation"])
 
-    if signed_pubkey.content.domain != DOMAIN_NAME:
+    if signed_pubkey.content.domain != domain_name:
         logger.debug(
-            f"Invalid domain '{signed_pubkey.content.domain}' != '{DOMAIN_NAME}'"
+            f"Invalid domain '{signed_pubkey.content.domain}' != '{domain_name}'"
         )
         raise web.HTTPUnauthorized(reason="Invalid domain")
 

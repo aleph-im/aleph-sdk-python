@@ -1,3 +1,6 @@
+import json
+from urllib.parse import urlparse
+
 import aiohttp
 import pytest
 from aiohttp import web
@@ -7,6 +10,14 @@ from yarl import URL
 
 from aleph.sdk.chains.ethereum import ETHAccount
 from aleph.sdk.client.vmclient import VmClient
+
+from .aleph_vm_authentication import (
+    SignedOperation,
+    SignedPubKeyHeader,
+    authenticate_jwk,
+    authenticate_websocket_message,
+    verify_signed_operation,
+)
 
 
 @pytest.mark.asyncio
@@ -183,3 +194,105 @@ async def test_get_logs(aiohttp_client):
 
     assert logs == ["mock_log_entry"]
     await vm_client.session.close()
+
+
+@pytest.mark.asyncio
+async def test_authenticate_jwk(aiohttp_client):
+    account = ETHAccount(private_key=b"0x" + b"1" * 30)
+    vm_id = ItemHash("cafecafecafecafecafecafecafecafecafecafecafecafecafecafecafecafe")
+
+    async def test_authenticate_route(request):
+        address = await authenticate_jwk(request, domain_name=urlparse(node_url).netloc)
+        assert vm_client.account.get_address() == address
+        return web.Response(text="ok")
+
+    app = web.Application()
+    app.router.add_route(
+        "POST", f"/control/machine/{vm_id}/stop", test_authenticate_route
+    )  # Update route to match the URL
+
+    client = await aiohttp_client(app)
+
+    node_url = str(client.make_url("")).rstrip("/")
+
+    vm_client = VmClient(
+        account=account,
+        node_url=node_url,
+        session=client.session,
+    )
+
+    status_code, response_text = await vm_client.stop_instance(vm_id)
+    assert status_code == 200
+    assert response_text == "ok"
+
+    await vm_client.session.close()
+
+
+@pytest.mark.asyncio
+async def test_websocket_authentication(aiohttp_client):
+    account = ETHAccount(private_key=b"0x" + b"1" * 30)
+    vm_id = ItemHash("cafecafecafecafecafecafecafecafecafecafecafecafecafecafecafecafe")
+
+    async def websocket_handler(request):
+        ws = web.WebSocketResponse()
+        await ws.prepare(request)
+
+        first_message = await ws.receive_json()
+        credentials = first_message["auth"]
+        address = await authenticate_websocket_message(
+            {
+                "X-SignedPubKey": json.loads(credentials["X-SignedPubKey"]),
+                "X-SignedOperation": json.loads(credentials["X-SignedOperation"]),
+            },
+            domain_name=urlparse(node_url).netloc,
+        )
+
+        assert vm_client.account.get_address() == address
+        await ws.send_str(address)
+
+        return ws
+
+    app = web.Application()
+    app.router.add_route(
+        "GET", "/control/machine/{vm_id}/logs", websocket_handler
+    )  # Update route to match the URL
+
+    client = await aiohttp_client(app)
+
+    node_url = str(client.make_url("")).rstrip("/")
+
+    vm_client = VmClient(
+        account=account,
+        node_url=node_url,
+        session=client.session,
+    )
+
+    valid = False
+    async for address in vm_client.get_logs(vm_id):
+        assert address == vm_client.account.get_address()
+        valid = True
+
+    # this is done to ensure that the ws as runned at least once and avoid
+    # having silent errors
+    assert valid
+
+    await vm_client.session.close()
+
+
+@pytest.mark.asyncio
+async def test_vm_client_generate_correct_authentication_headers():
+    account = ETHAccount(private_key=b"0x" + b"1" * 30)
+    vm_id = ItemHash("cafecafecafecafecafecafecafecafecafecafecafecafecafecafecafecafe")
+
+    vm_client = VmClient(
+        account=account,
+        node_url="http://localhost",
+        session=aiohttp.ClientSession(),
+    )
+
+    path, headers = await vm_client._generate_header(vm_id, "reboot")
+    signed_pubkey = SignedPubKeyHeader.parse_raw(headers["X-SignedPubKey"])
+    signed_operation = SignedOperation.parse_raw(headers["X-SignedOperation"])
+    address = verify_signed_operation(signed_operation, signed_pubkey)
+
+    assert vm_client.account.get_address() == address
