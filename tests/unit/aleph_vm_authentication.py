@@ -15,6 +15,9 @@ from jwcrypto import jwk
 from jwcrypto.jwa import JWA
 from pydantic import BaseModel, ValidationError, root_validator, validator
 
+from aleph.sdk.utils import bytes_from_hex
+
+
 logger = logging.getLogger(__name__)
 
 DOMAIN_NAME = "localhost"
@@ -66,13 +69,13 @@ class SignedPubKeyHeader(BaseModel):
     def signature_must_be_hex(cls, value: bytes) -> bytes:
         """Convert the signature from hexadecimal to bytes"""
 
-        return bytes.fromhex(value.decode())
+        return bytes_from_hex(value.decode())
 
     @validator("payload")
     def payload_must_be_hex(cls, value: bytes) -> bytes:
         """Convert the payload from hexadecimal to bytes"""
 
-        return bytes.fromhex(value.decode())
+        return bytes_from_hex(value.decode())
 
     @root_validator(pre=False, skip_on_failure=True)
     def check_expiry(cls, values: Dict[str, bytes]) -> Dict[str, bytes]:
@@ -142,7 +145,9 @@ class SignedOperation(BaseModel):
         """Convert the signature from hexadecimal to bytes"""
 
         try:
-            return bytes.fromhex(value[2:] if value.startswith("0x") else value)
+            if isinstance(value, bytes):
+                value = value.decode()
+            return bytes_from_hex(value)
 
         except pydantic.ValidationError as error:
             print(value)
@@ -154,7 +159,7 @@ class SignedOperation(BaseModel):
     def payload_must_be_hex(cls, value: bytes) -> bytes:
         """Convert the payload from hexadecimal to bytes"""
 
-        v = bytes.fromhex(value.decode())
+        v = bytes_from_hex(value.decode())
         _ = SignedOperationPayload.parse_raw(v)
 
         return v
