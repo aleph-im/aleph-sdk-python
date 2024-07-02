@@ -153,13 +153,13 @@ dependencies = [
 [tool.hatch.envs.linting.scripts]
 typing = "mypy --config-file=pyproject.toml {args:} ./src/ ./tests/ ./examples/"
 style = [
-    "ruff {args:.} ./src/ ./tests/ ./examples/",
+    "ruff check {args:.} ./src/ ./tests/ ./examples/",
     "black --check --diff {args:} ./src/ ./tests/ ./examples/",
     "isort --check-only --profile black {args:} ./src/ ./tests/ ./examples/",
 ]
 fmt = [
     "black {args:} ./src/ ./tests/ ./examples/",
-    "ruff --fix {args:.} ./src/ ./tests/ ./examples/",
+    "ruff check --fix {args:.} ./src/ ./tests/ ./examples/",
     "isort --profile black {args:} ./src/ ./tests/ ./examples/",
     "style",
 ]
