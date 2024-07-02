@@ -73,7 +73,9 @@ async def test_confidential_initialize_instance():
                     vm_id, session=tmp_file_path, godh=tmp_file_path
                 )
                 assert status == 200
-                assert response_text == '"mock_response_text"'  # ' ' cause by aioresponses
+                assert (
+                    response_text == '"mock_response_text"'
+                )  # ' ' cause by aioresponses
                 m.assert_called_once_with(
                     url,
                     method="POST",
