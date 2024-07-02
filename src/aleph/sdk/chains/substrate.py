@@ -9,7 +9,8 @@ from substrateinterface.utils.ss58 import ss58_decode
 
 from ..conf import settings
 from ..exceptions import BadSignatureError
-from .common import BaseAccount, bytes_from_hex, get_verification_buffer
+from ..utils import bytes_from_hex
+from .common import BaseAccount, get_verification_buffer
 
 logger = logging.getLogger(__name__)
 

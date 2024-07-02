@@ -9,7 +9,8 @@ from ledgereth.comms import init_dongle
 from ledgereth.messages import sign_message
 from ledgereth.objects import LedgerAccount, SignedMessage
 
-from ...chains.common import BaseAccount, bytes_from_hex, get_verification_buffer
+from ...chains.common import BaseAccount, get_verification_buffer
+from ...utils import bytes_from_hex
 
 
 class LedgerETHAccount(BaseAccount):

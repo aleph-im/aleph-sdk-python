@@ -170,10 +170,3 @@ def get_fallback_private_key(path: Optional[Path] = None) -> bytes:
         if not default_key_path.exists():
             default_key_path.symlink_to(path)
     return private_key
-
-
-def bytes_from_hex(hex_string: str) -> bytes:
-    if hex_string.startswith("0x"):
-        hex_string = hex_string[2:]
-    hex_string = bytes.fromhex(hex_string)
-    return hex_string
