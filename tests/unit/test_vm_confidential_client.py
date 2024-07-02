@@ -118,7 +118,7 @@ async def test_confidential_measurement_instance():
             )
             status, response_text = await vm_client.measurement(vm_id)
             assert status == 200
-            assert response_text == 'mock_response_text'  # ' ' cause by aioresponses
+            assert response_text == "mock_response_text"  # ' ' cause by aioresponses
             m.assert_called_once_with(
                 url,
                 method="POST",
@@ -161,7 +161,7 @@ async def test_confidential_inject_secret_instance():
                 vm_id, secret=test_secret, packed_header=packed_header
             )
             assert status == 200
-            assert response_text == 'mock_response_text'  # ' ' cause by aioresponses
+            assert response_text == "mock_response_text"  # ' ' cause by aioresponses
             m.assert_called_once_with(
                 url,
                 method="POST",
