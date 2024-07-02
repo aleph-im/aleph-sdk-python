@@ -32,6 +32,7 @@ dependencies = [
     "python-magic",
     "typer",
     "typing_extensions",
+    "aioresponses>=0.7.6"
 ]
 
 [project.optional-dependencies]

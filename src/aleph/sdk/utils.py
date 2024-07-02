@@ -1,8 +1,10 @@
+import asyncio
 import errno
 import hashlib
 import json
 import logging
 import os
+import subprocess
 from datetime import date, datetime, time
 from enum import Enum
 from pathlib import Path
@@ -11,6 +13,7 @@ from typing import (
     Any,
     Dict,
     Iterable,
+    List,
     Mapping,
     Optional,
     Protocol,
@@ -220,3 +223,31 @@ def sign_vm_control_payload(payload: Dict[str, str], ephemeral_key) -> str:
         }
     )
     return signed_operation
+
+
+async def run_in_subprocess(
+    command: List[str], check: bool = True, stdin_input: Optional[bytes] = None
+) -> bytes:
+    """Run the specified command in a subprocess, returns the stdout of the process."""
+    logger.debug(f"command: {' '.join(command)}")
+
+    process = await asyncio.create_subprocess_exec(
+        *command,
+        stdin=asyncio.subprocess.PIPE,
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE,
+    )
+    stdout, stderr = await process.communicate(input=stdin_input)
+
+    if check and process.returncode:
+        logger.error(
+            f"Command failed with error code {process.returncode}:\n"
+            f"    stdin = {stdin_input!r}\n"
+            f"    command = {command}\n"
+            f"    stdout = {stderr!r}"
+        )
+        raise subprocess.CalledProcessError(
+            process.returncode, str(command), stderr.decode()
+        )
+
+    return stdout

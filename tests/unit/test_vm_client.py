@@ -9,7 +9,7 @@ from aleph_message.models import ItemHash
 from yarl import URL
 
 from aleph.sdk.chains.ethereum import ETHAccount
-from aleph.sdk.client.vmclient import VmClient
+from aleph.sdk.client.vm_client import VmClient
 
 from .aleph_vm_authentication import (
     SignedOperation,
