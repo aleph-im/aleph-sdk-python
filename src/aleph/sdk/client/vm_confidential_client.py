@@ -44,17 +44,19 @@ class VmConfidentialClient(VmClient):
 
     async def create_session(
         self, vm_id: ItemHash, certificate_path: Path, policy: int
-    ):
+    ) -> Path:
+        current_path = Path().cwd()
         args = [
             "session",
             "--name",
-            vm_id,
+            str(vm_id),
             str(certificate_path),
             str(policy),
         ]
         try:
             # TODO: Check command result
-            await self.sevctl_cmd(args)
+            await self.sevctl_cmd(*args)
+            return current_path
         except Exception as e:
             raise ValueError(f"Session creation have failed, reason: {str(e)}")
 
@@ -107,7 +109,7 @@ class VmConfidentialClient(VmClient):
         ]
         try:
             # TODO: Check command result
-            await self.sevctl_cmd(args)
+            await self.sevctl_cmd(*args)
             return secret_header_path, secret_payload_path
         except Exception as e:
             raise ValueError(f"Secret building have failed, reason: {str(e)}")
@@ -150,6 +152,6 @@ class VmConfidentialClient(VmClient):
 
     async def sevctl_cmd(self, *args) -> bytes:
         return await run_in_subprocess(
-            ["sevctl", *args],
+            [str(self.sevctl_path), *args],
             check=True,
         )

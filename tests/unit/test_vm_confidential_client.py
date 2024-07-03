@@ -1,5 +1,6 @@
 import tempfile
 from pathlib import Path
+from unittest import mock
 from unittest.mock import patch
 
 import aiohttp
@@ -172,3 +173,82 @@ async def test_confidential_inject_secret_instance():
                 headers=headers,
             )
             await vm_client.session.close()
+
+
+@pytest.mark.asyncio
+async def test_create_session_command():
+    account = ETHAccount(private_key=b"0x" + b"1" * 30)
+    vm_id = ItemHash("cafecafecafecafecafecafecafecafecafecafecafecafecafecafecafecafe")
+    node_url = "http://localhost"
+    sevctl_path = Path("/usr/bin/sevctl")
+    certificates_path = Path("/")
+    policy = 1
+
+    with mock.patch(
+        "aleph.sdk.client.vm_confidential_client.run_in_subprocess",
+        return_value=True,
+    ) as export_mock:
+        vm_client = VmConfidentialClient(
+            account=account,
+            sevctl_path=sevctl_path,
+            node_url=node_url,
+            session=aiohttp.ClientSession(),
+        )
+        _ = await vm_client.create_session(vm_id, certificates_path, policy)
+        export_mock.assert_called_once_with(
+            [
+                str(sevctl_path),
+                "session",
+                "--name",
+                str(vm_id),
+                str(certificates_path),
+                str(policy),
+            ],
+            check=True,
+        )
+
+
+@pytest.mark.asyncio
+async def test_build_secret_command():
+    account = ETHAccount(private_key=b"0x" + b"1" * 30)
+    node_url = "http://localhost"
+    sevctl_path = Path("/usr/bin/sevctl")
+    current_path = Path().cwd()
+    measurement = "test_measurement"
+    secret = "test_secret"
+    expected_secret_header_path = current_path / "secret_header.bin"
+    expected_secret_payload_path = current_path / "secret_payload.bin"
+
+    with mock.patch(
+        "aleph.sdk.client.vm_confidential_client.run_in_subprocess",
+        return_value=True,
+    ) as export_mock:
+        vm_client = VmConfidentialClient(
+            account=account,
+            sevctl_path=sevctl_path,
+            node_url=node_url,
+            session=aiohttp.ClientSession(),
+        )
+        secret_header_path, secret_payload_path = await vm_client.build_secret(
+            current_path, current_path, measurement, secret
+        )
+        assert expected_secret_header_path == secret_header_path
+        assert expected_secret_payload_path == secret_payload_path
+        export_mock.assert_called_once_with(
+            [
+                str(sevctl_path),
+                "secret",
+                "build",
+                "--tik",
+                str(current_path),
+                "--tek",
+                str(current_path),
+                "--launch-measure-blob",
+                measurement,
+                "--secret",
+                secret,
+                str(expected_secret_header_path),
+                str(expected_secret_payload_path),
+            ],
+            check=True,
+        )
