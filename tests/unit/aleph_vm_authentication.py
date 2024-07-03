@@ -147,11 +147,8 @@ class SignedOperation(BaseModel):
             if isinstance(value, bytes):
                 value = value.decode()
             return bytes_from_hex(value)
-
         except pydantic.ValidationError as error:
-            print(value)
             logger.warning(value)
-
             raise error
 
     @validator("payload")
