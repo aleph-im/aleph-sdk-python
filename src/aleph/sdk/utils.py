@@ -1,6 +1,8 @@
 import asyncio
+import base64
 import errno
 import hashlib
+import hmac
 import json
 import logging
 import os
@@ -23,16 +25,19 @@ from typing import (
     Union,
     get_args,
 )
+from uuid import UUID
 from zipfile import BadZipFile, ZipFile
 
 from aleph_message.models import ItemHash, MessageType
 from aleph_message.models.execution.program import Encoding
 from aleph_message.models.execution.volume import MachineVolume
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from jwcrypto.jwa import JWA
 from pydantic.json import pydantic_encoder
 
 from aleph.sdk.conf import settings
-from aleph.sdk.types import GenericMessage
+from aleph.sdk.types import GenericMessage, SEVInfo, SEVMeasurement
 
 logger = logging.getLogger(__name__)
 
@@ -251,3 +256,122 @@ async def run_in_subprocess(
         )
 
     return stdout
+
+
+def get_vm_measure(sev_data: SEVMeasurement) -> Tuple[bytes, bytes]:
+    launch_measure = base64.b64decode(sev_data.launch_measure)
+    vm_measure = launch_measure[0:32]
+    nonce = launch_measure[32:48]
+    return vm_measure, nonce
+
+
+def compute_confidential_measure(
+    sev_info: SEVInfo, tik: bytes, expected_hash: str, nonce: bytes
+) -> hmac.HMAC:
+    """
+    Computes the SEV measurement using the CRN SEV data and local variables like the OVMF firmware hash,
+    and the session key generated.
+    """
+
+    h = hmac.new(tik, digestmod="sha256")
+
+    ##
+    # calculated per section 6.5.2
+    ##
+    h.update(bytes([0x04]))
+    h.update(sev_info.api_major.to_bytes(1, byteorder="little"))
+    h.update(sev_info.api_minor.to_bytes(1, byteorder="little"))
+    h.update(sev_info.build_id.to_bytes(1, byteorder="little"))
+    h.update(sev_info.policy.to_bytes(4, byteorder="little"))
+
+    expected_hash_bytes = bytearray.fromhex(expected_hash)
+    h.update(expected_hash_bytes)
+
+    h.update(nonce)
+
+    return h
+
+
+def make_secret_table(secret: str) -> bytearray:
+    """
+    Makes the disk secret table to be sent to the Confidential CRN
+    """
+
+    ##
+    # Construct the secret table: two guids + 4 byte lengths plus string
+    # and zero terminator
+    #
+    # Secret layout is  guid, len (4 bytes), data
+    # with len being the length from start of guid to end of data
+    #
+    # The table header covers the entire table then each entry covers
+    # only its local data
+    #
+    # our current table has the header guid with total table length
+    # followed by the secret guid with the zero terminated secret
+    ##
+
+    # total length of table: header plus one entry with trailing \0
+    length = 16 + 4 + 16 + 4 + len(secret) + 1
+    # SEV-ES requires rounding to 16
+    length = (length + 15) & ~15
+    secret_table = bytearray(length)
+
+    secret_table[0:16] = UUID("{1e74f542-71dd-4d66-963e-ef4287ff173b}").bytes_le
+    secret_table[16:20] = len(secret_table).to_bytes(4, byteorder="little")
+    secret_table[20:36] = UUID("{736869e5-84f0-4973-92ec-06879ce3da0b}").bytes_le
+    secret_table[36:40] = (16 + 4 + len(secret) + 1).to_bytes(4, byteorder="little")
+    secret_table[40 : 40 + len(secret)] = secret.encode()
+
+    return secret_table
+
+
+def encrypt_secret_table(secret_table: bytes, tek: bytes, iv: bytes) -> bytes:
+    """Encrypt the secret table with the TEK in CTR mode using a random IV"""
+
+    # Initialize the cipher with AES algorithm and CTR mode
+    cipher = Cipher(algorithms.AES(tek), modes.CTR(iv), backend=default_backend())
+    encryptor = cipher.encryptor()
+
+    # Encrypt the secret table
+    encrypted_secret = encryptor.update(secret_table) + encryptor.finalize()
+
+    return encrypted_secret
+
+
+def make_packet_header(
+    vm_measure: bytes,
+    encrypted_secret_table: bytes,
+    secret_table_size: int,
+    tik: bytes,
+    iv: bytes,
+) -> bytearray:
+    """
+    Creates a packet header using the encrypted disk secret table to be sent to the Confidential CRN
+    """
+
+    ##
+    # ultimately needs to be an argument, but there's only
+    # compressed and no real use case
+    ##
+    flags = 0
+
+    ##
+    # Table 55. LAUNCH_SECRET Packet Header Buffer
+    ##
+    header = bytearray(52)
+    header[0:4] = flags.to_bytes(4, byteorder="little")
+    header[4:20] = iv
+
+    h = hmac.new(tik, digestmod="sha256")
+    h.update(bytes([0x01]))
+    # FLAGS || IV
+    h.update(header[0:20])
+    h.update(secret_table_size.to_bytes(4, byteorder="little"))
+    h.update(secret_table_size.to_bytes(4, byteorder="little"))
+    h.update(encrypted_secret_table)
+    h.update(vm_measure)
+
+    header[20:52] = h.digest()
+
+    return header
