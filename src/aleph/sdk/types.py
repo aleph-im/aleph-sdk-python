@@ -49,6 +49,12 @@ class SEVInfo(BaseModel):
     """
 
     enabled: bool
+    api_major: int
+    api_minor: int
+    build_id: int
+    policy: int
+    state: str
+    handle: int
 
 
 class SEVMeasurement(BaseModel):

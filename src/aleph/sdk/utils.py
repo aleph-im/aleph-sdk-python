@@ -208,12 +208,15 @@ def bytes_from_hex(hex_string: str) -> bytes:
     return hex_string
 
 
-def create_vm_control_payload(vm_id: ItemHash, operation: str) -> Dict[str, str]:
+def create_vm_control_payload(
+    vm_id: ItemHash, operation: str, domain: str, method: str
+) -> Dict[str, str]:
     path = f"/control/machine/{vm_id}/{operation}"
     payload = {
         "time": datetime.utcnow().isoformat() + "Z",
-        "method": "POST",
+        "method": method.upper(),
         "path": path,
+        "domain": domain,
     }
     return payload
 

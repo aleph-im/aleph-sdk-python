@@ -102,19 +102,11 @@ class VmConfidentialClient(VmClient):
                 await self._generate_pubkey_signature_header()
             )
 
-        operation = "confidential/measurement"
-        url, header = await self._generate_header(vm_id=vm_id, operation=operation)
-        try:
-            async with self.session.get(url, headers=header) as response:
-                response = await response.json()
-                print(response)
-                sev_mesurement = SEVMeasurement.parse_obj(response)
-                return sev_mesurement
-
-        except aiohttp.ClientError as e:
-            raise ValueError(
-                f"HTTP error getting node certificates on {self.node_url}: {str(e)}"
-            )
+        status, text = await self.perform_operation(
+            vm_id, "confidential/measurement", method="GET"
+        )
+        sev_mesurement = SEVMeasurement.parse_raw(text)
+        return sev_mesurement
 
     async def validate_measure(
         self, sev_data: SEVMeasurement, tik_path: Path, firmware_hash: str
@@ -177,13 +169,17 @@ class VmConfidentialClient(VmClient):
             "secret": secret,
         }
         text = await self.perform_confidential_operation(
-            vm_id, "confidential/inject_secret", params=params
+            vm_id, "confidential/inject_secret", json=params
         )
 
         return json.loads(text)
 
     async def perform_confidential_operation(
-        self, vm_id: ItemHash, operation: str, params: Optional[Dict[str, Any]] = None
+        self,
+        vm_id: ItemHash,
+        operation: str,
+        params: Optional[Dict[str, Any]] = None,
+        json=None,
     ) -> str:
         """
         Send confidential operations to the CRN passing the auth headers on each request
@@ -194,10 +190,15 @@ class VmConfidentialClient(VmClient):
                 await self._generate_pubkey_signature_header()
             )
 
-        url, header = await self._generate_header(vm_id=vm_id, operation=operation)
+        url, header = await self._generate_header(
+            vm_id=vm_id, operation=operation, method="post"
+        )
 
         try:
-            async with self.session.post(url, headers=header, data=params) as response:
+            async with self.session.post(
+                url, headers=header, data=params, json=json
+            ) as response:
+                response.raise_for_status()
                 response_text = await response.text()
                 return response_text
 
