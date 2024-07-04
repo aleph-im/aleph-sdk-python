@@ -4,7 +4,7 @@ import functools
 import json
 import logging
 from collections.abc import Awaitable, Coroutine
-from typing import Any, Callable, Dict, Literal, Union
+from typing import Any, Callable, Dict, Literal, Union, Optional
 
 import cryptography.exceptions
 import pydantic
@@ -45,7 +45,7 @@ def verify_wallet_signature(signature: bytes, message: str, address: str) -> boo
 class SignedPubKeyPayload(BaseModel):
     """This payload is signed by the wallet of the user to authorize an ephemeral key to act on his behalf."""
 
-    pubkey: dict[str, Any]
+    pubkey: Dict[str, Any]
     # {'pubkey': {'alg': 'ES256', 'crv': 'P-256', 'ext': True, 'key_ops': ['verify'], 'kty': 'EC',
     #  'x': '4blJBYpltvQLFgRvLE-2H7dsMr5O0ImHkgOnjUbG2AU', 'y': '5VHnq_hUSogZBbVgsXMs0CjrVfMy4Pa3Uv2BEBqfrN4'}
     # alg: Literal["ECDSA"]
@@ -76,7 +76,7 @@ class SignedPubKeyHeader(BaseModel):
         return bytes_from_hex(value.decode())
 
     @root_validator(pre=False, skip_on_failure=True)
-    def check_expiry(cls, values) -> dict[str, bytes]:
+    def check_expiry(cls, values) -> Dict[str, bytes]:
         """Check that the token has not expired"""
         payload: bytes = values["payload"]
         content = SignedPubKeyPayload.parse_raw(payload)
@@ -229,7 +229,9 @@ def verify_signed_operation(
         raise web.HTTPUnauthorized(reason="Signature could not verified")
 
 
-async def authenticate_jwk(request: web.Request, domain_name: str = DOMAIN_NAME) -> str:
+async def authenticate_jwk(
+    request: web.Request, domain_name: Optional[str] = DOMAIN_NAME
+) -> str:
     """Authenticate a request using the X-SignedPubKey and X-SignedOperation headers."""
     signed_pubkey = get_signed_pubkey(request)
     signed_operation = get_signed_operation(request)
@@ -254,7 +256,7 @@ async def authenticate_jwk(request: web.Request, domain_name: str = DOMAIN_NAME)
 
 
 async def authenticate_websocket_message(
-    message, domain_name: str = DOMAIN_NAME
+    message, domain_name: Optional[str] = DOMAIN_NAME
 ) -> str:
     """Authenticate a websocket message since JS cannot configure headers on WebSockets."""
     signed_pubkey = SignedPubKeyHeader.parse_obj(message["X-SignedPubKey"])
