@@ -80,6 +80,7 @@ async def test_confidential_initialize_instance():
                         "session": tmp_file_bytes,
                         "godh": tmp_file_bytes,
                     },
+                    json=None,
                     headers=headers,
                 )
                 await vm_client.session.close()
@@ -173,7 +174,7 @@ async def test_confidential_inject_secret_instance():
             m.assert_called_once_with(
                 url,
                 method="POST",
-                data={
+                json={
                     "secret": test_secret,
                     "packet_header": packet_header,
                 },
