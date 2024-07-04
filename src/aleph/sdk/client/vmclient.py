@@ -113,7 +113,7 @@ class VmClient:
                 await self._generate_pubkey_signature_header()
             )
 
-        payload = create_vm_control_payload(vm_id, "logs")
+        payload = create_vm_control_payload(vm_id, "stream_logs")
         signed_operation = sign_vm_control_payload(payload, self.ephemeral_key)
         path = payload["path"]
         ws_url = f"{self.node_url}{path}"
