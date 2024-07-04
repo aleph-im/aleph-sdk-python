@@ -290,7 +290,7 @@ async def test_vm_client_generate_correct_authentication_headers():
         session=aiohttp.ClientSession(),
     )
 
-    path, headers = await vm_client._generate_header(vm_id, "reboot")
+    path, headers = await vm_client._generate_header(vm_id, "reboot", method="post")
     signed_pubkey = SignedPubKeyHeader.parse_raw(headers["X-SignedPubKey"])
     signed_operation = SignedOperation.parse_raw(headers["X-SignedOperation"])
     address = verify_signed_operation(signed_operation, signed_pubkey)

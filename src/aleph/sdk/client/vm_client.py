@@ -44,7 +44,7 @@ class VmClient:
         return {
             "pubkey": json.loads(self.ephemeral_key.export_public()),
             "alg": "ECDSA",
-            "domain": urlparse(self.node_url).hostname,
+            "domain": self.node_domain,
             "address": self.account.get_address(),
             "expires": (
                 datetime.datetime.utcnow() + datetime.timedelta(days=1)
@@ -65,7 +65,7 @@ class VmClient:
                 "sender": self.account.get_address(),
                 "payload": pubkey_payload,
                 "signature": pubkey_signature,
-                "content": {"domain": urlparse(self.node_url).hostname},
+                "content": {"domain": self.node_domain},
             }
         )
 
@@ -73,7 +73,7 @@ class VmClient:
         self, vm_id: ItemHash, operation: str, method: str
     ) -> Tuple[str, Dict[str, str]]:
         payload = create_vm_control_payload(
-            vm_id, operation, domain=urlparse(self.node_url).hostname, method=method
+            vm_id, operation, domain=self.node_domain, method=method
         )
         signed_operation = sign_vm_control_payload(payload, self.ephemeral_key)
 
@@ -89,6 +89,13 @@ class VmClient:
 
         path = payload["path"]
         return f"{self.node_url}{path}", headers
+
+    @property
+    def node_domain(self) -> str:
+        domain = urlparse(self.node_url).hostname
+        if not domain:
+            raise Exception("Could not parse node domain")
+        return domain
 
     async def perform_operation(
         self, vm_id: ItemHash, operation: str, method: str = "POST"
@@ -120,7 +127,7 @@ class VmClient:
             )
 
         payload = create_vm_control_payload(
-            vm_id, "stream_logs", method="get", domain=urlparse(self.node_url).hostname
+            vm_id, "stream_logs", method="get", domain=self.node_domain
         )
         signed_operation = sign_vm_control_payload(payload, self.ephemeral_key)
         path = payload["path"]
