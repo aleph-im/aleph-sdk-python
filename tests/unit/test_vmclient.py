@@ -173,7 +173,7 @@ async def test_get_logs(aiohttp_client):
 
     app = web.Application()
     app.router.add_route(
-        "GET", "/control/machine/{vm_id}/logs", websocket_handler
+        "GET", "/control/machine/{vm_id}/stream_logs", websocket_handler
     )  # Update route to match the URL
 
     client = await aiohttp_client(app)
@@ -254,7 +254,7 @@ async def test_websocket_authentication(aiohttp_client):
 
     app = web.Application()
     app.router.add_route(
-        "GET", "/control/machine/{vm_id}/logs", websocket_handler
+        "GET", "/control/machine/{vm_id}/stream_logs", websocket_handler
     )  # Update route to match the URL
 
     client = await aiohttp_client(app)
