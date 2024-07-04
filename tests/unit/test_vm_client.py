@@ -1,4 +1,3 @@
-import json
 from urllib.parse import urlparse
 
 import aiohttp
@@ -173,7 +172,7 @@ async def test_get_logs(aiohttp_client):
 
     app = web.Application()
     app.router.add_route(
-        "GET", "/control/machine/{vm_id}/logs", websocket_handler
+        "GET", "/control/machine/{vm_id}/stream_logs", websocket_handler
     )  # Update route to match the URL
 
     client = await aiohttp_client(app)
@@ -202,7 +201,9 @@ async def test_authenticate_jwk(aiohttp_client):
     vm_id = ItemHash("cafecafecafecafecafecafecafecafecafecafecafecafecafecafecafecafe")
 
     async def test_authenticate_route(request):
-        address = await authenticate_jwk(request, domain_name=urlparse(node_url).netloc)
+        address = await authenticate_jwk(
+            request, domain_name=urlparse(node_url).hostname
+        )
         assert vm_client.account.get_address() == address
         return web.Response(text="ok")
 
@@ -222,7 +223,7 @@ async def test_authenticate_jwk(aiohttp_client):
     )
 
     status_code, response_text = await vm_client.stop_instance(vm_id)
-    assert status_code == 200
+    assert status_code == 200, response_text
     assert response_text == "ok"
 
     await vm_client.session.close()
@@ -239,22 +240,19 @@ async def test_websocket_authentication(aiohttp_client):
 
         first_message = await ws.receive_json()
         credentials = first_message["auth"]
-        address = await authenticate_websocket_message(
-            {
-                "X-SignedPubKey": json.loads(credentials["X-SignedPubKey"]),
-                "X-SignedOperation": json.loads(credentials["X-SignedOperation"]),
-            },
-            domain_name=urlparse(node_url).netloc,
+        sender_address = await authenticate_websocket_message(
+            credentials,
+            domain_name=urlparse(node_url).hostname,
         )
 
-        assert vm_client.account.get_address() == address
-        await ws.send_str(address)
+        assert vm_client.account.get_address() == sender_address
+        await ws.send_str(sender_address)
 
         return ws
 
     app = web.Application()
     app.router.add_route(
-        "GET", "/control/machine/{vm_id}/logs", websocket_handler
+        "GET", "/control/machine/{vm_id}/stream_logs", websocket_handler
     )  # Update route to match the URL
 
     client = await aiohttp_client(app)
@@ -268,6 +266,7 @@ async def test_websocket_authentication(aiohttp_client):
     )
 
     valid = False
+
     async for address in vm_client.get_logs(vm_id):
         assert address == vm_client.account.get_address()
         valid = True

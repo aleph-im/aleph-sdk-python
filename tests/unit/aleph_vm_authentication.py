@@ -45,11 +45,10 @@ def verify_wallet_signature(signature: bytes, message: str, address: str) -> boo
 class SignedPubKeyPayload(BaseModel):
     """This payload is signed by the wallet of the user to authorize an ephemeral key to act on his behalf."""
 
-    pubkey: Dict[str, Any]
+    pubkey: dict[str, Any]
     # {'pubkey': {'alg': 'ES256', 'crv': 'P-256', 'ext': True, 'key_ops': ['verify'], 'kty': 'EC',
     #  'x': '4blJBYpltvQLFgRvLE-2H7dsMr5O0ImHkgOnjUbG2AU', 'y': '5VHnq_hUSogZBbVgsXMs0CjrVfMy4Pa3Uv2BEBqfrN4'}
     # alg: Literal["ECDSA"]
-    domain: str
     address: str
     expires: str
 
@@ -77,7 +76,7 @@ class SignedPubKeyHeader(BaseModel):
         return bytes_from_hex(value.decode())
 
     @root_validator(pre=False, skip_on_failure=True)
-    def check_expiry(cls, values: Dict[str, bytes]) -> Dict[str, bytes]:
+    def check_expiry(cls, values) -> dict[str, bytes]:
         """Check that the token has not expired"""
         payload: bytes = values["payload"]
         content = SignedPubKeyPayload.parse_raw(payload)
@@ -104,18 +103,18 @@ class SignedPubKeyHeader(BaseModel):
     @property
     def content(self) -> SignedPubKeyPayload:
         """Return the content of the header"""
-
         return SignedPubKeyPayload.parse_raw(self.payload)
 
 
 class SignedOperationPayload(BaseModel):
     time: datetime.datetime
     method: Union[Literal["POST"], Literal["GET"]]
+    domain: str
     path: str
     # body_sha256: str  # disabled since there is no body
 
     @validator("time")
-    def time_is_current(cls, value: datetime.datetime) -> datetime.datetime:
+    def time_is_current(cls, v: datetime.datetime) -> datetime.datetime:
         """Check that the time is current and the payload is not a replay attack."""
         max_past = datetime.datetime.now(tz=datetime.timezone.utc) - datetime.timedelta(
             minutes=2
@@ -123,14 +122,11 @@ class SignedOperationPayload(BaseModel):
         max_future = datetime.datetime.now(
             tz=datetime.timezone.utc
         ) + datetime.timedelta(minutes=2)
-
-        if value < max_past:
+        if v < max_past:
             raise ValueError("Time is too far in the past")
-
-        if value > max_future:
+        if v > max_future:
             raise ValueError("Time is too far in the future")
-
-        return value
+        return v
 
 
 class SignedOperation(BaseModel):
@@ -152,12 +148,10 @@ class SignedOperation(BaseModel):
             raise error
 
     @validator("payload")
-    def payload_must_be_hex(cls, value: bytes) -> bytes:
+    def payload_must_be_hex(cls, v) -> bytes:
         """Convert the payload from hexadecimal to bytes"""
-
-        v = bytes_from_hex(value.decode())
+        v = bytes.fromhex(v.decode())
         _ = SignedOperationPayload.parse_raw(v)
-
         return v
 
     @property
@@ -197,7 +191,6 @@ def get_signed_pubkey(request: web.Request) -> SignedPubKeyHeader:
 
             if str(err.exc) == "Invalid signature":
                 raise web.HTTPUnauthorized(reason="Invalid signature") from errors
-
         else:
             raise errors
 
@@ -207,13 +200,10 @@ def get_signed_operation(request: web.Request) -> SignedOperation:
     try:
         signed_operation = request.headers["X-SignedOperation"]
         return SignedOperation.parse_raw(signed_operation)
-
     except KeyError as error:
         raise web.HTTPBadRequest(reason="Missing X-SignedOperation header") from error
-
     except json.JSONDecodeError as error:
         raise web.HTTPBadRequest(reason="Invalid X-SignedOperation format") from error
-
     except ValidationError as error:
         logger.debug(f"Invalid X-SignedOperation fields: {error}")
         raise web.HTTPBadRequest(reason="Invalid X-SignedOperation fields") from error
@@ -244,9 +234,9 @@ async def authenticate_jwk(request: web.Request, domain_name: str = DOMAIN_NAME)
     signed_pubkey = get_signed_pubkey(request)
     signed_operation = get_signed_operation(request)
 
-    if signed_pubkey.content.domain != domain_name:
+    if signed_operation.content.domain != domain_name:
         logger.debug(
-            f"Invalid domain '{signed_pubkey.content.domain}' != '{domain_name}'"
+            f"Invalid domain '{signed_operation.content.domain}' != '{domain_name}'"
         )
         raise web.HTTPUnauthorized(reason="Invalid domain")
 
@@ -255,13 +245,11 @@ async def authenticate_jwk(request: web.Request, domain_name: str = DOMAIN_NAME)
             f"Invalid path '{signed_operation.content.path}' != '{request.path}'"
         )
         raise web.HTTPUnauthorized(reason="Invalid path")
-
     if signed_operation.content.method != request.method:
         logger.debug(
             f"Invalid method '{signed_operation.content.method}' != '{request.method}'"
         )
         raise web.HTTPUnauthorized(reason="Invalid method")
-
     return verify_signed_operation(signed_operation, signed_pubkey)
 
 
@@ -271,20 +259,17 @@ async def authenticate_websocket_message(
     """Authenticate a websocket message since JS cannot configure headers on WebSockets."""
     signed_pubkey = SignedPubKeyHeader.parse_obj(message["X-SignedPubKey"])
     signed_operation = SignedOperation.parse_obj(message["X-SignedOperation"])
-
-    if signed_pubkey.content.domain != domain_name:
+    if signed_operation.content.domain != domain_name:
         logger.debug(
             f"Invalid domain '{signed_pubkey.content.domain}' != '{domain_name}'"
         )
         raise web.HTTPUnauthorized(reason="Invalid domain")
-
     return verify_signed_operation(signed_operation, signed_pubkey)
 
 
 def require_jwk_authentication(
     handler: Callable[[web.Request, str], Coroutine[Any, Any, web.StreamResponse]]
 ) -> Callable[[web.Request], Awaitable[web.StreamResponse]]:
-
     @functools.wraps(handler)
     async def wrapper(request):
         try:
@@ -296,6 +281,7 @@ def require_jwk_authentication(
             logging.exception(e)
             raise
 
+        # authenticated_sender is the authenticted wallet address of the requester (as a string)
         response = await handler(request, authenticated_sender)
         return response
 
