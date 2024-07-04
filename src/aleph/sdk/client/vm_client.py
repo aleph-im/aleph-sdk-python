@@ -44,7 +44,7 @@ class VmClient:
         return {
             "pubkey": json.loads(self.ephemeral_key.export_public()),
             "alg": "ECDSA",
-            "domain": urlparse(self.node_url).netloc,
+            "domain": self.node_domain,
             "address": self.account.get_address(),
             "expires": (
                 datetime.datetime.utcnow() + datetime.timedelta(days=1)
@@ -65,14 +65,16 @@ class VmClient:
                 "sender": self.account.get_address(),
                 "payload": pubkey_payload,
                 "signature": pubkey_signature,
-                "content": {"domain": urlparse(self.node_url).netloc},
+                "content": {"domain": self.node_domain},
             }
         )
 
     async def _generate_header(
-        self, vm_id: ItemHash, operation: str
+        self, vm_id: ItemHash, operation: str, method: str
     ) -> Tuple[str, Dict[str, str]]:
-        payload = create_vm_control_payload(vm_id, operation)
+        payload = create_vm_control_payload(
+            vm_id, operation, domain=self.node_domain, method=method
+        )
         signed_operation = sign_vm_control_payload(payload, self.ephemeral_key)
 
         if not self.pubkey_signature_header:
@@ -88,18 +90,29 @@ class VmClient:
         path = payload["path"]
         return f"{self.node_url}{path}", headers
 
+    @property
+    def node_domain(self) -> str:
+        domain = urlparse(self.node_url).hostname
+        if not domain:
+            raise Exception("Could not parse node domain")
+        return domain
+
     async def perform_operation(
-        self, vm_id: ItemHash, operation: str
+        self, vm_id: ItemHash, operation: str, method: str = "POST"
     ) -> Tuple[Optional[int], str]:
         if not self.pubkey_signature_header:
             self.pubkey_signature_header = (
                 await self._generate_pubkey_signature_header()
             )
 
-        url, header = await self._generate_header(vm_id=vm_id, operation=operation)
+        url, header = await self._generate_header(
+            vm_id=vm_id, operation=operation, method=method
+        )
 
         try:
-            async with self.session.post(url, headers=header) as response:
+            async with self.session.request(
+                method=method, url=url, headers=header
+            ) as response:
                 response_text = await response.text()
                 return response.status, response_text
 
@@ -113,7 +126,9 @@ class VmClient:
                 await self._generate_pubkey_signature_header()
             )
 
-        payload = create_vm_control_payload(vm_id, "stream_logs")
+        payload = create_vm_control_payload(
+            vm_id, "stream_logs", method="get", domain=self.node_domain
+        )
         signed_operation = sign_vm_control_payload(payload, self.ephemeral_key)
         path = payload["path"]
         ws_url = f"{self.node_url}{path}"
@@ -121,8 +136,8 @@ class VmClient:
         async with self.session.ws_connect(ws_url) as ws:
             auth_message = {
                 "auth": {
-                    "X-SignedPubKey": self.pubkey_signature_header,
-                    "X-SignedOperation": signed_operation,
+                    "X-SignedPubKey": json.loads(self.pubkey_signature_header),
+                    "X-SignedOperation": json.loads(signed_operation),
                 }
             }
             await ws.send_json(auth_message)
