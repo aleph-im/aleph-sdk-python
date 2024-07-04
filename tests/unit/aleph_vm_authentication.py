@@ -4,7 +4,7 @@ import functools
 import json
 import logging
 from collections.abc import Awaitable, Coroutine
-from typing import Any, Callable, Dict, Literal, Union, Optional
+from typing import Any, Callable, Dict, Literal, Optional, Union
 
 import cryptography.exceptions
 import pydantic
