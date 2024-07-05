@@ -268,6 +268,21 @@ def get_vm_measure(sev_data: SEVMeasurement) -> Tuple[bytes, bytes]:
     return vm_measure, nonce
 
 
+def calculate_firmware_hash(firmware_path: Path) -> str:
+    """Calculate the hash of the firmware (OVMF) file to be used in validating the measurements
+
+    Returned as hex encoded string"""
+
+    # https://www.qemu.org/docs/master/system/i386/amd-memory-encryption.html
+    # The value of GCTX.LD is SHA256(firmware_blob || kernel_hashes_blob || vmsas_blob), where:
+    #     firmware_blob is the content of the entire firmware flash file (for example, OVMF.fd). [...]
+    # and verified again sevctl, see tests
+    firmware_content = firmware_path.read_bytes()
+    hash_calculator = hashlib.sha256(firmware_content)
+
+    return hash_calculator.hexdigest()
+
+
 def compute_confidential_measure(
     sev_info: SEVInfo, tik: bytes, expected_hash: str, nonce: bytes
 ) -> hmac.HMAC:
