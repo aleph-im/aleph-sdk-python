@@ -14,7 +14,13 @@ from aleph_message.models import (
     ProgramMessage,
     StoreMessage,
 )
-from aleph_message.models.execution.environment import HypervisorType, MachineResources
+from aleph_message.models.execution.environment import (
+    HostRequirements,
+    HypervisorType,
+    MachineResources,
+    NodeRequirements,
+    TrustedExecutionEnvironment,
+)
 from aleph_message.status import MessageStatus
 
 from aleph.sdk.exceptions import InsufficientFundsError
@@ -161,6 +167,35 @@ async def test_create_instance_no_hypervisor(mock_session_with_post_success):
 
     assert mock_session_with_post_success.http_session.post.assert_called_once
     assert isinstance(instance_message, InstanceMessage)
+
+
+@pytest.mark.asyncio
+async def test_create_confidential_instance(mock_session_with_post_success):
+    async with mock_session_with_post_success as session:
+        confidential_instance_message, message_status = await session.create_instance(
+            rootfs="cafecafecafecafecafecafecafecafecafecafecafecafecafecafecafecafe",
+            rootfs_size=1,
+            channel="TEST",
+            metadata={"tags": ["test"]},
+            payment=Payment(
+                chain=Chain.AVAX,
+                receiver="0x4145f182EF2F06b45E50468519C1B92C60FBd4A0",
+                type=PaymentType.superfluid,
+            ),
+            hypervisor=HypervisorType.qemu,
+            trusted_execution=TrustedExecutionEnvironment(
+                firmware="cafecafecafecafecafecafecafecafecafecafecafecafecafecafecafecafe",
+                policy=0b1,
+            ),
+            requirements=HostRequirements(
+                node=NodeRequirements(
+                    node_hash="cafecafecafecafecafecafecafecafecafecafecafecafecafecafecafecafe",
+                )
+            ),
+        )
+
+    assert mock_session_with_post_success.http_session.post.assert_called_once
+    assert isinstance(confidential_instance_message, InstanceMessage)
 
 
 @pytest.mark.asyncio

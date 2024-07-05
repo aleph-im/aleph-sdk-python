@@ -27,7 +27,11 @@ from aleph_message.models import (
     PostMessage,
     parse_message,
 )
-from aleph_message.models.execution.environment import HypervisorType
+from aleph_message.models.execution.environment import (
+    HostRequirements,
+    HypervisorType,
+    TrustedExecutionEnvironment,
+)
 from aleph_message.models.execution.program import Encoding
 from aleph_message.status import MessageStatus
 
@@ -395,10 +399,12 @@ class AuthenticatedAlephClient(AlephClient):
         internet: bool = True,
         aleph_api: bool = True,
         hypervisor: Optional[HypervisorType] = None,
+        trusted_execution: Optional[TrustedExecutionEnvironment] = None,
         volumes: Optional[List[Mapping]] = None,
         volume_persistence: str = "host",
         ssh_keys: Optional[List[str]] = None,
         metadata: Optional[Mapping[str, Any]] = None,
+        requirements: Optional[HostRequirements] = None,
     ) -> Tuple[AlephMessage, MessageStatus]:
         """
         Post a (create) INSTANCE message.
@@ -417,11 +423,14 @@ class AuthenticatedAlephClient(AlephClient):
         :param allow_amend: Whether the deployed VM image may be changed (Default: False)
         :param internet: Whether the VM should have internet connectivity. (Default: True)
         :param aleph_api: Whether the VM needs access to Aleph messages API (Default: True)
+        :param hypervisor: Whether the VM should use as Hypervisor, like QEmu or Firecracker (Default: Qemu)
+        :param trusted_execution: Whether the VM configuration (firmware and policy) to use for Confidential computing (Default: None)
         :param encoding: Encoding to use (Default: Encoding.zip)
         :param volumes: Volumes to mount
         :param volume_persistence: Where volumes are persisted, can be "host" or "store", meaning distributed across Aleph.im (Default: "host")
         :param ssh_keys: SSH keys to authorize access to the VM
         :param metadata: Metadata to attach to the message
+        :param requirements: CRN Requirements needed for the VM execution
         """
         raise NotImplementedError(
             "Did you mean to import `AuthenticatedAlephHttpClient`?"

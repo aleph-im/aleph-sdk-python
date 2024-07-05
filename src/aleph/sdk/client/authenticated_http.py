@@ -29,9 +29,11 @@ from aleph_message.models import (
 from aleph_message.models.execution.base import Encoding, Payment, PaymentType
 from aleph_message.models.execution.environment import (
     FunctionEnvironment,
+    HostRequirements,
     HypervisorType,
     InstanceEnvironment,
     MachineResources,
+    TrustedExecutionEnvironment,
 )
 from aleph_message.models.execution.instance import RootfsVolume
 from aleph_message.models.execution.program import CodeContent, FunctionRuntime
@@ -522,10 +524,12 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
         internet: bool = True,
         aleph_api: bool = True,
         hypervisor: Optional[HypervisorType] = None,
+        trusted_execution: Optional[TrustedExecutionEnvironment] = None,
         volumes: Optional[List[Mapping]] = None,
         volume_persistence: str = "host",
         ssh_keys: Optional[List[str]] = None,
         metadata: Optional[Mapping[str, Any]] = None,
+        requirements: Optional[HostRequirements] = None,
     ) -> Tuple[InstanceMessage, MessageStatus]:
         address = address or settings.ADDRESS_TO_USE or self.account.get_address()
 
@@ -546,6 +550,7 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
                 internet=internet,
                 aleph_api=aleph_api,
                 hypervisor=selected_hypervisor,
+                trusted_execution=trusted_execution,
             ),
             variables=environment_variables,
             resources=MachineResources(
@@ -563,6 +568,7 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
                 use_latest=True,
             ),
             volumes=[parse_volume(volume) for volume in volumes],
+            requirements=requirements,
             time=time.time(),
             authorized_keys=ssh_keys,
             metadata=metadata,
