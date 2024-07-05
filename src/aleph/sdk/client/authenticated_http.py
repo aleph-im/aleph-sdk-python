@@ -524,8 +524,7 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
         internet: bool = True,
         aleph_api: bool = True,
         hypervisor: Optional[HypervisorType] = None,
-        confidential_firmware: Optional[ItemHash] = None,
-        confidential_policy: Optional[int] = None,
+        trusted_execution: Optional[TrustedExecutionEnvironment] = None,
         volumes: Optional[List[Mapping]] = None,
         volume_persistence: str = "host",
         ssh_keys: Optional[List[str]] = None,
@@ -541,14 +540,6 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
 
         payment = payment or Payment(chain=Chain.ETH, type=PaymentType.hold)
 
-        if confidential_firmware or confidential_policy:
-            confidential_options = TrustedExecutionEnvironment(
-                firmware=confidential_firmware,
-                policy=confidential_policy,
-            )
-        else:
-            confidential_options = None
-
         # Default to the QEMU hypervisor for instances.
         selected_hypervisor: HypervisorType = hypervisor or HypervisorType.qemu
 
@@ -559,7 +550,7 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
                 internet=internet,
                 aleph_api=aleph_api,
                 hypervisor=selected_hypervisor,
-                trusted_execution=confidential_options,
+                trusted_execution=trusted_execution,
             ),
             variables=environment_variables,
             resources=MachineResources(

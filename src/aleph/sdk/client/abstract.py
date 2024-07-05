@@ -27,7 +27,11 @@ from aleph_message.models import (
     PostMessage,
     parse_message,
 )
-from aleph_message.models.execution.environment import HostRequirements, HypervisorType
+from aleph_message.models.execution.environment import (
+    HostRequirements,
+    HypervisorType,
+    TrustedExecutionEnvironment,
+)
 from aleph_message.models.execution.program import Encoding
 from aleph_message.status import MessageStatus
 
@@ -395,8 +399,7 @@ class AuthenticatedAlephClient(AlephClient):
         internet: bool = True,
         aleph_api: bool = True,
         hypervisor: Optional[HypervisorType] = None,
-        confidential_firmware: Optional[ItemHash] = None,
-        confidential_policy: Optional[int] = None,
+        trusted_execution: Optional[TrustedExecutionEnvironment] = None,
         volumes: Optional[List[Mapping]] = None,
         volume_persistence: str = "host",
         ssh_keys: Optional[List[str]] = None,
@@ -421,8 +424,7 @@ class AuthenticatedAlephClient(AlephClient):
         :param internet: Whether the VM should have internet connectivity. (Default: True)
         :param aleph_api: Whether the VM needs access to Aleph messages API (Default: True)
         :param hypervisor: Whether the VM should use as Hypervisor, like QEmu or Firecracker (Default: Qemu)
-        :param confidential_firmware: Whether the VM firmware to use for Confidential computing (Default: None)
-        :param confidential_policy: Whether the VM firmware policy to use for Confidential computing (Default: None)
+        :param trusted_execution: Whether the VM configuration (firmware and policy) to use for Confidential computing (Default: None)
         :param encoding: Encoding to use (Default: Encoding.zip)
         :param volumes: Volumes to mount
         :param volume_persistence: Where volumes are persisted, can be "host" or "store", meaning distributed across Aleph.im (Default: "host")

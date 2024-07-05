@@ -19,6 +19,7 @@ from aleph_message.models.execution.environment import (
     HypervisorType,
     MachineResources,
     NodeRequirements,
+    TrustedExecutionEnvironment,
 )
 from aleph_message.status import MessageStatus
 
@@ -182,8 +183,10 @@ async def test_create_confidential_instance(mock_session_with_post_success):
                 type=PaymentType.superfluid,
             ),
             hypervisor=HypervisorType.qemu,
-            confidential_firmware="cafecafecafecafecafecafecafecafecafecafecafecafecafecafecafecafe",
-            confidential_policy=0b1,
+            trusted_execution=TrustedExecutionEnvironment(
+                firmware="cafecafecafecafecafecafecafecafecafecafecafecafecafecafecafecafe",
+                policy=0b1,
+            ),
             requirements=HostRequirements(
                 node=NodeRequirements(
                     node_hash="cafecafecafecafecafecafecafecafecafecafecafecafecafecafecafecafe",
