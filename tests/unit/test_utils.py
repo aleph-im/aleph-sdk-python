@@ -1,3 +1,4 @@
+import base64
 import datetime
 
 import pytest as pytest
@@ -18,7 +19,14 @@ from aleph_message.models.execution.volume import (
     PersistentVolume,
 )
 
-from aleph.sdk.utils import enum_as_str, get_message_type_value, parse_volume
+from aleph.sdk.types import SEVInfo
+from aleph.sdk.utils import (
+    calculate_firmware_hash,
+    compute_confidential_measure,
+    enum_as_str,
+    get_message_type_value,
+    parse_volume,
+)
 
 
 def test_get_message_type_value():
@@ -174,3 +182,56 @@ def test_parse_persistent_volume():
     volume = parse_volume(volume)
     assert volume
     assert isinstance(volume, PersistentVolume)
+
+
+def test_calculate_firmware_hash(mocker):
+    mock_path = mocker.Mock(
+        read_bytes=mocker.Mock(return_value=b"abc"),
+    )
+
+    assert (
+        calculate_firmware_hash(mock_path)
+        == "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
+    )
+
+
+def test_compute_confidential_measure():
+    """Verify that we properly calculate the measurement we use agains the server
+
+    Validated against the sevctl command:
+    $ RUST_LOG=trace sevctl measurement build  --api-major 01 --api-minor 55 --build-id 24 --policy 1
+        --tik ~/pycharm-aleph-sdk-python/decadecadecadecadecadecadecadecadecadecadecadecadecadecadecadeca_tik.bin
+        --firmware /usr/share/ovmf/OVMF.fd  --nonce URQNqJAqh/2ep4drjx/XvA
+
+    [2024-07-05T11:19:06Z DEBUG sevctl::measurement] firmware + table len=4194304 sha256: d06471f485c0a61aba5a431ec136b947be56907acf6ed96afb11788ae4525aeb
+    [2024-07-05T11:19:06Z DEBUG sevctl::measurement] --tik base64: npOTEc4mtRGfXfB+G6EBdw==
+    [2024-07-05T11:19:06Z DEBUG sevctl::measurement] --nonce base64: URQNqJAqh/2ep4drjx/XvA==
+    [2024-07-05T11:19:06Z DEBUG sevctl::measurement] Raw measurement: BAE3GAEAAADQZHH0hcCmGrpaQx7BNrlHvlaQes9u2Wr7EXiK5FJa61EUDaiQKof9nqeHa48f17w=
+    [2024-07-05T11:19:06Z DEBUG sevctl::measurement] Signed measurement: ls2jv10V3HVShVI/RHCo/a43WO0soLZf0huU9ZZstIw=
+    [2024-07-05T11:19:06Z DEBUG sevctl::measurement] Measurement + nonce: ls2jv10V3HVShVI/RHCo/a43WO0soLZf0huU9ZZstIxRFA2okCqH/Z6nh2uPH9e8
+    """
+
+    tik = bytes.fromhex("9e939311ce26b5119f5df07e1ba10177")
+    assert base64.b64encode(tik) == b"npOTEc4mtRGfXfB+G6EBdw=="
+    expected_hash = "d06471f485c0a61aba5a431ec136b947be56907acf6ed96afb11788ae4525aeb"
+    nonce = base64.b64decode("URQNqJAqh/2ep4drjx/XvA==")
+    sev_info = SEVInfo.parse_obj(
+        {
+            "enabled": True,
+            "api_major": 1,
+            "api_minor": 55,
+            "build_id": 24,
+            "policy": 1,
+            "state": "running",
+            "handle": 1,
+        }
+    )
+
+    assert (
+        base64.b64encode(
+            compute_confidential_measure(
+                sev_info, tik, expected_hash, nonce=nonce
+            ).digest()
+        )
+        == b"ls2jv10V3HVShVI/RHCo/a43WO0soLZf0huU9ZZstIw="
+    )
