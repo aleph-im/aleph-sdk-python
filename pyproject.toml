@@ -28,8 +28,10 @@ dependencies = [
     "coincurve>=19.0.0; python_version>=\"3.11\"",
     "eth_abi>=4.0.0; python_version>=\"3.11\"",
     "eth_account>=0.4.0,<0.11.0",
+    "jwcrypto==1.5.6",
     "python-magic",
     "typing_extensions",
+    "aioresponses>=0.7.6"
 ]
 
 [project.optional-dependencies]
@@ -121,6 +123,8 @@ dependencies = [
     "pytest-cov==4.1.0",
     "pytest-mock==3.12.0",
     "pytest-asyncio==0.23.5",
+    "pytest-aiohttp==1.0.5",
+    "aioresponses==0.7.6",
     "fastapi",
     "httpx",
     "secp256k1",
@@ -149,13 +153,13 @@ dependencies = [
 [tool.hatch.envs.linting.scripts]
 typing = "mypy --config-file=pyproject.toml {args:} ./src/ ./tests/ ./examples/"
 style = [
-    "ruff {args:.} ./src/ ./tests/ ./examples/",
+    "ruff check {args:.} ./src/ ./tests/ ./examples/",
     "black --check --diff {args:} ./src/ ./tests/ ./examples/",
     "isort --check-only --profile black {args:} ./src/ ./tests/ ./examples/",
 ]
 fmt = [
     "black {args:} ./src/ ./tests/ ./examples/",
-    "ruff --fix {args:.} ./src/ ./tests/ ./examples/",
+    "ruff check --fix {args:.} ./src/ ./tests/ ./examples/",
     "isort --profile black {args:} ./src/ ./tests/ ./examples/",
     "style",
 ]

@@ -2,6 +2,8 @@ from abc import abstractmethod
 from enum import Enum
 from typing import Dict, Protocol, TypeVar
 
+from pydantic import BaseModel
+
 __all__ = ("StorageEnum", "Account", "AccountFromPrivateKey", "GenericMessage")
 
 from aleph_message.models import AlephMessage
@@ -21,6 +23,9 @@ class Account(Protocol):
     async def sign_message(self, message: Dict) -> Dict: ...
 
     @abstractmethod
+    async def sign_raw(self, buffer: bytes) -> bytes: ...
+
+    @abstractmethod
     def get_address(self) -> str: ...
 
     @abstractmethod
@@ -36,3 +41,26 @@ class AccountFromPrivateKey(Account, Protocol):
 
 
 GenericMessage = TypeVar("GenericMessage", bound=AlephMessage)
+
+
+class SEVInfo(BaseModel):
+    """
+    An AMD SEV platform information.
+    """
+
+    enabled: bool
+    api_major: int
+    api_minor: int
+    build_id: int
+    policy: int
+    state: str
+    handle: int
+
+
+class SEVMeasurement(BaseModel):
+    """
+    A SEV measurement data get from Qemu measurement.
+    """
+
+    sev_info: SEVInfo
+    launch_measure: str
