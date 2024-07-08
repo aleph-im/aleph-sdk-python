@@ -105,8 +105,8 @@ class VmConfidentialClient(VmClient):
         status, text = await self.perform_operation(
             vm_id, "confidential/measurement", method="GET"
         )
-        sev_mesurement = SEVMeasurement.parse_raw(text)
-        return sev_mesurement
+        sev_measurement = SEVMeasurement.parse_raw(text)
+        return sev_measurement
 
     async def validate_measure(
         self, sev_data: SEVMeasurement, tik_path: Path, firmware_hash: str
