@@ -243,8 +243,8 @@ class AlephClient(ABC):
 
     @abstractmethod
     def get_program_price(
-            self,
-            item_hash: str,
+        self,
+        item_hash: str,
     ) -> PriceResponse:
         """
         Get Program message Price
