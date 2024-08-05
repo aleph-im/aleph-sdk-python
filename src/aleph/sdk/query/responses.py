@@ -72,3 +72,10 @@ class MessagesResponse(PaginationResponse):
 
     messages: List[AlephMessage]
     pagination_item = "messages"
+
+
+class PriceResponse(BaseModel):
+    """Response from an aleph.im node API on the path /api/v0/price/{item_hash}"""
+
+    required_tokens: float
+    payment_type: str
