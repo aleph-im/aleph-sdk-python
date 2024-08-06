@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import (
     Any,
     AsyncIterable,
+    Coroutine,
     Dict,
     Iterable,
     List,
@@ -245,7 +246,7 @@ class AlephClient(ABC):
     def get_program_price(
         self,
         item_hash: str,
-    ) -> PriceResponse:
+    ) -> Coroutine[Any, Any, PriceResponse]:
         """
         Get Program message Price
 
