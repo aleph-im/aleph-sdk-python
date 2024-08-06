@@ -1,6 +1,7 @@
 from unittest.mock import AsyncMock
 
 import pytest
+
 from aleph.sdk.client import AlephHttpClient
 from aleph.sdk.exceptions import InvalidHashError
 from aleph.sdk.query.responses import PriceResponse

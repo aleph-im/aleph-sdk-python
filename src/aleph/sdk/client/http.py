@@ -15,8 +15,8 @@ from ..conf import settings
 from ..exceptions import (
     FileTooLarge,
     ForgottenMessageError,
-    MessageNotFoundError,
     InvalidHashError,
+    MessageNotFoundError,
 )
 from ..query.filters import MessageFilter, PostFilter
 from ..query.responses import MessagesResponse, Post, PostsResponse, PriceResponse
