@@ -78,3 +78,9 @@ class InsufficientFundsError(Exception):
         super().__init__(
             f"Insufficient funds: required {required_funds}, available {available_funds}"
         )
+
+
+class InvalidHashError(QueryError):
+    """The Hash is not valid"""
+
+    pass
