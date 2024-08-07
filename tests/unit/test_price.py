@@ -1,40 +1,38 @@
-from unittest.mock import AsyncMock
+import asyncio
+import json
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
 from aleph.sdk.client import AlephHttpClient
 from aleph.sdk.exceptions import InvalidHashError
 from aleph.sdk.query.responses import PriceResponse
-
-
-def make_mock_price_client(item_hash: str):
-    mock_client = AsyncMock(spec=AlephHttpClient)
-    if item_hash == "valid_item_hash":
-        mock_client.get_program_price.return_value = PriceResponse(
-            required_tokens=3.0555555555555556e-06, payment_type="superfluid"
-        )
-    elif item_hash == "invalid_item_hash":
-        mock_client.get_program_price.side_effect = InvalidHashError("Invalid hash")
-    else:
-        raise NotImplementedError(f"Mock not implemented for item_hash: {item_hash}")
-    return mock_client
+from tests.unit.conftest import make_mock_get_session, make_mock_get_session_400
 
 
 @pytest.mark.asyncio
 async def test_get_program_price_valid():
-    item_hash = "valid_item_hash"
-    mock_client = make_mock_price_client(item_hash)
-
-    response = await mock_client.get_program_price(item_hash)
-
-    assert response.required_tokens == 3.0555555555555556e-06
-    assert response.payment_type == "superfluid"
+    """
+    Test that the get_program_price method returns the correct PriceResponse
+    when given a valid item hash.
+    """
+    expected_response = {
+        "required_tokens": 3.0555555555555556e-06,
+        "payment_type": "superfluid",
+    }
+    mock_session = make_mock_get_session(expected_response)
+    async with mock_session:
+        response = await mock_session.get_program_price("cacacacacacaca")
+        assert response == PriceResponse(**expected_response)
 
 
 @pytest.mark.asyncio
 async def test_get_program_price_invalid():
-    item_hash = "invalid_item_hash"
-    mock_client = make_mock_price_client(item_hash)
-
-    with pytest.raises(InvalidHashError):
-        await mock_client.get_program_price(item_hash)
+    """
+    Test that the get_program_price method raises an InvalidHashError
+    when given an invalid item hash.
+    """
+    mock_session = make_mock_get_session_400({"error": "Invalid hash"})
+    async with mock_session:
+        with pytest.raises(InvalidHashError):
+            await mock_session.get_program_price("invalid_item_hash")
