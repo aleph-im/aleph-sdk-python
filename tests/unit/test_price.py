@@ -1,10 +1,5 @@
-import asyncio
-import json
-from unittest.mock import AsyncMock, patch
-
 import pytest
 
-from aleph.sdk.client import AlephHttpClient
 from aleph.sdk.exceptions import InvalidHashError
 from aleph.sdk.query.responses import PriceResponse
 from tests.unit.conftest import make_mock_get_session, make_mock_get_session_400
