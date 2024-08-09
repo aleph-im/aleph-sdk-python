@@ -6,7 +6,7 @@ from web3 import Web3
 from web3.types import TxParams
 
 from aleph.sdk.conf import settings
-from src.aleph.sdk.chains.ethereum import ETHAccount
+from aleph.sdk.chains.ethereum import ETHAccount
 
 
 class SuperFluid(ETHAccount):
