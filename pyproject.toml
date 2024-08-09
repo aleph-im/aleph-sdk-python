@@ -31,7 +31,10 @@ dependencies = [
     "jwcrypto==1.5.6",
     "python-magic",
     "typing_extensions",
-    "aioresponses>=0.7.6"
+    "aioresponses>=0.7.6",
+    "superfluid~=0.2.1",
+    "eth_typing==4.3.1",
+
 ]
 
 [project.optional-dependencies]
