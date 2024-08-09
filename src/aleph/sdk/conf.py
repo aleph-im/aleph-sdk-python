@@ -38,6 +38,10 @@ class Settings(BaseSettings):
 
     CODE_USES_SQUASHFS: bool = which("mksquashfs") is not None  # True if command exists
 
+    AVAX_RPC: str = "https://api.avax.network/ext/bc/C/rpc"
+    AVAX_CHAIN_ID: int = 43114
+    AVAX_ALEPH_SUPER_TOKEN = "0xc0Fbc4967259786C743361a5885ef49380473dCF"  # mainnet
+
     # Dns resolver
     DNS_IPFS_DOMAIN = "ipfs.public.aleph.sh"
     DNS_PROGRAM_DOMAIN = "program.public.aleph.sh"
