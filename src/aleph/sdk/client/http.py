@@ -73,7 +73,7 @@ class AlephHttpClient(AlephClient):
 
         return self._http_session
 
-    async def __aenter__(self) -> "AlephHttpClient":
+    async def __aenter__(self):
         if self._http_session is None:
             self._http_session = (
                 aiohttp.ClientSession(
