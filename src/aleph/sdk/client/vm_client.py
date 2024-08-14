@@ -35,7 +35,7 @@ class VmClient:
     ):
         self.account = account
         self.ephemeral_key = jwk.JWK.generate(kty="EC", crv="P-256")
-        self.node_url = node_url
+        self.node_url = node_url.rstrip('/')
         self.pubkey_payload = self._generate_pubkey_payload()
         self.pubkey_signature_header = ""
         self.session = session or aiohttp.ClientSession()
