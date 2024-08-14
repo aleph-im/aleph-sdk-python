@@ -30,7 +30,7 @@ logger = logging.getLogger(__name__)
 
 class AlephHttpClient(AlephClient):
     api_server: str
-    http_session: aiohttp.ClientSession
+    _http_session: Optional[aiohttp.ClientSession]
 
     def __init__(
         self,
@@ -48,35 +48,50 @@ class AlephHttpClient(AlephClient):
         if not self.api_server:
             raise ValueError("Missing API host")
 
-        connector: Union[aiohttp.BaseConnector, None]
+        self.connector: Union[aiohttp.BaseConnector, None]
         unix_socket_path = api_unix_socket or settings.API_UNIX_SOCKET
+
         if ssl_context:
-            connector = aiohttp.TCPConnector(ssl=ssl_context)
+            self.connector = aiohttp.TCPConnector(ssl=ssl_context)
         elif unix_socket_path and allow_unix_sockets:
             check_unix_socket_valid(unix_socket_path)
-            connector = aiohttp.UnixConnector(path=unix_socket_path)
+            self.connector = aiohttp.UnixConnector(path=unix_socket_path)
         else:
-            connector = None
+            self.connector = None
 
-        # ClientSession timeout defaults to a private sentinel object and may not be None.
-        self.http_session = (
-            aiohttp.ClientSession(
-                base_url=self.api_server,
-                connector=connector,
-                timeout=timeout,
-                json_serialize=extended_json_encoder,
+        self.timeout = timeout
+        self._http_session = None
+
+    @property
+    def http_session(self) -> aiohttp.ClientSession:
+        if self._http_session is None:
+            raise Exception(
+                f"{self.__class__.__name__} can only be using within an async context manager.\n\n"
+                "Please use it this way:\n\n"
+                "    async with {self.__class__.__name__}(...) as client:"
             )
-            if timeout
-            else aiohttp.ClientSession(
-                base_url=self.api_server,
-                connector=connector,
-                json_serialize=lambda obj: json.dumps(
-                    obj, default=extended_json_encoder
-                ),
-            )
-        )
+
+        return self._http_session
 
     async def __aenter__(self) -> "AlephHttpClient":
+        if self._http_session is None:
+            self._http_session = (
+                aiohttp.ClientSession(
+                    base_url=self.api_server,
+                    connector=self.connector,
+                    timeout=self.timeout,
+                    json_serialize=extended_json_encoder,
+                )
+                if self.timeout
+                else aiohttp.ClientSession(
+                    base_url=self.api_server,
+                    connector=self.connector,
+                    json_serialize=lambda obj: json.dumps(
+                        obj, default=extended_json_encoder
+                    ),
+                )
+            )
+
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):

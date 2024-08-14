@@ -193,7 +193,7 @@ def mock_session_with_post_success(
     client = AuthenticatedAlephHttpClient(
         account=ethereum_account, api_server="http://localhost"
     )
-    client.http_session = http_session
+    client._http_session = http_session
 
     return client
 
@@ -254,7 +254,7 @@ def make_mock_get_session(
     http_session = MockHttpSession()
 
     client = AlephHttpClient(api_server="http://localhost")
-    client.http_session = http_session
+    client._http_session = http_session
 
     return client
 
@@ -281,6 +281,6 @@ def mock_session_with_rejected_message(
     client = AuthenticatedAlephHttpClient(
         account=ethereum_account, api_server="http://localhost"
     )
-    client.http_session = http_session
+    client._http_session = http_session
 
     return client
