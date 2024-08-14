@@ -16,10 +16,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: [ "3.9", "3.10", "3.11" ]
-        # An issue with secp256k1 prevents Python 3.12 from working
-        # See https://github.com/baking-bad/pytezos/issues/370
-    runs-on: ubuntu-latest
+        python-version: [ "3.9", "3.10", "3.11", "3.12" ]
+        os: [ubuntu-22.04, ubuntu-24.04]
+    runs-on: ${{ matrix.os }}
 
     steps:
       - uses: actions/checkout@v4
@@ -37,13 +36,10 @@ jobs:
           /tmp/venv/bin/pip freeze
           /tmp/venv/bin/hatch run testing:pip freeze
           /tmp/venv/bin/hatch run testing:test
-        if: matrix.python-version != '3.11'
 
       - run: /tmp/venv/bin/hatch run testing:cov
-        if: matrix.python-version == '3.11'
 
       - uses: codecov/codecov-action@v4.0.1
-        if: matrix.python-version == '3.11'
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           slug: aleph-im/aleph-sdk-python
