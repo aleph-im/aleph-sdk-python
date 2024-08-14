@@ -95,7 +95,9 @@ class AlephHttpClient(AlephClient):
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
-        await self.http_session.close()
+        # Avoid cascade in error handling
+        if self._http_session is not None:
+            await self._http_session.close()
 
     async def fetch_aggregate(self, address: str, key: str) -> Dict[str, Dict]:
         params: Dict[str, Any] = {"keys": key}

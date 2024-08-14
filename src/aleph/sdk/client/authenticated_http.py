@@ -89,9 +89,6 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
         )
         self.account = account
 
-    async def __aenter__(self) -> "AuthenticatedAlephHttpClient":
-        return self
-
     async def ipfs_push(self, content: Mapping) -> str:
         """
         Push arbitrary content as JSON to the IPFS service.
