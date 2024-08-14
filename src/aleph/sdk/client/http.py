@@ -409,5 +409,5 @@ class AlephHttpClient(AlephClient):
                 )
             except aiohttp.ClientResponseError as e:
                 if e.status == 400:
-                    raise InvalidHashError(f"No such hash {item_hash}")
+                    raise InvalidHashError(f"Bad request or no such hash {item_hash}")
                 raise e
