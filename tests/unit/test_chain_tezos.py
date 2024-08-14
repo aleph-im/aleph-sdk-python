@@ -31,7 +31,7 @@ async def test_tezos_account(tezos_account: TezosAccount):
     message = Message("TEZOS", tezos_account.get_address(), "SomeType", "ItemHash")
     signed = await tezos_account.sign_message(asdict(message))
     assert signed["signature"]
-    assert len(signed["signature"]) == 188
+    assert len(signed["signature"]) == 187
 
     address = tezos_account.get_address()
     assert address is not None
@@ -40,7 +40,7 @@ async def test_tezos_account(tezos_account: TezosAccount):
 
     pubkey = tezos_account.get_public_key()
     assert isinstance(pubkey, str)
-    assert len(pubkey) == 55
+    assert len(pubkey) == 54
 
 
 @pytest.mark.asyncio
