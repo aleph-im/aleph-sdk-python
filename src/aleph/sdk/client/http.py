@@ -68,12 +68,12 @@ class AlephHttpClient(AlephClient):
             raise Exception(
                 f"{self.__class__.__name__} can only be using within an async context manager.\n\n"
                 "Please use it this way:\n\n"
-                "    async with {self.__class__.__name__}(...) as client:"
+                f"    async with {self.__class__.__name__}(...) as client:"
             )
 
         return self._http_session
 
-    async def __aenter__(self) -> "AlephHttpClient":
+    async def __aenter__(self):
         if self._http_session is None:
             self._http_session = (
                 aiohttp.ClientSession(
@@ -95,7 +95,9 @@ class AlephHttpClient(AlephClient):
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
-        await self.http_session.close()
+        # Avoid cascade in error handling
+        if self._http_session is not None:
+            await self._http_session.close()
 
     async def fetch_aggregate(self, address: str, key: str) -> Dict[str, Dict]:
         params: Dict[str, Any] = {"keys": key}
