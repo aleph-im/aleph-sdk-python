@@ -68,7 +68,7 @@ class AlephHttpClient(AlephClient):
             raise Exception(
                 f"{self.__class__.__name__} can only be using within an async context manager.\n\n"
                 "Please use it this way:\n\n"
-                "    async with {self.__class__.__name__}(...) as client:"
+                f"    async with {self.__class__.__name__}(...) as client:"
             )
 
         return self._http_session
