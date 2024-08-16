@@ -8,6 +8,7 @@ from typing import Any, Callable, Dict, List, Optional, Union
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest as pytest
+from aiohttp import ClientResponseError
 from aleph_message.models import AggregateMessage, AlephMessage, PostMessage
 
 import aleph.sdk.chains.ethereum as ethereum
@@ -230,6 +231,10 @@ def make_custom_mock_response(
         async def json(self):
             return resp
 
+        def raise_for_status(self):
+            if status >= 400:
+                raise ClientResponseError(None, None, status=status)
+
         @property
         def status(self):
             return status
@@ -255,6 +260,21 @@ def make_mock_get_session(
 
     client = AlephHttpClient(api_server="http://localhost")
     client._http_session = http_session
+
+    return client
+
+
+def make_mock_get_session_400(
+    get_return_value: Union[Dict[str, Any], bytes]
+) -> AlephHttpClient:
+    class MockHttpSession(AsyncMock):
+        def get(self, *_args, **_kwargs):
+            return make_custom_mock_response(get_return_value, 400)
+
+    http_session = MockHttpSession()
+
+    client = AlephHttpClient(api_server="http://localhost")
+    client.http_session = http_session
 
     return client
 

@@ -12,9 +12,14 @@ from aleph_message.models import AlephMessage, ItemHash, ItemType
 from pydantic import ValidationError
 
 from ..conf import settings
-from ..exceptions import FileTooLarge, ForgottenMessageError, MessageNotFoundError
+from ..exceptions import (
+    FileTooLarge,
+    ForgottenMessageError,
+    InvalidHashError,
+    MessageNotFoundError,
+)
 from ..query.filters import MessageFilter, PostFilter
-from ..query.responses import MessagesResponse, Post, PostsResponse
+from ..query.responses import MessagesResponse, Post, PostsResponse, PriceResponse
 from ..types import GenericMessage
 from ..utils import (
     Writable,
@@ -409,3 +414,17 @@ class AlephHttpClient(AlephClient):
                         yield parse_message(data)
                 elif msg.type == aiohttp.WSMsgType.ERROR:
                     break
+
+    async def get_program_price(self, item_hash: str) -> PriceResponse:
+        async with self.http_session.get(f"/api/v0/price/{item_hash}") as resp:
+            try:
+                resp.raise_for_status()
+                response_json = await resp.json()
+                return PriceResponse(
+                    required_tokens=response_json["required_tokens"],
+                    payment_type=response_json["payment_type"],
+                )
+            except aiohttp.ClientResponseError as e:
+                if e.status == 400:
+                    raise InvalidHashError(f"Bad request or no such hash {item_hash}")
+                raise e

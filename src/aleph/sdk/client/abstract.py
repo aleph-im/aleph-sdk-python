@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import (
     Any,
     AsyncIterable,
+    Coroutine,
     Dict,
     Iterable,
     List,
@@ -40,7 +41,7 @@ from aleph.sdk.types import Account
 from aleph.sdk.utils import extended_json_encoder
 
 from ..query.filters import MessageFilter, PostFilter
-from ..query.responses import PostsResponse
+from ..query.responses import PostsResponse, PriceResponse
 from ..types import GenericMessage, StorageEnum
 from ..utils import Writable, compute_sha256
 
@@ -238,6 +239,18 @@ class AlephClient(ABC):
         Iterate over current and future matching messages asynchronously.
 
         :param message_filter: Filter to apply to the messages
+        """
+        raise NotImplementedError("Did you mean to import `AlephHttpClient`?")
+
+    @abstractmethod
+    def get_program_price(
+        self,
+        item_hash: str,
+    ) -> Coroutine[Any, Any, PriceResponse]:
+        """
+        Get Program message Price
+
+        :param item_hash: item_hash of executable message
         """
         raise NotImplementedError("Did you mean to import `AlephHttpClient`?")
 
