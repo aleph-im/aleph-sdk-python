@@ -274,7 +274,7 @@ def make_mock_get_session_400(
     http_session = MockHttpSession()
 
     client = AlephHttpClient(api_server="http://localhost")
-    client.http_session = http_session
+    client._http_session = http_session
 
     return client
 
