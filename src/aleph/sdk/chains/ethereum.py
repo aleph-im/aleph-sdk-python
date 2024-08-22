@@ -15,9 +15,15 @@ from ..exceptions import BadSignatureError
 from ..utils import bytes_from_hex
 from .common import BaseAccount, get_fallback_private_key, get_public_key
 
-CHAINS_WITH_SUPERTOKEN: Set[Chain] = {Chain.AVAX}
+CHAINS_WITH_SUPERTOKEN: Set[Chain] = {Chain.AVAX, Chain.BASE}
 CHAIN_IDS: Dict[Chain, int] = {
     Chain.AVAX: settings.AVAX_CHAIN_ID,
+    Chain.BASE: settings.BASE_CHAIN_ID,
+}
+
+CHAIN_RPC: Dict[Chain, str] = {
+    Chain.AVAX: settings.AVAX_RPC,
+    Chain.BASE: settings.BASE_RPC,
 }
 
 
@@ -26,8 +32,8 @@ def get_rpc_for_chain(chain: Chain):
     if not chain:
         return None
 
-    if chain == Chain.AVAX:
-        return settings.AVAX_RPC
+    if chain in CHAIN_RPC:
+        return CHAIN_RPC[chain]
     else:
         raise ValueError(f"Unknown RPC for chain {chain}")
 

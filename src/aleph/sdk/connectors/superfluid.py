@@ -83,7 +83,7 @@ class Superfluid:
             operation=self.cfaV1Instance.create_flow(
                 sender=to_normalized_address(sender),
                 receiver=to_normalized_address(receiver),
-                super_token=settings.AVAX_ALEPH_SUPER_TOKEN,
+                super_token=settings.ALEPH_SUPER_TOKEN,
                 flow_rate=to_wei(Decimal(flow), "ether"),
             ),
         )
@@ -93,7 +93,7 @@ class Superfluid:
         return self.cfaV1Instance.get_flow(
             sender=to_normalized_address(sender),
             receiver=to_normalized_address(receiver),
-            super_token=settings.AVAX_ALEPH_SUPER_TOKEN,
+            super_token=settings.ALEPH_SUPER_TOKEN,
         )
 
     async def delete_flow(self, sender: str, receiver: str) -> str:
@@ -105,7 +105,7 @@ class Superfluid:
             operation=self.cfaV1Instance.delete_flow(
                 sender=to_normalized_address(sender),
                 receiver=to_normalized_address(receiver),
-                super_token=settings.AVAX_ALEPH_SUPER_TOKEN,
+                super_token=settings.ALEPH_SUPER_TOKEN,
             ),
         )
 
@@ -118,7 +118,7 @@ class Superfluid:
             operation=self.cfaV1Instance.update_flow(
                 sender=to_normalized_address(sender),
                 receiver=to_normalized_address(receiver),
-                super_token=settings.AVAX_ALEPH_SUPER_TOKEN,
+                super_token=settings.ALEPH_SUPER_TOKEN,
                 flow_rate=to_wei(Decimal(flow), "ether"),
             ),
         )

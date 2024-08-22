@@ -40,7 +40,10 @@ class Settings(BaseSettings):
 
     AVAX_RPC: str = "https://api.avax.network/ext/bc/C/rpc"
     AVAX_CHAIN_ID: int = 43114
-    AVAX_ALEPH_SUPER_TOKEN = "0xc0Fbc4967259786C743361a5885ef49380473dCF"  # mainnet
+    ALEPH_SUPER_TOKEN = "0xc0Fbc4967259786C743361a5885ef49380473dCF"
+
+    BASE_RPC: str = "https://base-rpc.publicnode.com"
+    BASE_CHAIN_ID = 8453
 
     # Dns resolver
     DNS_IPFS_DOMAIN = "ipfs.public.aleph.sh"
