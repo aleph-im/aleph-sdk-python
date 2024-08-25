@@ -1,17 +1,20 @@
 from __future__ import annotations
 
 from decimal import Decimal
+from typing import TYPE_CHECKING
 
 from eth_utils import to_normalized_address
 from superfluid import CFA_V1, Operation, Web3FlowInfo
 
-from aleph.sdk.chains.ethereum import (
-    ETHAccount,
-    get_super_token_address,
-    to_human_readable_token,
-    to_wei_token,
-)
 from aleph.sdk.exceptions import InsufficientFundsError
+
+if TYPE_CHECKING:
+    from aleph.sdk.chains.ethereum import (
+        ETHAccount,
+        get_super_token_address,
+        to_human_readable_token,
+        to_wei_token,
+    )
 
 
 class Superfluid:
