@@ -1,61 +1,17 @@
 from __future__ import annotations
 
-import asyncio
 from decimal import Decimal
-from typing import TYPE_CHECKING, Optional
 
-from eth_utils import to_normalized_address, to_wei
+from eth_utils import to_normalized_address
 from superfluid import CFA_V1, Operation, Web3FlowInfo
-from web3 import Web3
-from web3.types import TxParams
 
-from aleph.sdk.conf import settings
-
-if TYPE_CHECKING:
-    from aleph.sdk.chains.ethereum import LocalAccount
-
-
-async def sign_and_send_transaction(
-    account: LocalAccount, tx_params: TxParams, rpc: str
-) -> str:
-    """
-    Sign and broadcast a transaction using the provided ETHAccount
-
-    @param tx_params - Transaction parameters
-    @param rpc - RPC URL
-    @returns - str - The transaction hash
-    """
-    web3 = Web3(Web3.HTTPProvider(rpc))
-
-    def sign_and_send():
-        signed_txn = account.sign_transaction(tx_params)
-        transaction_hash = web3.eth.send_raw_transaction(signed_txn.rawTransaction)
-        return transaction_hash.hex()
-
-    # Sending a transaction is done over HTTP(S) and implemented using a blocking
-    # API in `web3.eth`. This runs it in a non-blocking asyncio executor.
-    loop = asyncio.get_running_loop()
-    transaction_hash = await loop.run_in_executor(None, sign_and_send)
-    return transaction_hash
-
-
-async def execute_operation_with_account(
-    account: LocalAccount, operation: Operation
-) -> str:
-    """
-    Execute an operation using the provided ETHAccount
-
-    @param operation - Operation instance from the library
-    @returns - str - The transaction hash
-    @returns - str - The transaction hash
-    """
-    populated_transaction = operation._get_populated_transaction_request(
-        operation.rpc, account.key
-    )
-    transaction_hash = await sign_and_send_transaction(
-        account, populated_transaction, operation.rpc
-    )
-    return transaction_hash
+from aleph.sdk.chains.ethereum import (
+    ETHAccount,
+    get_super_token_address,
+    to_human_readable_token,
+    to_wei_token,
+)
+from aleph.sdk.exceptions import InsufficientFundsError
 
 
 class Superfluid:
@@ -63,28 +19,52 @@ class Superfluid:
     Wrapper around the Superfluid APIs in order to CRUD Superfluid flows between two accounts.
     """
 
-    account: Optional[LocalAccount]
+    account: ETHAccount
+    normalized_address: str
+    super_token: str
+    cfaV1Instance: CFA_V1
+    MIN_4_HOURS = 60 * 60 * 4
 
-    def __init__(
-        self,
-        rpc=settings.AVAX_RPC,
-        chain_id=settings.AVAX_CHAIN_ID,
-        account: Optional[LocalAccount] = None,
-    ):
-        self.cfaV1Instance = CFA_V1(rpc, chain_id)
+    def __init__(self, account: ETHAccount):
         self.account = account
+        self.normalized_address = to_normalized_address(account.get_address())
+        if account.chain:
+            self.super_token = str(get_super_token_address(account.chain))
+            self.cfaV1Instance = CFA_V1(account.rpc, account.chain_id)
 
-    async def create_flow(self, sender: str, receiver: str, flow: Decimal) -> str:
+    async def _execute_operation_with_account(self, operation: Operation) -> str:
+        """
+        Execute an operation using the provided ETHAccount
+        @param operation - Operation instance from the library
+        @returns - str - Transaction hash
+        """
+        populated_transaction = operation._get_populated_transaction_request(
+            self.account.rpc, self.account._account.key
+        )
+        return await self.account._sign_and_send_transaction(populated_transaction)
+
+    def can_start_flow(self, flow: Decimal, block=True) -> bool:
+        valid = False
+        if self.account.can_transact():
+            balance = self.account.get_super_token_balance()
+            MIN_FLOW_4H = to_wei_token(flow) * Decimal(self.MIN_4_HOURS)
+            valid = balance > MIN_FLOW_4H
+            if not valid and block:
+                raise InsufficientFundsError(
+                    required_funds=float(MIN_FLOW_4H),
+                    available_funds=to_human_readable_token(balance),
+                )
+        return valid
+
+    async def create_flow(self, receiver: str, flow: Decimal) -> str:
         """Create a Superfluid flow between two addresses."""
-        if not self.account:
-            raise ValueError("An account is required to create a flow")
-        return await execute_operation_with_account(
-            account=self.account,
+        self.can_start_flow(flow)
+        return await self._execute_operation_with_account(
             operation=self.cfaV1Instance.create_flow(
-                sender=to_normalized_address(sender),
+                sender=self.normalized_address,
                 receiver=to_normalized_address(receiver),
-                super_token=settings.AVAX_ALEPH_SUPER_TOKEN,
-                flow_rate=to_wei(Decimal(flow), "ether"),
+                super_token=self.super_token,
+                flow_rate=to_wei_token(flow),
             ),
         )
 
@@ -93,32 +73,26 @@ class Superfluid:
         return self.cfaV1Instance.get_flow(
             sender=to_normalized_address(sender),
             receiver=to_normalized_address(receiver),
-            super_token=settings.AVAX_ALEPH_SUPER_TOKEN,
+            super_token=self.super_token,
         )
 
-    async def delete_flow(self, sender: str, receiver: str) -> str:
+    async def delete_flow(self, receiver: str) -> str:
         """Delete the Supefluid flow between two addresses."""
-        if not self.account:
-            raise ValueError("An account is required to delete a flow")
-        return await execute_operation_with_account(
-            account=self.account,
+        return await self._execute_operation_with_account(
             operation=self.cfaV1Instance.delete_flow(
-                sender=to_normalized_address(sender),
+                sender=self.normalized_address,
                 receiver=to_normalized_address(receiver),
-                super_token=settings.AVAX_ALEPH_SUPER_TOKEN,
+                super_token=self.super_token,
             ),
         )
 
-    async def update_flow(self, sender: str, receiver: str, flow: Decimal) -> str:
+    async def update_flow(self, receiver: str, flow: Decimal) -> str:
         """Update the flow of a Superfluid flow between two addresses."""
-        if not self.account:
-            raise ValueError("An account is required to update a flow")
-        return await execute_operation_with_account(
-            account=self.account,
+        return await self._execute_operation_with_account(
             operation=self.cfaV1Instance.update_flow(
-                sender=to_normalized_address(sender),
+                sender=self.normalized_address,
                 receiver=to_normalized_address(receiver),
-                super_token=settings.AVAX_ALEPH_SUPER_TOKEN,
-                flow_rate=to_wei(Decimal(flow), "ether"),
+                super_token=self.super_token,
+                flow_rate=to_wei_token(flow),
             ),
         )

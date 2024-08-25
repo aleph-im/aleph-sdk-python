@@ -31,7 +31,7 @@ dependencies = [
     "python-magic",
     "typing_extensions",
     "aioresponses>=0.7.6",
-    "superfluid@git+https://github.com/aleph-im/superfluid.py.git@1yam-add-base",
+    "superfluid@git+https://github.com/1yam/superfluid.py.git@1yam-add-base",
     "web3==6.3.0",
 ]
 
