@@ -39,12 +39,16 @@ def eth_account(mock_superfluid):
         private_key,
         chain=Chain.AVAX,
     )
-    account.get_super_token_balance = AsyncMock(return_value=Decimal("1"))
-    account.can_transact = AsyncMock(return_value=True)
-
-    account.superfluid_connector = mock_superfluid
-
-    return account
+    with patch.object(
+        account, "get_super_token_balance", new_callable=AsyncMock
+    ) as mock_get_balance:
+        mock_get_balance.return_value = Decimal("1")
+        with patch.object(
+            account, "can_transact", new_callable=AsyncMock
+        ) as mock_can_transact:
+            mock_can_transact.return_value = True
+            account.superfluid_connector = mock_superfluid
+            yield account
 
 
 @pytest.mark.asyncio
