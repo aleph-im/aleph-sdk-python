@@ -48,7 +48,7 @@ class Superfluid:
 
     def can_start_flow(self, flow: Decimal, block=True) -> bool:
         valid = False
-        if self.account.can_transact():
+        if self.account.can_transact(block=block):
             balance = self.account.get_super_token_balance()
             MIN_FLOW_4H = to_wei_token(flow) * Decimal(self.MIN_4_HOURS)
             valid = balance > MIN_FLOW_4H

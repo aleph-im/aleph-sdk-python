@@ -66,15 +66,12 @@ class SEVMeasurement(BaseModel):
     launch_measure: str
 
 
-class ChainInfo:
+class ChainInfo(BaseModel):
     """
     A chain information.
     """
 
-    def __init__(
-        self, chain_id: int, rpc: str, token: str, super_token: Optional[str] = None
-    ):
-        self.chain_id = chain_id
-        self.rpc = rpc
-        self.token = token
-        self.super_token = super_token
+    chain_id: int
+    rpc: str
+    token: str
+    super_token: Optional[str] = None

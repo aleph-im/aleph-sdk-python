@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Awaitable, List, Optional, Union
 
 from aleph_message.models import Chain
-from eth_account import Account
+from eth_account import Account  # type: ignore
 from eth_account.messages import encode_defunct
 from eth_account.signers.local import LocalAccount
 from eth_keys.exceptions import BadSignature as EthBadSignatureError
