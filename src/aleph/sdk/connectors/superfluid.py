@@ -8,13 +8,10 @@ from superfluid import CFA_V1, Operation, Web3FlowInfo
 
 from aleph.sdk.exceptions import InsufficientFundsError
 
+from ..evm_utils import get_super_token_address, to_human_readable_token, to_wei_token
+
 if TYPE_CHECKING:
-    from aleph.sdk.chains.ethereum import (
-        ETHAccount,
-        get_super_token_address,
-        to_human_readable_token,
-        to_wei_token,
-    )
+    from aleph.sdk.chains.ethereum import ETHAccount
 
 
 class Superfluid:
@@ -67,7 +64,7 @@ class Superfluid:
                 sender=self.normalized_address,
                 receiver=to_normalized_address(receiver),
                 super_token=self.super_token,
-                flow_rate=to_wei_token(flow),
+                flow_rate=int(to_wei_token(flow)),
             ),
         )
 
@@ -96,6 +93,6 @@ class Superfluid:
                 sender=self.normalized_address,
                 receiver=to_normalized_address(receiver),
                 super_token=self.super_token,
-                flow_rate=to_wei_token(flow),
+                flow_rate=int(to_wei_token(flow)),
             ),
         )
