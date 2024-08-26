@@ -51,6 +51,7 @@ class Settings(BaseSettings):
             rpc="https://eth-sepolia.public.blastapi.io",
             token="0xc4bf5cbdabe595361438f8c6a187bdc330539c60",
             super_token="0x22064a21fee226d8ffb8818e7627d5ff6d0fc33a",
+            active=False,
         ),
         # MAINNETS
         Chain.ETH: ChainInfo(
@@ -74,6 +75,7 @@ class Settings(BaseSettings):
             chain_id=56,
             rpc="https://binance.llamarpc.com",
             token="0x82D2f8E02Afb160Dd5A480a617692e62de9038C4",
+            active=False,
         ),
     }
 

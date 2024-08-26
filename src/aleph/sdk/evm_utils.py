@@ -79,5 +79,13 @@ def get_super_token_address(
     return None
 
 
+def get_chains_with_holding() -> List[Union[Chain, str]]:
+    return [chain for chain, info in settings.CHAINS.items() if info.active]
+
+
 def get_chains_with_super_token() -> List[Union[Chain, str]]:
-    return [chain for chain, info in settings.CHAINS.items() if info.super_token]
+    return [
+        chain
+        for chain, info in settings.CHAINS.items()
+        if info.active and info.super_token
+    ]
