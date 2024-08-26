@@ -61,7 +61,7 @@ async def test_create_flow(eth_account, mock_superfluid):
         mock_superfluid.create_flow.assert_called_once_with(
             sender=sender.lower(),
             receiver=receiver.lower(),
-            super_token=settings.AVAX_ALEPH_SUPER_TOKEN,
+            super_token=settings.ALEPH_SUPER_TOKEN,
             flow_rate=mock.ANY,
         )
 
@@ -86,7 +86,7 @@ async def test_delete_flow(eth_account, mock_superfluid):
         mock_superfluid.delete_flow.assert_called_once_with(
             sender=sender.lower(),
             receiver=receiver.lower(),
-            super_token=settings.AVAX_ALEPH_SUPER_TOKEN,
+            super_token=settings.ALEPH_SUPER_TOKEN,
         )
 
 
@@ -111,7 +111,7 @@ async def test_update_flow(eth_account, mock_superfluid):
         mock_superfluid.update_flow.assert_called_once_with(
             sender=sender.lower(),
             receiver=receiver.lower(),
-            super_token=settings.AVAX_ALEPH_SUPER_TOKEN,
+            super_token=settings.ALEPH_SUPER_TOKEN,
             flow_rate=mock.ANY,
         )
 
@@ -129,5 +129,5 @@ async def test_get_flow(eth_account, mock_superfluid):
     mock_superfluid.get_flow.assert_called_once_with(
         sender=sender.lower(),
         receiver=receiver.lower(),
-        super_token=settings.AVAX_ALEPH_SUPER_TOKEN,
+        super_token=settings.ALEPH_SUPER_TOKEN,
     )
