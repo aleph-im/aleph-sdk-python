@@ -50,7 +50,8 @@ class ETHAccount(BaseAccount):
         private_key: bytes,
         chain: Optional[Chain] = None,
     ):
-        self._account: LocalAccount = Account.from_key(private_key)
+        self.private_key = private_key
+        self._account: LocalAccount = Account.from_key(self.private_key)
         self.connect_chain(chain=chain)
 
     @staticmethod
