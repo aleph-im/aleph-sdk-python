@@ -1,6 +1,6 @@
 from abc import abstractmethod
 from enum import Enum
-from typing import Dict, Protocol, TypeVar
+from typing import Dict, Optional, Protocol, TypeVar
 
 from pydantic import BaseModel
 
@@ -64,3 +64,15 @@ class SEVMeasurement(BaseModel):
 
     sev_info: SEVInfo
     launch_measure: str
+
+
+class ChainInfo(BaseModel):
+    """
+    A chain information.
+    """
+
+    chain_id: int
+    rpc: str
+    token: str
+    super_token: Optional[str] = None
+    active: bool = True

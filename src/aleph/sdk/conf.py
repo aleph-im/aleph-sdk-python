@@ -1,9 +1,12 @@
 import os
 from pathlib import Path
 from shutil import which
-from typing import Optional
+from typing import Dict, Optional, Union
 
+from aleph_message.models import Chain
 from pydantic import BaseSettings, Field
+
+from aleph.sdk.types import ChainInfo
 
 
 class Settings(BaseSettings):
@@ -38,9 +41,43 @@ class Settings(BaseSettings):
 
     CODE_USES_SQUASHFS: bool = which("mksquashfs") is not None  # True if command exists
 
-    AVAX_RPC: str = "https://api.avax.network/ext/bc/C/rpc"
-    AVAX_CHAIN_ID: int = 43114
-    AVAX_ALEPH_SUPER_TOKEN = "0xc0Fbc4967259786C743361a5885ef49380473dCF"  # mainnet
+    # Web3Provider settings
+    TOKEN_DECIMALS = 18
+    TX_TIMEOUT = 60 * 3
+    CHAINS: Dict[Union[Chain, str], ChainInfo] = {
+        # TESTNETS
+        "SEPOLIA": ChainInfo(
+            chain_id=11155111,
+            rpc="https://eth-sepolia.public.blastapi.io",
+            token="0xc4bf5cbdabe595361438f8c6a187bdc330539c60",
+            super_token="0x22064a21fee226d8ffb8818e7627d5ff6d0fc33a",
+            active=False,
+        ),
+        # MAINNETS
+        Chain.ETH: ChainInfo(
+            chain_id=1,
+            rpc="https://eth-mainnet.public.blastapi.io",
+            token="0x27702a26126e0B3702af63Ee09aC4d1A084EF628",
+        ),
+        Chain.AVAX: ChainInfo(
+            chain_id=43114,
+            rpc="https://api.avax.network/ext/bc/C/rpc",
+            token="0xc0Fbc4967259786C743361a5885ef49380473dCF",
+            super_token="0xc0Fbc4967259786C743361a5885ef49380473dCF",
+        ),
+        Chain.BASE: ChainInfo(
+            chain_id=8453,
+            rpc="https://base-mainnet.public.blastapi.io",
+            token="0xc0Fbc4967259786C743361a5885ef49380473dCF",
+            super_token="0xc0Fbc4967259786C743361a5885ef49380473dCF",
+        ),
+        Chain.BSC: ChainInfo(
+            chain_id=56,
+            rpc="https://binance.llamarpc.com",
+            token="0x82D2f8E02Afb160Dd5A480a617692e62de9038C4",
+            active=False,
+        ),
+    }
 
     # Dns resolver
     DNS_IPFS_DOMAIN = "ipfs.public.aleph.sh"

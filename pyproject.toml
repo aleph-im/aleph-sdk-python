@@ -23,18 +23,17 @@ classifiers = [
 ]
 dependencies = [
     "aiohttp>=3.8.3",
-    "aleph-message>=0.4.8",
+    "aleph-message>=0.4.9",
     "coincurve; python_version<\"3.11\"",
     "coincurve>=19.0.0; python_version>=\"3.11\"",
     "eth_abi>=4.0.0; python_version>=\"3.11\"",
-    "eth_account>=0.4.0,<0.11.0",
     "jwcrypto==1.5.6",
     "python-magic",
     "typing_extensions",
     "aioresponses>=0.7.6",
-    "superfluid~=0.2.1",
+    "superfluid@git+https://github.com/1yam/superfluid.py.git@1yam-add-base",
     "eth_typing==4.3.1",
-
+    "web3==6.3.0",
 ]
 
 [project.optional-dependencies]
