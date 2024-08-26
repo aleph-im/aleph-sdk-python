@@ -31,7 +31,7 @@ dependencies = [
     "python-magic",
     "typing_extensions",
     "aioresponses>=0.7.6",
-    "superfluid@git+https://github.com/1yam/superfluid.py.git@1yam-add-base",
+    "superfluid~=0.2.1",
     "eth_typing==4.3.1",
     "web3==6.3.0",
 ]
@@ -107,7 +107,7 @@ include = [
 profile = "black"
 
 [[tool.hatch.envs.all.matrix]]
-python = ["3.8", "3.9", "3.10", "3.11"]
+python = ["3.9", "3.10", "3.11"]
 
 [tool.hatch.envs.testing]
 features = [
@@ -171,7 +171,7 @@ all = [
 ]
 
 [tool.mypy]
-python_version = 3.8
+python_version = 3.9
 mypy_path = "src"
 exclude = [
     "conftest.py"
