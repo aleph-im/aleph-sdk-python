@@ -32,6 +32,7 @@ dependencies = [
     "typing_extensions",
     "aioresponses>=0.7.6",
     "superfluid@git+https://github.com/1yam/superfluid.py.git@1yam-add-base",
+    "eth_typing==4.3.1",
     "web3==6.3.0",
 ]
 
