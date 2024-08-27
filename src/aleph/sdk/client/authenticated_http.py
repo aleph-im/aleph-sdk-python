@@ -540,15 +540,18 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
         # Default to the QEMU hypervisor for instances.
         selected_hypervisor: HypervisorType = hypervisor or HypervisorType.qemu
 
+        environment_kwargs = dict(
+            internet=internet,
+            aleph_api=aleph_api,
+            hypervisor=selected_hypervisor,
+        )
+        if trusted_execution:
+            environment_kwargs["trusted_execution"] = trusted_execution
+
         content = InstanceContent(
             address=address,
             allow_amend=allow_amend,
-            environment=InstanceEnvironment(
-                internet=internet,
-                aleph_api=aleph_api,
-                hypervisor=selected_hypervisor,
-                trusted_execution=trusted_execution,
-            ),
+            environment=InstanceEnvironment(**environment_kwargs),
             variables=environment_variables,
             resources=MachineResources(
                 vcpus=vcpus,
