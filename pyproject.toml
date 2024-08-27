@@ -33,6 +33,7 @@ dependencies = [
     "aioresponses>=0.7.6",
     "superfluid~=0.2.1",
     "eth_typing==4.3.1",
+    "eth-utils==4.1.1",
     "web3==6.3.0",
 ]
 

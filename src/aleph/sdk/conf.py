@@ -70,6 +70,7 @@ class Settings(BaseSettings):
             rpc="https://base-mainnet.public.blastapi.io",
             token="0xc0Fbc4967259786C743361a5885ef49380473dCF",
             super_token="0xc0Fbc4967259786C743361a5885ef49380473dCF",
+            active=False,
         ),
         Chain.BSC: ChainInfo(
             chain_id=56,
