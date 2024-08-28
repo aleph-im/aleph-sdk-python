@@ -31,7 +31,7 @@ dependencies = [
     "python-magic",
     "typing_extensions",
     "aioresponses>=0.7.6",
-    "superfluid~=0.2.1",
+    "aleph-superfluid>=0.2.1",
     "eth_typing==4.3.1",
     "web3==6.3.0",
 ]
