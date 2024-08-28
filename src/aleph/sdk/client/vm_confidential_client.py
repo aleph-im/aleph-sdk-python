@@ -56,7 +56,7 @@ class VmConfidentialClient(VmClient):
             return None, str(e)
 
     async def create_session(
-        self, vm_id: ItemHash, certificate_path: Path, policy: int
+        self, certificate_prefix: str, platform_certificate_path: Path, policy: int
     ) -> Path:
         """
         Create new confidential session
@@ -66,8 +66,8 @@ class VmConfidentialClient(VmClient):
         args = [
             "session",
             "--name",
-            str(vm_id),
-            str(certificate_path),
+            certificate_prefix,
+            str(platform_certificate_path),
             str(policy),
         ]
         try:
