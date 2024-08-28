@@ -186,10 +186,12 @@ async def test_confidential_inject_secret_instance():
 @pytest.mark.asyncio
 async def test_create_session_command():
     account = ETHAccount(private_key=b"0x" + b"1" * 30)
-    vm_id = ItemHash("cafecafecafecafecafecafecafecafecafecafecafecafecafecafecafecafe")
     node_url = "http://localhost"
     sevctl_path = Path("/usr/bin/sevctl")
-    certificates_path = Path("/")
+    certificate_prefix = (
+        "cafecafecafecafecafecafecafecafecafecafecafecafecafecafecafecafe/vm"
+    )
+    platform_certificate_path = Path("/")
     policy = 1
 
     with mock.patch(
@@ -202,14 +204,16 @@ async def test_create_session_command():
             node_url=node_url,
             session=aiohttp.ClientSession(),
         )
-        _ = await vm_client.create_session(vm_id, certificates_path, policy)
+        _ = await vm_client.create_session(
+            certificate_prefix, platform_certificate_path, policy
+        )
         export_mock.assert_called_once_with(
             [
                 str(sevctl_path),
                 "session",
                 "--name",
-                str(vm_id),
-                str(certificates_path),
+                certificate_prefix,
+                str(platform_certificate_path),
                 str(policy),
             ],
             check=True,
