@@ -30,14 +30,7 @@ def _load_account(
     private_key_path: Optional[Path] = None,
     account_type: Type[AccountFromPrivateKey] = ETHAccount,
 ) -> AccountFromPrivateKey:
-    """Load private key from a string or a file.
-
-    Only keys that accounts that can be initiated from a
-    """
-
-    assert not (
-        private_key_str and private_key_path
-    ), "Private key should be a string or a filepath, not both."
+    """Load private key from a string or a file. takes the string argument in priority"""
 
     if private_key_str:
         logger.debug("Using account from string")
