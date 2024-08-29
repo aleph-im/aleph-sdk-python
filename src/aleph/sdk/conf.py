@@ -4,6 +4,7 @@ from shutil import which
 from typing import Dict, Optional, Union
 
 from aleph_message.models import Chain
+from aleph_message.models.execution.environment import HypervisorType
 from pydantic import BaseSettings, Field
 
 from aleph.sdk.types import ChainInfo
@@ -16,7 +17,7 @@ class Settings(BaseSettings):
     # do an ugly and insecure write and read from disk to this file.
     PRIVATE_KEY_FILE: Path = Field(
         default=Path("ethereum.key"),
-        description="Path to the private key used to sign messages",
+        description="Path to the private key used to sign messages and transactions",
     )
 
     PRIVATE_MNEMONIC_FILE: Path = Field(
@@ -31,15 +32,50 @@ class Settings(BaseSettings):
     REMOTE_CRYPTO_HOST: Optional[str] = None
     REMOTE_CRYPTO_UNIX_SOCKET: Optional[str] = None
     ADDRESS_TO_USE: Optional[str] = None
+    HTTP_REQUEST_TIMEOUT = 10.0
 
+    DEFAULT_CHANNEL: str = "ALEPH-CLOUDSOLUTIONS"
     DEFAULT_RUNTIME_ID: str = (
-        "f873715dc2feec3833074bd4b8745363a0e0093746b987b4c8191268883b2463"  # Debian 12 official runtime
+        "63f07193e6ee9d207b7d1fcf8286f9aee34e6f12f101d2ec77c1229f92964696"
     )
+    DEBIAN_11_ROOTFS_ID: str = (
+        "887957042bb0e360da3485ed33175882ce72a70d79f1ba599400ff4802b7cee7"
+    )
+    DEBIAN_12_ROOTFS_ID: str = (
+        "6e30de68c6cedfa6b45240c2b51e52495ac6fb1bd4b36457b3d5ca307594d595"
+    )
+    UBUNTU_22_ROOTFS_ID: str = (
+        "77fef271aa6ff9825efa3186ca2e715d19e7108279b817201c69c34cedc74c27"
+    )
+    DEBIAN_11_QEMU_ROOTFS_ID: str = (
+        "f7e68c568906b4ebcd3cd3c4bfdff96c489cd2a9ef73ba2d7503f244dfd578de"
+    )
+    DEBIAN_12_QEMU_ROOTFS_ID: str = (
+        "b6ff5c3a8205d1ca4c7c3369300eeafff498b558f71b851aa2114afd0a532717"
+    )
+    UBUNTU_22_QEMU_ROOTFS_ID: str = (
+        "4a0f62da42f4478544616519e6f5d58adb1096e069b392b151d47c3609492d0c"
+    )
+
+    DEFAULT_CONFIDENTIAL_FIRMWARE: str = (
+        "ba5bb13f3abca960b101a759be162b229e2b7e93ecad9d1307e54de887f177ff"
+    )
+    DEFAULT_CONFIDENTIAL_FIRMWARE_HASH: str = (
+        "89b76b0e64fe9015084fbffdf8ac98185bafc688bfe7a0b398585c392d03c7ee"
+    )
+
+    DEFAULT_ROOTFS_SIZE: int = 20_480
+    DEFAULT_INSTANCE_MEMORY: int = 2_048
+    DEFAULT_HYPERVISOR: HypervisorType = HypervisorType.qemu
+
     DEFAULT_VM_MEMORY: int = 256
     DEFAULT_VM_VCPUS: int = 1
     DEFAULT_VM_TIMEOUT: float = 30.0
 
     CODE_USES_SQUASHFS: bool = which("mksquashfs") is not None  # True if command exists
+
+    VM_URL_PATH = "https://aleph.sh/vm/{hash}"
+    VM_URL_HOST = "https://{hash_base32}.aleph.sh"
 
     # Web3Provider settings
     TOKEN_DECIMALS = 18
@@ -78,6 +114,16 @@ class Settings(BaseSettings):
             active=False,
         ),
     }
+    # Add all placeholders to allow easy dynamic setup of CHAINS
+    locals().update(
+        {
+            f"CHAINS_{chain.upper() if isinstance(chain, str) else Chain(chain).value}_{key.upper()}": (
+                value if value is not None else ""
+            )
+            for chain, info in CHAINS.items()
+            for key, value in info
+        }
+    )
 
     # Dns resolver
     DNS_IPFS_DOMAIN = "ipfs.public.aleph.sh"
@@ -115,3 +161,13 @@ if str(settings.PRIVATE_MNEMONIC_FILE) == "substrate.mnemonic":
     settings.PRIVATE_MNEMONIC_FILE = Path(
         settings.CONFIG_HOME, "private-keys", "substrate.mnemonic"
     )
+
+# Update CHAINS settings and remove placeholders
+CHAINS_ENV = [(key[7:], value) for key, value in settings if key.startswith("CHAINS_")]
+for fields, value in CHAINS_ENV:
+    if value:
+        chain, field = fields.split("_", 1)
+        chain = chain if chain not in Chain.__members__ else Chain[chain]
+        field = field.lower()
+        settings.CHAINS[chain].__dict__[field] = value
+    settings.__delattr__(f"CHAINS_{fields}")
