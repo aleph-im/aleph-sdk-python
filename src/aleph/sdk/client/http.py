@@ -2,9 +2,21 @@ import json
 import logging
 import os.path
 import ssl
+from aleph_message.status import MessageStatus
 from io import BytesIO
 from pathlib import Path
-from typing import Any, AsyncIterable, Dict, Iterable, List, Optional, Type, Union
+from typing import (
+    Any,
+    AsyncIterable,
+    Dict,
+    Iterable,
+    List,
+    Optional,
+    Type,
+    Union,
+    overload,
+    Tuple,
+)
 
 import aiohttp
 from aleph_message import parse_message
@@ -343,11 +355,27 @@ class AlephHttpClient(AlephClient):
                 pagination_item=response_json["pagination_item"],
             )
 
+    @overload
     async def get_message(
         self,
         item_hash: str,
         message_type: Optional[Type[GenericMessage]] = None,
-    ) -> GenericMessage:
+    ) -> GenericMessage: ...
+
+    @overload
+    async def get_message(
+        self,
+        item_hash: str,
+        message_type: Optional[Type[GenericMessage]] = None,
+        with_status: bool = False,
+    ) -> Tuple[GenericMessage, MessageStatus]: ...
+
+    async def get_message(
+        self,
+        item_hash: str,
+        message_type: Optional[Type[GenericMessage]] = None,
+        with_status: bool = False,
+    ) -> Union[GenericMessage, Tuple[GenericMessage, MessageStatus]]:
         async with self.http_session.get(f"/api/v0/messages/{item_hash}") as resp:
             try:
                 resp.raise_for_status()
@@ -368,7 +396,10 @@ class AlephHttpClient(AlephClient):
                     f"The message type '{message.type}' "
                     f"does not match the expected type '{expected_type}'"
                 )
-        return message
+        if with_status:
+            return message, message_raw["status"]
+        else:
+            return message
 
     async def get_message_error(
         self,
@@ -428,3 +459,16 @@ class AlephHttpClient(AlephClient):
                 if e.status == 400:
                     raise InvalidHashError(f"Bad request or no such hash {item_hash}")
                 raise e
+
+    async def get_message_status(self, item_hash: str) -> MessageStatus:
+        """return Status of a message"""
+        async with self.http_session.get(f"/api/v0/messages/{item_hash}") as resp:
+            try:
+                resp.raise_for_status()
+            except aiohttp.ClientResponseError as e:
+                if e.status == 404:
+                    raise MessageNotFoundError(f"No such hash {item_hash}")
+                raise e
+
+            message_raw = await resp.json()
+            return MessageStatus(message_raw["status"])
