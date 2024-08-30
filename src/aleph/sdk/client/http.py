@@ -2,7 +2,6 @@ import json
 import logging
 import os.path
 import ssl
-from aleph_message.status import MessageStatus
 from io import BytesIO
 from pathlib import Path
 from typing import (
@@ -12,15 +11,16 @@ from typing import (
     Iterable,
     List,
     Optional,
+    Tuple,
     Type,
     Union,
     overload,
-    Tuple,
 )
 
 import aiohttp
 from aleph_message import parse_message
 from aleph_message.models import AlephMessage, ItemHash, ItemType
+from aleph_message.status import MessageStatus
 from pydantic import ValidationError
 
 from ..conf import settings
