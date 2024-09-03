@@ -18,6 +18,7 @@ from typing import (
 )
 
 import aiohttp
+from aiohttp.web import HTTPNotFound
 from aleph_message import parse_message
 from aleph_message.models import AlephMessage, ItemHash, ItemType
 from aleph_message.status import MessageStatus
@@ -463,12 +464,6 @@ class AlephHttpClient(AlephClient):
     async def get_message_status(self, item_hash: str) -> MessageStatus:
         """return Status of a message"""
         async with self.http_session.get(f"/api/v0/messages/{item_hash}") as resp:
-            try:
-                resp.raise_for_status()
-            except aiohttp.ClientResponseError as e:
-                if e.status == 404:
-                    raise MessageNotFoundError(f"No such hash {item_hash}")
-                raise e
-
-            message_raw = await resp.json()
-            return MessageStatus(message_raw["status"])
+            if resp.status == HTTPNotFound.status_code:
+                raise MessageNotFoundError(f"No such hash {item_hash}")
+            resp.raise_for_status()
