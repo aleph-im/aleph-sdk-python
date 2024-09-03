@@ -115,15 +115,16 @@ class Settings(BaseSettings):
         ),
     }
     # Add all placeholders to allow easy dynamic setup of CHAINS
-    locals().update(
-        {
-            f"CHAINS_{chain.upper() if isinstance(chain, str) else Chain(chain).value}_{key.upper()}": (
-                value if value is not None else ""
-            )
-            for chain, info in CHAINS.items()
-            for key, value in info
-        }
-    )
+    CHAINS_SEPOLIA_ACTIVE: Optional[bool]
+    CHAINS_ETH_ACTIVE: Optional[bool]
+    CHAINS_AVAX_ACTIVE: Optional[bool]
+    CHAINS_BASE_ACTIVE: Optional[bool]
+    CHAINS_BSC_ACTIVE: Optional[bool]
+    CHAINS_SEPOLIA_RPC: Optional[str]
+    CHAINS_ETH_RPC: Optional[str]
+    CHAINS_AVAX_RPC: Optional[str]
+    CHAINS_BASE_RPC: Optional[str]
+    CHAINS_BSC_RPC: Optional[str]
 
     # Dns resolver
     DNS_IPFS_DOMAIN = "ipfs.public.aleph.sh"
