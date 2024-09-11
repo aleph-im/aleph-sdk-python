@@ -13,8 +13,12 @@ from aleph.sdk.types import ChainInfo
 class Settings(BaseSettings):
     CONFIG_HOME: Optional[str] = None
 
-    # In case the user does not want to bother with handling private keys himself,
-    # do an ugly and insecure write and read from disk to this file.
+    # Two methods for storing your private key:
+    # 1. *.key: The private key is written to and read from an unencrypted file.
+    #           This method is less secure as the key is stored in plain text.
+    # 2. *.json: The private key is stored in a keystore file, encrypted with a password.
+    #           This method is more secure as the key is protected by encryption.
+    # If the file is missing, a new private key will be created.
     PRIVATE_KEY_FILE: Path = Field(
         default=Path("ethereum.key"),
         description="Path to the private key used to sign messages and transactions",
@@ -152,12 +156,11 @@ if settings.CONFIG_HOME is None:
 
     settings = Settings()
 
+# Corrected private key file path (encrypted or not)
 assert settings.CONFIG_HOME
-if str(settings.PRIVATE_KEY_FILE) == "ethereum.key":
-    settings.PRIVATE_KEY_FILE = Path(
-        settings.CONFIG_HOME, "private-keys", "ethereum.key"
-    )
-
+pk_file = str(settings.PRIVATE_KEY_FILE.name)
+if pk_file.endswith(".key") or pk_file.endswith(".json"):
+    settings.PRIVATE_KEY_FILE = Path(settings.CONFIG_HOME, "private-keys", pk_file)
 if str(settings.PRIVATE_MNEMONIC_FILE) == "substrate.mnemonic":
     settings.PRIVATE_MNEMONIC_FILE = Path(
         settings.CONFIG_HOME, "private-keys", "substrate.mnemonic"
