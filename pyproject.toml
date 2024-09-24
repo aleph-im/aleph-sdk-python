@@ -47,7 +47,7 @@ docs = [
     "sphinxcontrib-plantuml",
 ]
 ledger = [
-    "ledgereth==0.9.0",
+    "ledgereth==0.9.1",
 ]
 mqtt = [
     "aiomqtt<=0.1.3",
