@@ -154,6 +154,7 @@ dependencies = [
     "mypy-extensions==1.0.0",
     "ruff==0.4.8",
     "isort==5.13.2",
+    "pyproject-fmt==2.2.1",
 ]
 [tool.hatch.envs.linting.scripts]
 typing = "mypy --config-file=pyproject.toml {args:} ./src/ ./tests/ ./examples/"
@@ -161,11 +162,13 @@ style = [
     "ruff check {args:.} ./src/ ./tests/ ./examples/",
     "black --check --diff {args:} ./src/ ./tests/ ./examples/",
     "isort --check-only --profile black {args:} ./src/ ./tests/ ./examples/",
+    "pyproject-fmt --check pyproject.toml",
 ]
 fmt = [
     "black {args:} ./src/ ./tests/ ./examples/",
     "ruff check --fix {args:.} ./src/ ./tests/ ./examples/",
     "isort --profile black {args:} ./src/ ./tests/ ./examples/",
+    "pyproject-fmt pyproject.toml",
     "style",
 ]
 all = [
