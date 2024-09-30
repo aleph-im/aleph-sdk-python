@@ -163,7 +163,7 @@ def _load_account(
                 )
             except json.JSONDecodeError:
                 logger.error(
-                    f"Invalid format in CONFIG_FILE, unable to load account info."
+                    "Invalid format in CONFIG_FILE, unable to load account info."
                 )
                 raise ValueError(f"Invalid format in {settings.CONFIG_FILE}.")
             except Exception as e:
