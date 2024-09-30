@@ -5,11 +5,14 @@ from tempfile import NamedTemporaryFile
 
 import base58
 import pytest
+from aleph_message.models import Chain
 from nacl.signing import VerifyKey
 
+from aleph.sdk.account import detect_chain_from_private_key
 from aleph.sdk.chains.common import get_verification_buffer
 from aleph.sdk.chains.solana import SOLAccount, get_fallback_account, verify_signature
 from aleph.sdk.exceptions import BadSignatureError
+from aleph.sdk.utils import parse_solana_private_key
 
 
 @dataclass
@@ -136,3 +139,98 @@ async def test_sign_raw(solana_account):
     assert isinstance(signature, bytes)
 
     verify_signature(signature, solana_account.get_address(), buffer)
+
+
+def test_parse_private_key_base58():
+    base58_key = "9beEbjn1Md7prQbH9kk9HjTM3npbj1S49BJQpSpYJKvnfATP8Eki9ofaq19tAzpijjV4TyTtibXGBkRjFnmTkiD"
+    private_key_bytes = parse_solana_private_key(base58_key)
+
+    assert isinstance(private_key_bytes, bytes)
+    assert len(private_key_bytes) == 32
+
+    account = SOLAccount(private_key_bytes)
+
+    assert account.get_address() == "8XnzZVqAD1GUEYjQvsyURG36F7ZEhyDGpvYD68TSkSLy"
+    assert detect_chain_from_private_key(base58_key) == Chain.SOL
+    assert isinstance(account.get_address(), str)
+    assert len(account.get_address()) > 0
+
+
+def test_parse_private_key_uint8_array():
+    uint8_array_key = [
+        73,
+        6,
+        73,
+        131,
+        134,
+        65,
+        155,
+        206,
+        87,
+        203,
+        226,
+        184,
+        174,
+        66,
+        214,
+        252,
+        201,
+        188,
+        56,
+        102,
+        241,
+        81,
+        21,
+        30,
+        150,
+        55,
+        134,
+        252,
+        138,
+        137,
+        174,
+        163,
+        89,
+        90,
+        53,
+        40,
+        237,
+        153,
+        99,
+        127,
+        220,
+        233,
+        29,
+        48,
+        180,
+        199,
+        18,
+        225,
+        249,
+        163,
+        140,
+        157,
+        201,
+        74,
+        221,
+        176,
+        229,
+        6,
+        182,
+        226,
+        74,
+        243,
+        193,
+        143,
+    ]
+    private_key_bytes = parse_solana_private_key(uint8_array_key)
+
+    assert isinstance(private_key_bytes, bytes)
+    assert len(private_key_bytes) == 32
+
+    account = SOLAccount(private_key_bytes)
+
+    assert account.get_address() == "71o4nN2BgB8MdD771U5VAPBj8jwufxkYJZwNnCr81VwL"
+    assert detect_chain_from_private_key(uint8_array_key) == Chain.SOL
+    assert isinstance(account.get_address(), str)
+    assert len(account.get_address()) > 0

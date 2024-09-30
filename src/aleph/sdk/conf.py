@@ -25,8 +25,13 @@ class Settings(BaseSettings):
         description="Path to the mnemonic used to create Substrate keypairs",
     )
 
+    CHAINS_CONFIG_FILE: Path = Field(
+        default=Path("chains_config.json"),
+        description="Path to the JSON file containing chain account configurations",
+    )
+
     PRIVATE_KEY_STRING: Optional[str] = None
-    API_HOST: str = "https://api2.aleph.im"
+    API_HOST: str = "https://api2.aleph.im/"
     MAX_INLINE_SIZE: int = 50000
     API_UNIX_SOCKET: Optional[str] = None
     REMOTE_CRYPTO_HOST: Optional[str] = None
@@ -162,13 +167,3 @@ if str(settings.PRIVATE_MNEMONIC_FILE) == "substrate.mnemonic":
     settings.PRIVATE_MNEMONIC_FILE = Path(
         settings.CONFIG_HOME, "private-keys", "substrate.mnemonic"
     )
-
-# Update CHAINS settings and remove placeholders
-CHAINS_ENV = [(key[7:], value) for key, value in settings if key.startswith("CHAINS_")]
-for fields, value in CHAINS_ENV:
-    if value:
-        chain, field = fields.split("_", 1)
-        chain = chain if chain not in Chain.__members__ else Chain[chain]
-        field = field.lower()
-        settings.CHAINS[chain].__dict__[field] = value
-    settings.__delattr__(f"CHAINS_{fields}")
