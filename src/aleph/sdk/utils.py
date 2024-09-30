@@ -496,6 +496,19 @@ async def get_chain_account(name: str) -> ChainAccount:
     raise ValueError(f"Account with name {name} not found.")
 
 
+async def get_chain_account_from_path(path: str) -> ChainAccount:
+    """Retrieve a chain account by name from the JSON file."""
+    accounts = await load_json(settings.CHAINS_CONFIG_FILE)
+
+    for account in accounts:
+        if account["path"] == path:
+            logger.debug(f"Found account with the path :  {path}.")
+            return ChainAccount(**account)
+
+    logger.error(f"Account with name {path} not found.")
+    raise ValueError(f"Account with name {path} not found.")
+
+
 async def update_chain_account(updated_account: ChainAccount):
     """Update an existing chain account in the JSON file."""
     accounts = await load_json(settings.CHAINS_CONFIG_FILE)
