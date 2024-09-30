@@ -168,9 +168,7 @@ if str(settings.PRIVATE_MNEMONIC_FILE) == "substrate.mnemonic":
         settings.CONFIG_HOME, "private-keys", "substrate.mnemonic"
     )
 if str(settings.CONFIG_FILE) == "chains_config.json":
-    settings.CONFIG_FILE = Path(
-        settings.CONFIG_HOME, "configs", "chains_config.json"
-    )
+    settings.CONFIG_FILE = Path(settings.CONFIG_HOME, "configs", "chains_config.json")
 
 
 # Update CHAINS settings and remove placeholders
