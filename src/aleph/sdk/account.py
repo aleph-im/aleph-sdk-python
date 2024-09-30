@@ -131,8 +131,8 @@ def _load_account(
     elif private_key_path and private_key_path.is_file():
         if private_key_path:
             try:
-                # Look for the account by private_key_path in CHAINS_CONFIG_FILE
-                with open(settings.CHAINS_CONFIG_FILE, "r") as file:
+                # Look for the account by private_key_path in CONFIG_FILE
+                with open(settings.CONFIG_FILE, "r") as file:
                     accounts = json.load(file)
 
                 matching_account = next(
@@ -159,13 +159,13 @@ def _load_account(
 
             except FileNotFoundError:
                 logger.warning(
-                    f"CHAINS_CONFIG_FILE not found, using default account type {account_type.__name__}"
+                    f"CONFIG_FILE not found, using default account type {account_type.__name__}"
                 )
             except json.JSONDecodeError:
                 logger.error(
-                    f"Invalid format in CHAINS_CONFIG_FILE, unable to load account info."
+                    f"Invalid format in CONFIG_FILE, unable to load account info."
                 )
-                raise ValueError(f"Invalid format in {settings.CHAINS_CONFIG_FILE}.")
+                raise ValueError(f"Invalid format in {settings.CONFIG_FILE}.")
             except Exception as e:
                 logger.error(f"Error loading accounts from config: {e}")
                 raise ValueError(

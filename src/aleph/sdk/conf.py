@@ -25,7 +25,7 @@ class Settings(BaseSettings):
         description="Path to the mnemonic used to create Substrate keypairs",
     )
 
-    CHAINS_CONFIG_FILE: Path = Field(
+    CONFIG_FILE: Path = Field(
         default=Path("chains_config.json"),
         description="Path to the JSON file containing chain account configurations",
     )
@@ -167,8 +167,8 @@ if str(settings.PRIVATE_MNEMONIC_FILE) == "substrate.mnemonic":
     settings.PRIVATE_MNEMONIC_FILE = Path(
         settings.CONFIG_HOME, "private-keys", "substrate.mnemonic"
     )
-if str(settings.CHAINS_CONFIG_FILE) == "chains_config.json":
-    settings.CHAINS_CONFIG_FILE = Path(
+if str(settings.CONFIG_FILE) == "chains_config.json":
+    settings.CONFIG_FILE = Path(
         settings.CONFIG_HOME, "configs", "chains_config.json"
     )
 

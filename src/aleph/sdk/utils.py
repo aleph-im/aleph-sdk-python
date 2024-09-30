@@ -468,7 +468,7 @@ async def save_json(file_path: Path, data: list):
 
 async def add_chain_account(new_account: ChainAccount):
     """Add a new chain account to the JSON file asynchronously."""
-    accounts = await load_json(settings.CHAINS_CONFIG_FILE)
+    accounts = await load_json(settings.CONFIG_FILE)
 
     for account in accounts:
         if account["name"] == new_account.name:
@@ -476,7 +476,7 @@ async def add_chain_account(new_account: ChainAccount):
             raise ValueError(f"Account with name {new_account.name} already exists.")
 
     accounts.append(new_account.dict())
-    await save_json(settings.CHAINS_CONFIG_FILE, accounts)
+    await save_json(settings.CONFIG_FILE, accounts)
 
     logger.debug(
         f"Added account for {new_account.name} with chain {new_account.chain} and path {new_account.path}."
@@ -485,7 +485,7 @@ async def add_chain_account(new_account: ChainAccount):
 
 async def get_chain_account(name: str) -> ChainAccount:
     """Retrieve a chain account by name from the JSON file."""
-    accounts = await load_json(settings.CHAINS_CONFIG_FILE)
+    accounts = await load_json(settings.CONFIG_FILE)
 
     for account in accounts:
         if account["name"] == name:
@@ -498,7 +498,7 @@ async def get_chain_account(name: str) -> ChainAccount:
 
 async def get_chain_account_from_path(path: str) -> ChainAccount:
     """Retrieve a chain account by name from the JSON file."""
-    accounts = await load_json(settings.CHAINS_CONFIG_FILE)
+    accounts = await load_json(settings.CONFIG_FILE)
 
     for account in accounts:
         if account["path"] == path:
@@ -511,12 +511,12 @@ async def get_chain_account_from_path(path: str) -> ChainAccount:
 
 async def update_chain_account(updated_account: ChainAccount):
     """Update an existing chain account in the JSON file."""
-    accounts = await load_json(settings.CHAINS_CONFIG_FILE)
+    accounts = await load_json(settings.CONFIG_FILE)
 
     for index, account in enumerate(accounts):
         if account["name"] == updated_account.name:
             accounts[index] = updated_account.dict()
-            await save_json(settings.CHAINS_CONFIG_FILE, accounts)
+            await save_json(settings.CONFIG_FILE, accounts)
             logger.debug(f"Updated account with name {updated_account.name}.")
             return
 
@@ -526,7 +526,7 @@ async def update_chain_account(updated_account: ChainAccount):
 
 async def delete_chain_account(name: str):
     """Delete a chain account from the JSON file."""
-    accounts = await load_json(settings.CHAINS_CONFIG_FILE)
+    accounts = await load_json(settings.CONFIG_FILE)
 
     updated_accounts = [account for account in accounts if account["name"] != name]
 
@@ -534,7 +534,7 @@ async def delete_chain_account(name: str):
         logger.error(f"No account found with name {name}.")
         raise ValueError(f"No account found with name {name}.")
 
-    await save_json(settings.CHAINS_CONFIG_FILE, updated_accounts)
+    await save_json(settings.CONFIG_FILE, updated_accounts)
     logger.debug(f"Deleted account with name {name}.")
 
 
