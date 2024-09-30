@@ -167,6 +167,11 @@ if str(settings.PRIVATE_MNEMONIC_FILE) == "substrate.mnemonic":
     settings.PRIVATE_MNEMONIC_FILE = Path(
         settings.CONFIG_HOME, "private-keys", "substrate.mnemonic"
     )
+if str(settings.CHAINS_CONFIG_FILE) == "chains_config.json":
+    settings.CHAINS_CONFIG_FILE = Path(
+        settings.CONFIG_HOME, "configs", "chains_config.json"
+    )
+
 
 # Update CHAINS settings and remove placeholders
 CHAINS_ENV = [(key[7:], value) for key, value in settings if key.startswith("CHAINS_")]
