@@ -191,4 +191,3 @@ for fields, value in CHAINS_ENV:
         field = field.lower()
         settings.CHAINS[chain].__dict__[field] = value
     settings.__delattr__(f"CHAINS_{fields}")
-print(f"Private key file is set to: {settings.PRIVATE_KEY_FILE}")
