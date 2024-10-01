@@ -84,7 +84,6 @@ class ChainAccount(BaseModel):
     Intern Chain Management with Account.
     """
 
-    name: str
     path: Path
     chain: Chain
 

@@ -397,181 +397,48 @@ def make_packet_header(
     return header
 
 
-def parse_solana_private_key(private_key: Union[str, List[int], bytes]) -> bytes:
+def load_account_key_context(file_path: Path) -> Optional[ChainAccount]:
     """
-    Parse the private key which could be either:
-    - a base58-encoded string (which may contain both private and public key)
-    - a list of uint8 integers (which may contain both private and public key)
-    - a byte array (exactly 32 bytes)
-
-    Returns:
-        bytes: The private key in byte format (32 bytes).
-
-    Raises:
-        ValueError: If the private key format is invalid or the length is incorrect.
+    Synchronously load the private key and chain type from a file.
+    If the file does not exist or is empty, return None.
     """
-    # If the private key is already in byte format
-    if isinstance(private_key, bytes):
-        if len(private_key) != 32:
-            raise ValueError("The private key in bytes must be exactly 32 bytes long.")
-        return private_key
-
-    # If the private key is a base58-encoded string
-    elif isinstance(private_key, str):
-        try:
-            decoded_key = base58.b58decode(private_key)
-            logger.debug(f"Decoded key length: {len(decoded_key)}")  # Debugging print
-            if len(decoded_key) not in [32, 64]:
-                raise ValueError(
-                    "The base58 decoded private key must be either 32 or 64 bytes long."
-                )
-            return decoded_key[:32]
-        except Exception as e:
-            raise ValueError(f"Invalid base58 encoded private key: {e}")
-
-    # If the private key is a list of uint8 integers
-    elif isinstance(private_key, list):
-        if all(isinstance(i, int) and 0 <= i <= 255 for i in private_key):
-            byte_key = bytes(private_key)
-            if len(byte_key) < 32:
-                raise ValueError("The uint8 array must contain at least 32 elements.")
-            return byte_key[:32]  # Take the first 32 bytes (private key)
-        else:
-            raise ValueError(
-                "Invalid uint8 array, must contain integers between 0 and 255."
-            )
-
-    else:
-        raise ValueError(
-            "Unsupported private key format. Must be a base58 string, bytes, or a list of uint8 integers."
-        )
-
-
-async def load_json(file_path: Path):
-    """Asynchronously load JSON from a file. If the file does not exist or is empty, return an empty list."""
     if not file_path.exists() or file_path.stat().st_size == 0:
-        logger.debug(
-            f"File {file_path} does not exist or is empty. Returning an empty list."
-        )
-        return []
-    async with aiofiles.open(file_path, "r") as file:
-        content = await file.read()
-        return json.loads(content)
+        logger.debug(f"File {file_path} does not exist or is empty. Returning None.")
+        return None
+
+    try:
+        with file_path.open("rb") as file:
+            content = file.read()
+            data = json.loads(content.decode("utf-8"))
+            return ChainAccount(**data)
+    except UnicodeDecodeError as e:
+        logger.error(f"Unable to decode {file_path} as UTF-8: {e}")
+        raise ValueError(f"File {file_path} is not properly encoded.")
+    except json.JSONDecodeError:
+        logger.error(f"Invalid JSON format in {file_path}.")
+        raise ValueError(f"Invalid format in {file_path}.")
 
 
-async def save_json(file_path: Path, data: list):
-    """Asynchronously save a list of JSON objects to a file."""
-    async with aiofiles.open(file_path, "w") as file:
-        data_serializable = [{**item, "path": str(item["path"])} for item in data]
-        await file.write(json.dumps(data_serializable, indent=4))
-
-
-async def add_chain_account(new_account: ChainAccount):
-    """Add a new chain account to the JSON file asynchronously."""
-    accounts = await load_json(settings.CONFIG_FILE)
-
-    for account in accounts:
-        if account["name"] == new_account.name:
-            logger.error(f"Account with name {new_account.name} already exists.")
-            raise ValueError(f"Account with name {new_account.name} already exists.")
-
-    accounts.append(new_account.dict())
-    await save_json(settings.CONFIG_FILE, accounts)
-
-    logger.debug(
-        f"Added account for {new_account.name} with chain {new_account.chain} and path {new_account.path}."
-    )
-
-
-async def get_chain_account(name: str) -> ChainAccount:
-    """Retrieve a chain account by name from the JSON file."""
-    accounts = await load_json(settings.CONFIG_FILE)
-
-    for account in accounts:
-        if account["name"] == name:
-            logger.debug(f"Found account with name {name}.")
-            return ChainAccount(**account)
-
-    logger.error(f"Account with name {name} not found.")
-    raise ValueError(f"Account with name {name} not found.")
-
-
-async def get_chain_account_from_path(path: str) -> ChainAccount:
-    """Retrieve a chain account by name from the JSON file."""
-    accounts = await load_json(settings.CONFIG_FILE)
-
-    for account in accounts:
-        if account["path"] == path:
-            logger.debug(f"Found account with the path :  {path}.")
-            return ChainAccount(**account)
-
-    logger.error(f"Account with name {path} not found.")
-    raise ValueError(f"Account with name {path} not found.")
-
-
-async def update_chain_account(updated_account: ChainAccount):
-    """Update an existing chain account in the JSON file."""
-    accounts = await load_json(settings.CONFIG_FILE)
-
-    for index, account in enumerate(accounts):
-        if account["name"] == updated_account.name:
-            accounts[index] = updated_account.dict()
-            await save_json(settings.CONFIG_FILE, accounts)
-            logger.debug(f"Updated account with name {updated_account.name}.")
-            return
-
-    logger.error(f"Account with name {updated_account.name} not found for update.")
-    raise ValueError(f"Account with name {updated_account.name} not found.")
-
-
-async def delete_chain_account(name: str):
-    """Delete a chain account from the JSON file."""
-    accounts = await load_json(settings.CONFIG_FILE)
-
-    updated_accounts = [account for account in accounts if account["name"] != name]
-
-    if len(updated_accounts) == len(accounts):
-        logger.error(f"No account found with name {name}.")
-        raise ValueError(f"No account found with name {name}.")
-
-    await save_json(settings.CONFIG_FILE, updated_accounts)
-    logger.debug(f"Deleted account with name {name}.")
-
-
-def solana_private_key_from_bytes(
-    private_key_bytes: bytes, output_format: str = "base58"
-) -> Union[str, List[int], bytes]:
+def save_account_key_context(file_path: Path, data: ChainAccount):
     """
-    Convert a Solana private key in bytes back to different formats (base58 string, uint8 list, or raw bytes).
-
-    - For base58 string: Encode the bytes into a base58 string.
-    - For uint8 list: Convert the bytes into a list of integers.
-    - For raw bytes: Return as-is.
-
-    Args:
-        private_key_bytes (bytes): The private key in byte format.
-        output_format (str): The format to return ('base58', 'list', 'bytes').
-
-    Returns:
-        The private key in the requested format.
-
-    Raises:
-        ValueError: If the output_format is not recognized or the private key length is invalid.
+    Synchronously save a single ChainAccount object as JSON to a file.
     """
-    if not isinstance(private_key_bytes, bytes):
-        raise ValueError("Expected the private key in bytes.")
+    with file_path.open("w") as file:
+        data_serializable = data.dict()
+        data_serializable["path"] = str(data_serializable["path"])
+        json.dump(data_serializable, file, indent=4)
 
-    if len(private_key_bytes) != 32:
-        raise ValueError("Solana private key must be exactly 32 bytes long.")
 
-    if output_format == "base58":
-        return base58.b58encode(private_key_bytes).decode("utf-8")
+async def upsert_chain_account(new_account: ChainAccount, config_file: Path):
+    """
+    Update the chain account in the config file, replacing the existing one if necessary.
 
-    elif output_format == "list":
-        return list(private_key_bytes)
+    If the file doesn't exist, create it and add the new account.
+    """
 
-    elif output_format == "bytes":
-        return private_key_bytes
+    account_data = {"path": str(new_account.path), "chain": new_account.chain}
 
-    else:
-        raise ValueError("Invalid output format. Choose 'base58', 'list', or 'bytes'.")
+    with config_file.open("w", encoding="utf-8") as f:
+        json.dump(account_data, f, indent=4)
+
+    logger.debug(f"Replaced account in {config_file} with {new_account.path}.")

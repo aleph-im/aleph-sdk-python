@@ -22,14 +22,13 @@ from aleph_message.models.execution.volume import (
 
 from aleph.sdk.account import detect_chain_from_private_key, is_valid_private_key
 from aleph.sdk.chains.ethereum import ETHAccount
-from aleph.sdk.chains.solana import SOLAccount
+from aleph.sdk.chains.solana import SOLAccount, parse_solana_private_key
 from aleph.sdk.types import SEVInfo
 from aleph.sdk.utils import (
     calculate_firmware_hash,
     compute_confidential_measure,
     enum_as_str,
     get_message_type_value,
-    parse_solana_private_key,
     parse_volume,
 )
 

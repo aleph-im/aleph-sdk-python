@@ -10,10 +10,14 @@ from aleph_message.models import Chain
 from aleph.sdk.chains.common import get_fallback_private_key
 from aleph.sdk.chains.ethereum import ETHAccount
 from aleph.sdk.chains.remote import RemoteAccount
-from aleph.sdk.chains.solana import SOLAccount
+from aleph.sdk.chains.solana import (
+    SOLAccount,
+    parse_solana_private_key,
+    solana_private_key_from_bytes,
+)
 from aleph.sdk.conf import settings
 from aleph.sdk.types import AccountFromPrivateKey
-from aleph.sdk.utils import parse_solana_private_key, solana_private_key_from_bytes
+from aleph.sdk.utils import load_account_key_context
 
 logger = logging.getLogger(__name__)
 
@@ -130,46 +134,42 @@ def _load_account(
         return account_from_hex_string(private_key_str, account_type)
     elif private_key_path and private_key_path.is_file():
         if private_key_path:
+            account_type = ETHAccount  # Default account type
+
             try:
-                # Look for the account by private_key_path in CONFIG_FILE
-                with open(settings.CONFIG_FILE, "r") as file:
-                    accounts = json.load(file)
+                account_data = load_account_key_context(settings.CONFIG_FILE)
 
-                matching_account = next(
-                    (
-                        account
-                        for account in accounts
-                        if account["path"] == str(private_key_path)
-                    ),
-                    None,
-                )
-
-                if matching_account:
-                    chain = Chain(matching_account["chain"])
-                    account_type = CHAIN_TO_ACCOUNT_MAP.get(chain, ETHAccount)
-                    if account_type is None:
-                        account_type = ETHAccount
+                if account_data:
+                    chain = Chain(account_data.chain)
+                    account_type = (
+                        CHAIN_TO_ACCOUNT_MAP.get(chain, ETHAccount) or ETHAccount
+                    )
                     logger.debug(
                         f"Detected {chain} account for path {private_key_path}"
                     )
                 else:
                     logger.warning(
-                        f"No matching account found for path {private_key_path}, defaulting to {account_type.__name__}"
+                        f"No account data found in {private_key_path}, defaulting to {account_type.__name__}"
                     )
 
             except FileNotFoundError:
                 logger.warning(
-                    f"CONFIG_FILE not found, using default account type {account_type.__name__}"
+                    f"{private_key_path} not found, using default account type {account_type.__name__}"
                 )
             except json.JSONDecodeError:
                 logger.error(
-                    "Invalid format in CONFIG_FILE, unable to load account info."
+                    f"Invalid format in {private_key_path}, unable to load account info."
                 )
-                raise ValueError(f"Invalid format in {settings.CONFIG_FILE}.")
-            except Exception as e:
-                logger.error(f"Error loading accounts from config: {e}")
+                raise ValueError(f"Invalid format in {private_key_path}.")
+            except KeyError as e:
+                logger.error(f"Missing key in account config: {e}")
                 raise ValueError(
-                    f"Could not find matching account for path {private_key_path}."
+                    f"Invalid account data in {private_key_path}. Key {e} is missing."
+                )
+            except Exception as e:
+                logger.error(f"Error loading account from {private_key_path}: {e}")
+                raise ValueError(
+                    f"Could not load account data from {private_key_path}."
                 )
 
         return account_from_file(private_key_path, account_type)

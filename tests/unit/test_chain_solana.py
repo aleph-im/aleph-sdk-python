@@ -10,9 +10,13 @@ from nacl.signing import VerifyKey
 
 from aleph.sdk.account import detect_chain_from_private_key
 from aleph.sdk.chains.common import get_verification_buffer
-from aleph.sdk.chains.solana import SOLAccount, get_fallback_account, verify_signature
+from aleph.sdk.chains.solana import (
+    SOLAccount,
+    get_fallback_account,
+    parse_solana_private_key,
+    verify_signature,
+)
 from aleph.sdk.exceptions import BadSignatureError
-from aleph.sdk.utils import parse_solana_private_key
 
 
 @dataclass

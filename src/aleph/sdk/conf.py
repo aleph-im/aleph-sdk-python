@@ -1,3 +1,4 @@
+import json
 import os
 from pathlib import Path
 from shutil import which
@@ -13,6 +14,11 @@ from aleph.sdk.types import ChainInfo
 class Settings(BaseSettings):
     CONFIG_HOME: Optional[str] = None
 
+    CONFIG_FILE: Path = Field(
+        default=Path("chains_config.json"),
+        description="Path to the JSON file containing chain account configurations",
+    )
+
     # In case the user does not want to bother with handling private keys himself,
     # do an ugly and insecure write and read from disk to this file.
     PRIVATE_KEY_FILE: Path = Field(
@@ -23,11 +29,6 @@ class Settings(BaseSettings):
     PRIVATE_MNEMONIC_FILE: Path = Field(
         default=Path("substrate.mnemonic"),
         description="Path to the mnemonic used to create Substrate keypairs",
-    )
-
-    CONFIG_FILE: Path = Field(
-        default=Path("chains_config.json"),
-        description="Path to the JSON file containing chain account configurations",
     )
 
     PRIVATE_KEY_STRING: Optional[str] = None
@@ -168,7 +169,17 @@ if str(settings.PRIVATE_MNEMONIC_FILE) == "substrate.mnemonic":
         settings.CONFIG_HOME, "private-keys", "substrate.mnemonic"
     )
 if str(settings.CONFIG_FILE) == "chains_config.json":
-    settings.CONFIG_FILE = Path(settings.CONFIG_HOME, "configs", "chains_config.json")
+    settings.CONFIG_FILE = Path(settings.CONFIG_HOME, "chains_config.json")
+    # If Config file exist and well filled we update the PRIVATE_KEY_FILE default
+    if settings.CONFIG_FILE.exists():
+        try:
+            with open(settings.CONFIG_FILE, "r", encoding="utf-8") as f:
+                config_data = json.load(f)
+
+            if "path" in config_data:
+                settings.PRIVATE_KEY_FILE = Path(config_data["path"])
+        except json.JSONDecodeError:
+            pass
 
 
 # Update CHAINS settings and remove placeholders
@@ -180,3 +191,4 @@ for fields, value in CHAINS_ENV:
         field = field.lower()
         settings.CHAINS[chain].__dict__[field] = value
     settings.__delattr__(f"CHAINS_{fields}")
+print(f"Private key file is set to: {settings.PRIVATE_KEY_FILE}")
