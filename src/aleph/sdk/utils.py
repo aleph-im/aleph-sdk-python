@@ -28,8 +28,6 @@ from typing import (
 from uuid import UUID
 from zipfile import BadZipFile, ZipFile
 
-import aiofiles
-import base58
 from aleph_message.models import ItemHash, MessageType
 from aleph_message.models.execution.program import Encoding
 from aleph_message.models.execution.volume import MachineVolume
