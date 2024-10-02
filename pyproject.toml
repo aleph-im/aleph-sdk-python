@@ -153,6 +153,9 @@ dependencies = [
     "mypy-extensions==1.0.0",
     "ruff==0.4.8",
     "isort==5.13.2",
+
+    # for more mypy tests
+    "pydantic==1.10.18",
 ]
 [tool.hatch.envs.linting.scripts]
 typing = "mypy --config-file=pyproject.toml {args:} ./src/ ./tests/ ./examples/"
