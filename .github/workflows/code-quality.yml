@@ -1,25 +1,20 @@
+---
 name: Test code quality
-
 on:
   push:
   pull_request:
     branches:
       - main
-
 jobs:
   code-quality:
     runs-on: ubuntu-24.04
-
     steps:
       - uses: actions/checkout@v4
-
       - name: Workaround github issue https://github.com/actions/runner-images/issues/7192
         run: sudo echo RESET grub-efi/install_devices | sudo debconf-communicate grub-pc
-
       - name: Install system dependencies
         run: |
           sudo apt-get install -y python3-pip libsecp256k1-dev
-
       - name: Cache dependencies
         uses: actions/cache@v4
         with:
@@ -27,11 +22,9 @@ jobs:
           key: ${{ runner.os }}-code-quality-${{ hashFiles('pyproject.toml') }}
           restore-keys: |
             ${{ runner.os }}-code-quality-
-
       - name: Install python dependencies
         run: |
           python3 -m venv /tmp/venv
           /tmp/venv/bin/pip install hatch
-
       - name: Run Hatch lint
         run: /tmp/venv/bin/hatch run linting:all
