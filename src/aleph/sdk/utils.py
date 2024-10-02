@@ -37,7 +37,7 @@ from jwcrypto.jwa import JWA
 from pydantic.json import pydantic_encoder
 
 from aleph.sdk.conf import settings
-from aleph.sdk.types import ChainAccount, GenericMessage, SEVInfo, SEVMeasurement
+from aleph.sdk.types import GenericMessage, SEVInfo, SEVMeasurement
 
 logger = logging.getLogger(__name__)
 
@@ -393,50 +393,3 @@ def make_packet_header(
     header[20:52] = h.digest()
 
     return header
-
-
-def load_account_key_context(file_path: Path) -> Optional[ChainAccount]:
-    """
-    Synchronously load the private key and chain type from a file.
-    If the file does not exist or is empty, return None.
-    """
-    if not file_path.exists() or file_path.stat().st_size == 0:
-        logger.debug(f"File {file_path} does not exist or is empty. Returning None.")
-        return None
-
-    try:
-        with file_path.open("rb") as file:
-            content = file.read()
-            data = json.loads(content.decode("utf-8"))
-            return ChainAccount(**data)
-    except UnicodeDecodeError as e:
-        logger.error(f"Unable to decode {file_path} as UTF-8: {e}")
-        raise ValueError(f"File {file_path} is not properly encoded.")
-    except json.JSONDecodeError:
-        logger.error(f"Invalid JSON format in {file_path}.")
-        raise ValueError(f"Invalid format in {file_path}.")
-
-
-def save_account_key_context(file_path: Path, data: ChainAccount):
-    """
-    Synchronously save a single ChainAccount object as JSON to a file.
-    """
-    with file_path.open("w") as file:
-        data_serializable = data.dict()
-        data_serializable["path"] = str(data_serializable["path"])
-        json.dump(data_serializable, file, indent=4)
-
-
-async def upsert_chain_account(new_account: ChainAccount, config_file: Path):
-    """
-    Update the chain account in the config file, replacing the existing one if necessary.
-
-    If the file doesn't exist, create it and add the new account.
-    """
-
-    account_data = {"path": str(new_account.path), "chain": new_account.chain}
-
-    with config_file.open("w", encoding="utf-8") as f:
-        json.dump(account_data, f, indent=4)
-
-    logger.debug(f"Replaced account in {config_file} with {new_account.path}.")

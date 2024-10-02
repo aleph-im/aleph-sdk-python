@@ -1,13 +1,12 @@
 from abc import abstractmethod
 from enum import Enum
-from pathlib import Path
 from typing import Dict, Optional, Protocol, TypeVar
 
 from pydantic import BaseModel
 
 __all__ = ("StorageEnum", "Account", "AccountFromPrivateKey", "GenericMessage")
 
-from aleph_message.models import AlephMessage, Chain
+from aleph_message.models import AlephMessage
 
 
 class StorageEnum(str, Enum):
@@ -77,15 +76,3 @@ class ChainInfo(BaseModel):
     token: str
     super_token: Optional[str] = None
     active: bool = True
-
-
-class ChainAccount(BaseModel):
-    """
-    Intern Chain Management with Account.
-    """
-
-    path: Path
-    chain: Chain
-
-    class Config:
-        use_enum_values = True

@@ -1,7 +1,6 @@
 import base64
 import datetime
 
-import base58
 import pytest as pytest
 from aleph_message.models import (
     AggregateMessage,
@@ -20,9 +19,6 @@ from aleph_message.models.execution.volume import (
     PersistentVolume,
 )
 
-from aleph.sdk.account import detect_chain_from_private_key, is_valid_private_key
-from aleph.sdk.chains.ethereum import ETHAccount
-from aleph.sdk.chains.solana import SOLAccount, parse_solana_private_key
 from aleph.sdk.types import SEVInfo
 from aleph.sdk.utils import (
     calculate_firmware_hash,
@@ -239,107 +235,3 @@ def test_compute_confidential_measure():
         )
         == b"ls2jv10V3HVShVI/RHCo/a43WO0soLZf0huU9ZZstIw="
     )
-
-
-def test_parse_solana_private_key_bytes():
-    # Valid 32-byte private key
-    private_key_bytes = bytes(range(32))
-    parsed_key = parse_solana_private_key(private_key_bytes)
-    assert isinstance(parsed_key, bytes)
-    assert len(parsed_key) == 32
-    assert parsed_key == private_key_bytes
-
-    # Invalid private key (too short)
-    with pytest.raises(
-        ValueError, match="The private key in bytes must be exactly 32 bytes long."
-    ):
-        parse_solana_private_key(bytes(range(31)))
-
-
-def test_parse_solana_private_key_base58():
-    # Valid base58 private key (32 bytes)
-    base58_key = base58.b58encode(bytes(range(32))).decode("utf-8")
-    parsed_key = parse_solana_private_key(base58_key)
-    assert isinstance(parsed_key, bytes)
-    assert len(parsed_key) == 32
-
-    # Invalid base58 key (not decodable)
-    with pytest.raises(ValueError, match="Invalid base58 encoded private key"):
-        parse_solana_private_key("invalid_base58_key")
-
-    # Invalid base58 key (wrong length)
-    with pytest.raises(
-        ValueError,
-        match="The base58 decoded private key must be either 32 or 64 bytes long.",
-    ):
-        parse_solana_private_key(base58.b58encode(bytes(range(31))).decode("utf-8"))
-
-
-def test_parse_solana_private_key_list():
-    # Valid list of uint8 integers (64 elements, but we only take the first 32 for private key)
-    uint8_list = list(range(64))
-    parsed_key = parse_solana_private_key(uint8_list)
-    assert isinstance(parsed_key, bytes)
-    assert len(parsed_key) == 32
-    assert parsed_key == bytes(range(32))
-
-    # Invalid list (contains non-integers)
-    with pytest.raises(ValueError, match="Invalid uint8 array"):
-        parse_solana_private_key([1, 2, "not an int", 4])  # type: ignore  # Ignore type check for string
-
-    # Invalid list (less than 32 elements)
-    with pytest.raises(
-        ValueError, match="The uint8 array must contain at least 32 elements."
-    ):
-        parse_solana_private_key(list(range(31)))
-
-
-def test_is_solana_private_key():
-    sol_key = base58.b58encode(bytes(range(64))).decode("utf-8")
-    assert is_valid_private_key(sol_key, SOLAccount) is True
-
-    short_sol_key = base58.b58encode(bytes(range(32))).decode("utf-8")
-    assert is_valid_private_key(short_sol_key, SOLAccount) is False
-
-    sol_key_list = list(range(64))
-    assert is_valid_private_key(sol_key_list, SOLAccount) is True
-
-    short_sol_key_list = list(range(32))
-    assert is_valid_private_key(short_sol_key_list, SOLAccount) is False
-
-    sol_key_bytes = bytes(range(64))
-    assert is_valid_private_key(sol_key_bytes, SOLAccount) is True
-
-    short_sol_key_bytes = bytes(range(32))
-    assert is_valid_private_key(short_sol_key_bytes, SOLAccount) is False
-
-
-def test_detect_chain_from_private_key():
-    eth_key = "0x" + "a" * 64
-    assert detect_chain_from_private_key(eth_key) == Chain.ETH
-
-    sol_key = base58.b58encode(bytes(range(64))).decode("utf-8")
-    assert detect_chain_from_private_key(sol_key) == Chain.SOL
-
-    sol_key_list = list(range(64))
-    assert detect_chain_from_private_key(sol_key_list) == Chain.SOL
-
-    with pytest.raises(ValueError, match="Unsupported private key format"):
-        detect_chain_from_private_key("invalid_key")
-
-
-def test_is_eth_private_key():
-    eth_key = "0x" + "a" * 64
-    assert is_valid_private_key(eth_key, ETHAccount) is True
-
-    eth_key_no_prefix = "a" * 64
-    assert is_valid_private_key(eth_key_no_prefix, ETHAccount) is True
-
-    assert is_valid_private_key("a" * 63, ETHAccount) is False
-
-    assert is_valid_private_key("zz" * 32, ETHAccount) is False
-
-    eth_key_bytes = bytes(range(32))
-    assert is_valid_private_key(eth_key_bytes, ETHAccount) is True
-
-    assert is_valid_private_key(bytes(range(31)), ETHAccount) is False

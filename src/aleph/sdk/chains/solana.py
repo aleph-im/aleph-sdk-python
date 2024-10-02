@@ -22,7 +22,7 @@ class SOLAccount(BaseAccount):
     _private_key: PrivateKey
 
     def __init__(self, private_key: bytes):
-        self.private_key = private_key
+        self.private_key = parse_private_key(private_key_from_bytes(private_key))
         self._signing_key = SigningKey(self.private_key)
         self._private_key = self._signing_key.to_curve25519_private_key()
 
@@ -93,7 +93,7 @@ def verify_signature(
         raise BadSignatureError from e
 
 
-def solana_private_key_from_bytes(
+def private_key_from_bytes(
     private_key_bytes: bytes, output_format: str = "base58"
 ) -> Union[str, List[int], bytes]:
     """
@@ -132,7 +132,7 @@ def solana_private_key_from_bytes(
         raise ValueError("Invalid output format. Choose 'base58', 'list', or 'bytes'.")
 
 
-def parse_solana_private_key(private_key: Union[str, List[int], bytes]) -> bytes:
+def parse_private_key(private_key: Union[str, List[int], bytes]) -> bytes:
     """
     Parse the private key which could be either:
     - a base58-encoded string (which may contain both private and public key)

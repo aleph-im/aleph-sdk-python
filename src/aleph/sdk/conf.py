@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 from pathlib import Path
 from shutil import which
@@ -6,16 +7,18 @@ from typing import Dict, Optional, Union
 
 from aleph_message.models import Chain
 from aleph_message.models.execution.environment import HypervisorType
-from pydantic import BaseSettings, Field
+from pydantic import BaseModel, BaseSettings, Field
 
 from aleph.sdk.types import ChainInfo
+
+logger = logging.getLogger(__name__)
 
 
 class Settings(BaseSettings):
     CONFIG_HOME: Optional[str] = None
 
     CONFIG_FILE: Path = Field(
-        default=Path("chains_config.json"),
+        default=Path("config.json"),
         description="Path to the JSON file containing chain account configurations",
     )
 
@@ -145,6 +148,18 @@ class Settings(BaseSettings):
         env_file = ".env"
 
 
+class MainConfiguration(BaseModel):
+    """
+    Intern Chain Management with Account.
+    """
+
+    path: Path
+    chain: Chain
+
+    class Config:
+        use_enum_values = True
+
+
 # Settings singleton
 settings = Settings()
 
@@ -168,8 +183,8 @@ if str(settings.PRIVATE_MNEMONIC_FILE) == "substrate.mnemonic":
     settings.PRIVATE_MNEMONIC_FILE = Path(
         settings.CONFIG_HOME, "private-keys", "substrate.mnemonic"
     )
-if str(settings.CONFIG_FILE) == "chains_config.json":
-    settings.CONFIG_FILE = Path(settings.CONFIG_HOME, "chains_config.json")
+if str(settings.CONFIG_FILE) == "config.json":
+    settings.CONFIG_FILE = Path(settings.CONFIG_HOME, "config.json")
     # If Config file exist and well filled we update the PRIVATE_KEY_FILE default
     if settings.CONFIG_FILE.exists():
         try:
@@ -191,3 +206,35 @@ for fields, value in CHAINS_ENV:
         field = field.lower()
         settings.CHAINS[chain].__dict__[field] = value
     settings.__delattr__(f"CHAINS_{fields}")
+
+
+def save_main_configuration(file_path: Path, data: MainConfiguration):
+    """
+    Synchronously save a single ChainAccount object as JSON to a file.
+    """
+    with file_path.open("w") as file:
+        data_serializable = data.dict()
+        data_serializable["path"] = str(data_serializable["path"])
+        json.dump(data_serializable, file, indent=4)
+
+
+def load_main_configuration(file_path: Path) -> Optional[MainConfiguration]:
+    """
+    Synchronously load the private key and chain type from a file.
+    If the file does not exist or is empty, return None.
+    """
+    if not file_path.exists() or file_path.stat().st_size == 0:
+        logger.debug(f"File {file_path} does not exist or is empty. Returning None.")
+        return None
+
+    try:
+        with file_path.open("rb") as file:
+            content = file.read()
+            data = json.loads(content.decode("utf-8"))
+            return MainConfiguration(**data)
+    except UnicodeDecodeError as e:
+        logger.error(f"Unable to decode {file_path} as UTF-8: {e}")
+    except json.JSONDecodeError:
+        logger.error(f"Invalid JSON format in {file_path}.")
+
+    return None

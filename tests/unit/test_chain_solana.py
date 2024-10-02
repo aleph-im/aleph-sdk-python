@@ -5,15 +5,13 @@ from tempfile import NamedTemporaryFile
 
 import base58
 import pytest
-from aleph_message.models import Chain
 from nacl.signing import VerifyKey
 
-from aleph.sdk.account import detect_chain_from_private_key
 from aleph.sdk.chains.common import get_verification_buffer
 from aleph.sdk.chains.solana import (
     SOLAccount,
     get_fallback_account,
-    parse_solana_private_key,
+    parse_private_key,
     verify_signature,
 )
 from aleph.sdk.exceptions import BadSignatureError
@@ -145,96 +143,54 @@ async def test_sign_raw(solana_account):
     verify_signature(signature, solana_account.get_address(), buffer)
 
 
-def test_parse_private_key_base58():
-    base58_key = "9beEbjn1Md7prQbH9kk9HjTM3npbj1S49BJQpSpYJKvnfATP8Eki9ofaq19tAzpijjV4TyTtibXGBkRjFnmTkiD"
-    private_key_bytes = parse_solana_private_key(base58_key)
+def test_parse_solana_private_key_bytes():
+    # Valid 32-byte private key
+    private_key_bytes = bytes(range(32))
+    parsed_key = parse_private_key(private_key_bytes)
+    assert isinstance(parsed_key, bytes)
+    assert len(parsed_key) == 32
+    assert parsed_key == private_key_bytes
 
-    assert isinstance(private_key_bytes, bytes)
-    assert len(private_key_bytes) == 32
-
-    account = SOLAccount(private_key_bytes)
-
-    assert account.get_address() == "8XnzZVqAD1GUEYjQvsyURG36F7ZEhyDGpvYD68TSkSLy"
-    assert detect_chain_from_private_key(base58_key) == Chain.SOL
-    assert isinstance(account.get_address(), str)
-    assert len(account.get_address()) > 0
+    # Invalid private key (too short)
+    with pytest.raises(
+        ValueError, match="The private key in bytes must be exactly 32 bytes long."
+    ):
+        parse_private_key(bytes(range(31)))
 
 
-def test_parse_private_key_uint8_array():
-    uint8_array_key = [
-        73,
-        6,
-        73,
-        131,
-        134,
-        65,
-        155,
-        206,
-        87,
-        203,
-        226,
-        184,
-        174,
-        66,
-        214,
-        252,
-        201,
-        188,
-        56,
-        102,
-        241,
-        81,
-        21,
-        30,
-        150,
-        55,
-        134,
-        252,
-        138,
-        137,
-        174,
-        163,
-        89,
-        90,
-        53,
-        40,
-        237,
-        153,
-        99,
-        127,
-        220,
-        233,
-        29,
-        48,
-        180,
-        199,
-        18,
-        225,
-        249,
-        163,
-        140,
-        157,
-        201,
-        74,
-        221,
-        176,
-        229,
-        6,
-        182,
-        226,
-        74,
-        243,
-        193,
-        143,
-    ]
-    private_key_bytes = parse_solana_private_key(uint8_array_key)
+def test_parse_solana_private_key_base58():
+    # Valid base58 private key (32 bytes)
+    base58_key = base58.b58encode(bytes(range(32))).decode("utf-8")
+    parsed_key = parse_private_key(base58_key)
+    assert isinstance(parsed_key, bytes)
+    assert len(parsed_key) == 32
 
-    assert isinstance(private_key_bytes, bytes)
-    assert len(private_key_bytes) == 32
+    # Invalid base58 key (not decodable)
+    with pytest.raises(ValueError, match="Invalid base58 encoded private key"):
+        parse_private_key("invalid_base58_key")
 
-    account = SOLAccount(private_key_bytes)
+    # Invalid base58 key (wrong length)
+    with pytest.raises(
+        ValueError,
+        match="The base58 decoded private key must be either 32 or 64 bytes long.",
+    ):
+        parse_private_key(base58.b58encode(bytes(range(31))).decode("utf-8"))
 
-    assert account.get_address() == "71o4nN2BgB8MdD771U5VAPBj8jwufxkYJZwNnCr81VwL"
-    assert detect_chain_from_private_key(uint8_array_key) == Chain.SOL
-    assert isinstance(account.get_address(), str)
-    assert len(account.get_address()) > 0
+
+def test_parse_solana_private_key_list():
+    # Valid list of uint8 integers (64 elements, but we only take the first 32 for private key)
+    uint8_list = list(range(64))
+    parsed_key = parse_private_key(uint8_list)
+    assert isinstance(parsed_key, bytes)
+    assert len(parsed_key) == 32
+    assert parsed_key == bytes(range(32))
+
+    # Invalid list (contains non-integers)
+    with pytest.raises(ValueError, match="Invalid uint8 array"):
+        parse_private_key([1, 2, "not an int", 4])  # type: ignore  # Ignore type check for string
+
+    # Invalid list (less than 32 elements)
+    with pytest.raises(
+        ValueError, match="The uint8 array must contain at least 32 elements."
+    ):
+        parse_private_key(list(range(31)))

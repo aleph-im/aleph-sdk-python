@@ -3,7 +3,6 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Dict, Optional
 
-import nacl.signing
 from coincurve.keys import PrivateKey
 from typing_extensions import deprecated
 
@@ -148,20 +147,6 @@ class BaseAccount(ABC):
 def generate_key() -> bytes:
     privkey = PrivateKey()
     return privkey.secret
-
-
-def generate_key_solana() -> bytes:
-    """
-    Generate a new Solana private key (32 bytes) using Ed25519.
-
-    Returns:
-        A bytes object representing the 32-byte Solana private key.
-    """
-    # Generate a new signing key (this is the private key part)
-    private_key = nacl.signing.SigningKey.generate()
-
-    # Return only the private key (32 bytes)
-    return private_key.encode()
 
 
 def get_fallback_private_key(path: Optional[Path] = None) -> bytes:

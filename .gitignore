@@ -50,7 +50,7 @@ MANIFEST
 **/device.key
 
 # environment variables
-.env
+.config.json
 .env.local
 
 .gitsigners
