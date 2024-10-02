@@ -8,7 +8,12 @@ import pytest
 from nacl.signing import VerifyKey
 
 from aleph.sdk.chains.common import get_verification_buffer
-from aleph.sdk.chains.solana import SOLAccount, get_fallback_account, verify_signature
+from aleph.sdk.chains.solana import (
+    SOLAccount,
+    get_fallback_account,
+    parse_private_key,
+    verify_signature,
+)
 from aleph.sdk.exceptions import BadSignatureError
 
 
@@ -136,3 +141,56 @@ async def test_sign_raw(solana_account):
     assert isinstance(signature, bytes)
 
     verify_signature(signature, solana_account.get_address(), buffer)
+
+
+def test_parse_solana_private_key_bytes():
+    # Valid 32-byte private key
+    private_key_bytes = bytes(range(32))
+    parsed_key = parse_private_key(private_key_bytes)
+    assert isinstance(parsed_key, bytes)
+    assert len(parsed_key) == 32
+    assert parsed_key == private_key_bytes
+
+    # Invalid private key (too short)
+    with pytest.raises(
+        ValueError, match="The private key in bytes must be exactly 32 bytes long."
+    ):
+        parse_private_key(bytes(range(31)))
+
+
+def test_parse_solana_private_key_base58():
+    # Valid base58 private key (32 bytes)
+    base58_key = base58.b58encode(bytes(range(32))).decode("utf-8")
+    parsed_key = parse_private_key(base58_key)
+    assert isinstance(parsed_key, bytes)
+    assert len(parsed_key) == 32
+
+    # Invalid base58 key (not decodable)
+    with pytest.raises(ValueError, match="Invalid base58 encoded private key"):
+        parse_private_key("invalid_base58_key")
+
+    # Invalid base58 key (wrong length)
+    with pytest.raises(
+        ValueError,
+        match="The base58 decoded private key must be either 32 or 64 bytes long.",
+    ):
+        parse_private_key(base58.b58encode(bytes(range(31))).decode("utf-8"))
+
+
+def test_parse_solana_private_key_list():
+    # Valid list of uint8 integers (64 elements, but we only take the first 32 for private key)
+    uint8_list = list(range(64))
+    parsed_key = parse_private_key(uint8_list)
+    assert isinstance(parsed_key, bytes)
+    assert len(parsed_key) == 32
+    assert parsed_key == bytes(range(32))
+
+    # Invalid list (contains non-integers)
+    with pytest.raises(ValueError, match="Invalid uint8 array"):
+        parse_private_key([1, 2, "not an int", 4])  # type: ignore  # Ignore type check for string
+
+    # Invalid list (less than 32 elements)
+    with pytest.raises(
+        ValueError, match="The uint8 array must contain at least 32 elements."
+    ):
+        parse_private_key(list(range(31)))
