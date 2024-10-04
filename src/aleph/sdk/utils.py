@@ -28,13 +28,15 @@ from typing import (
 from uuid import UUID
 from zipfile import BadZipFile, ZipFile
 
-import pydantic_core
+from pydantic import BaseModel
+
 from aleph_message.models import ItemHash, MessageType
 from aleph_message.models.execution.program import Encoding
 from aleph_message.models.execution.volume import MachineVolume
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from jwcrypto.jwa import JWA
+import pydantic_core
 
 from aleph.sdk.conf import settings
 from aleph.sdk.types import GenericMessage, SEVInfo, SEVMeasurement
@@ -180,17 +182,12 @@ def parse_volume(volume_dict: Union[Mapping, MachineVolume]) -> MachineVolume:
     # Python 3.9 does not support `isinstance(volume_dict, MachineVolume)`,
     # so we need to iterate over all types.
     for volume_type in get_args(MachineVolume):
-        if isinstance(volume_dict, volume_type):
-            return volume_dict
-
-    if isinstance(volume_dict, Mapping):
-        for volume_type in get_args(MachineVolume):
-            try:
-                return volume_type(**volume_dict)
-            except (TypeError, ValueError):
-                continue
-
-    raise ValueError("Invalid volume data, could not be parsed into a MachineVolume")
+        try:
+            return volume_type.model_validate(volume_dict)
+        except ValueError:
+            continue
+    else:
+        raise ValueError(f"Could not parse volume: {volume_dict}")
 
 
 def compute_sha256(s: str) -> str:
