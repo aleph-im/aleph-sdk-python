@@ -3,11 +3,13 @@ import logging
 import os
 from pathlib import Path
 from shutil import which
-from typing import Dict, Optional, Union
+from typing import ClassVar, Dict, Optional, Union
+
+from pydantic_settings import BaseSettings
 
 from aleph_message.models import Chain
 from aleph_message.models.execution.environment import HypervisorType
-from pydantic import BaseModel, BaseSettings, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from aleph.sdk.types import ChainInfo
 
@@ -41,7 +43,7 @@ class Settings(BaseSettings):
     REMOTE_CRYPTO_HOST: Optional[str] = None
     REMOTE_CRYPTO_UNIX_SOCKET: Optional[str] = None
     ADDRESS_TO_USE: Optional[str] = None
-    HTTP_REQUEST_TIMEOUT = 10.0
+    HTTP_REQUEST_TIMEOUT: ClassVar[float] = 10.0
 
     DEFAULT_CHANNEL: str = "ALEPH-CLOUDSOLUTIONS"
     DEFAULT_RUNTIME_ID: str = (
@@ -83,12 +85,12 @@ class Settings(BaseSettings):
 
     CODE_USES_SQUASHFS: bool = which("mksquashfs") is not None  # True if command exists
 
-    VM_URL_PATH = "https://aleph.sh/vm/{hash}"
-    VM_URL_HOST = "https://{hash_base32}.aleph.sh"
+    VM_URL_PATH: ClassVar[str] = "https://aleph.sh/vm/{hash}"
+    VM_URL_HOST: ClassVar[str] = "https://{hash_base32}.aleph.sh"
 
     # Web3Provider settings
-    TOKEN_DECIMALS = 18
-    TX_TIMEOUT = 60 * 3
+    TOKEN_DECIMALS: ClassVar[int] = 18
+    TX_TIMEOUT: ClassVar[int] = 60 * 3
     CHAINS: Dict[Union[Chain, str], ChainInfo] = {
         # TESTNETS
         "SEPOLIA": ChainInfo(
@@ -124,28 +126,29 @@ class Settings(BaseSettings):
         ),
     }
     # Add all placeholders to allow easy dynamic setup of CHAINS
-    CHAINS_SEPOLIA_ACTIVE: Optional[bool]
-    CHAINS_ETH_ACTIVE: Optional[bool]
-    CHAINS_AVAX_ACTIVE: Optional[bool]
-    CHAINS_BASE_ACTIVE: Optional[bool]
-    CHAINS_BSC_ACTIVE: Optional[bool]
-    CHAINS_SEPOLIA_RPC: Optional[str]
-    CHAINS_ETH_RPC: Optional[str]
-    CHAINS_AVAX_RPC: Optional[str]
-    CHAINS_BASE_RPC: Optional[str]
-    CHAINS_BSC_RPC: Optional[str]
+    CHAINS_SEPOLIA_ACTIVE: Optional[bool] = None
+    CHAINS_ETH_ACTIVE: Optional[bool] = None
+    CHAINS_AVAX_ACTIVE: Optional[bool] = None
+    CHAINS_BASE_ACTIVE: Optional[bool] = None
+    CHAINS_BSC_ACTIVE: Optional[bool] = None
+    CHAINS_SEPOLIA_RPC: Optional[str] = None
+    CHAINS_ETH_RPC: Optional[str] = None
+    CHAINS_AVAX_RPC: Optional[str] = None
+    CHAINS_BASE_RPC: Optional[str] = None
+    CHAINS_BSC_RPC: Optional[str] = None
 
     # Dns resolver
-    DNS_IPFS_DOMAIN = "ipfs.public.aleph.sh"
-    DNS_PROGRAM_DOMAIN = "program.public.aleph.sh"
-    DNS_INSTANCE_DOMAIN = "instance.public.aleph.sh"
-    DNS_STATIC_DOMAIN = "static.public.aleph.sh"
-    DNS_RESOLVERS = ["9.9.9.9", "1.1.1.1"]
+    DNS_IPFS_DOMAIN: ClassVar[str] = "ipfs.public.aleph.sh"
+    DNS_PROGRAM_DOMAIN: ClassVar[str] = "program.public.aleph.sh"
+    DNS_INSTANCE_DOMAIN: ClassVar[str] = "instance.public.aleph.sh"
+    DNS_STATIC_DOMAIN: ClassVar[str] = "static.public.aleph.sh"
+    DNS_RESOLVERS: ClassVar[str] = ["9.9.9.9", "1.1.1.1"]
 
-    class Config:
-        env_prefix = "ALEPH_"
-        case_sensitive = False
-        env_file = ".env"
+    model_config = ConfigDict(
+       env_prefix="ALEPH_",
+       case_sensitive=False,
+       env_file=".env"
+    )
 
 
 class MainConfiguration(BaseModel):
@@ -156,8 +159,7 @@ class MainConfiguration(BaseModel):
     path: Path
     chain: Chain
 
-    class Config:
-        use_enum_values = True
+    model_config = ConfigDict(use_enum_values = True)
 
 
 # Settings singleton
@@ -213,7 +215,7 @@ def save_main_configuration(file_path: Path, data: MainConfiguration):
     Synchronously save a single ChainAccount object as JSON to a file.
     """
     with file_path.open("w") as file:
-        data_serializable = data.dict()
+        data_serializable = data.model_dump()
         data_serializable["path"] = str(data_serializable["path"])
         json.dump(data_serializable, file, indent=4)
 

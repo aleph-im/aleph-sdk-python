@@ -9,7 +9,7 @@ from aleph_message.models import (
     ItemType,
     MessageConfirmation,
 )
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class Post(BaseModel):
@@ -48,9 +48,9 @@ class Post(BaseModel):
     ref: Optional[Union[str, Any]] = Field(
         description="Other message referenced by this one"
     )
+    address: Optional[str] = Field(description="Address of the sender")
 
-    class Config:
-        allow_extra = False
+    model_config = ConfigDict(extra="forbid")
 
 
 class PaginationResponse(BaseModel):
@@ -64,14 +64,14 @@ class PostsResponse(PaginationResponse):
     """Response from an aleph.im node API on the path /api/v0/posts.json"""
 
     posts: List[Post]
-    pagination_item = "posts"
+    pagination_item: str = "posts"
 
 
 class MessagesResponse(PaginationResponse):
     """Response from an aleph.im node API on the path /api/v0/messages.json"""
 
     messages: List[AlephMessage]
-    pagination_item = "messages"
+    pagination_item: str = "messages"
 
 
 class PriceResponse(BaseModel):

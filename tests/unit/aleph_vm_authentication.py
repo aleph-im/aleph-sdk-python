@@ -13,7 +13,7 @@ from eth_account import Account
 from eth_account.messages import encode_defunct
 from jwcrypto import jwk
 from jwcrypto.jwa import JWA
-from pydantic import BaseModel, ValidationError, root_validator, validator
+from pydantic import BaseModel, ValidationError, model_validator, field_validator
 
 from aleph.sdk.utils import bytes_from_hex
 
@@ -63,23 +63,23 @@ class SignedPubKeyHeader(BaseModel):
     signature: bytes
     payload: bytes
 
-    @validator("signature")
+    @field_validator("signature")
     def signature_must_be_hex(cls, value: bytes) -> bytes:
         """Convert the signature from hexadecimal to bytes"""
 
         return bytes_from_hex(value.decode())
 
-    @validator("payload")
+    @field_validator("payload")
     def payload_must_be_hex(cls, value: bytes) -> bytes:
         """Convert the payload from hexadecimal to bytes"""
 
         return bytes_from_hex(value.decode())
 
-    @root_validator(pre=False, skip_on_failure=True)
+    @model_validator(mode="after")
     def check_expiry(cls, values) -> Dict[str, bytes]:
         """Check that the token has not expired"""
-        payload: bytes = values["payload"]
-        content = SignedPubKeyPayload.parse_raw(payload)
+        payload: bytes = values.payload
+        content = SignedPubKeyPayload.model_validate_json(payload)
 
         if not is_token_still_valid(content.expires):
             msg = "Token expired"
@@ -87,12 +87,12 @@ class SignedPubKeyHeader(BaseModel):
 
         return values
 
-    @root_validator(pre=False, skip_on_failure=True)
+    @model_validator(mode="after")
     def check_signature(cls, values: Dict[str, bytes]) -> Dict[str, bytes]:
         """Check that the signature is valid"""
-        signature: bytes = values["signature"]
-        payload: bytes = values["payload"]
-        content = SignedPubKeyPayload.parse_raw(payload)
+        signature: bytes = values.signature
+        payload: bytes = values.payload
+        content = SignedPubKeyPayload.model_validate_json(payload)
 
         if not verify_wallet_signature(signature, payload.hex(), content.address):
             msg = "Invalid signature"
@@ -103,7 +103,7 @@ class SignedPubKeyHeader(BaseModel):
     @property
     def content(self) -> SignedPubKeyPayload:
         """Return the content of the header"""
-        return SignedPubKeyPayload.parse_raw(self.payload)
+        return SignedPubKeyPayload.model_validate_json(self.payload)
 
 
 class SignedOperationPayload(BaseModel):
@@ -113,7 +113,7 @@ class SignedOperationPayload(BaseModel):
     path: str
     # body_sha256: str  # disabled since there is no body
 
-    @validator("time")
+    @field_validator("time")
     def time_is_current(cls, v: datetime.datetime) -> datetime.datetime:
         """Check that the time is current and the payload is not a replay attack."""
         max_past = datetime.datetime.now(tz=datetime.timezone.utc) - datetime.timedelta(
@@ -135,7 +135,7 @@ class SignedOperation(BaseModel):
     signature: bytes
     payload: bytes
 
-    @validator("signature")
+    @field_validator("signature")
     def signature_must_be_hex(cls, value: str) -> bytes:
         """Convert the signature from hexadecimal to bytes"""
 
@@ -147,17 +147,17 @@ class SignedOperation(BaseModel):
             logger.warning(value)
             raise error
 
-    @validator("payload")
+    @field_validator("payload")
     def payload_must_be_hex(cls, v) -> bytes:
         """Convert the payload from hexadecimal to bytes"""
         v = bytes.fromhex(v.decode())
-        _ = SignedOperationPayload.parse_raw(v)
+        _ = SignedOperationPayload.model_validate_json(v)
         return v
 
     @property
     def content(self) -> SignedOperationPayload:
         """Return the content of the header"""
-        return SignedOperationPayload.parse_raw(self.payload)
+        return SignedOperationPayload.model_validate_json(self.payload)
 
 
 def get_signed_pubkey(request: web.Request) -> SignedPubKeyHeader:
@@ -168,7 +168,7 @@ def get_signed_pubkey(request: web.Request) -> SignedPubKeyHeader:
         raise web.HTTPBadRequest(reason="Missing X-SignedPubKey header")
 
     try:
-        return SignedPubKeyHeader.parse_raw(signed_pubkey_header)
+        return SignedPubKeyHeader.model_validate_json(signed_pubkey_header)
 
     except KeyError as error:
         logger.debug(f"Missing X-SignedPubKey header: {error}")
@@ -199,7 +199,7 @@ def get_signed_operation(request: web.Request) -> SignedOperation:
     """Get the signed operation public key that is signed by the ephemeral key from the request headers."""
     try:
         signed_operation = request.headers["X-SignedOperation"]
-        return SignedOperation.parse_raw(signed_operation)
+        return SignedOperation.model_validate_json(signed_operation)
     except KeyError as error:
         raise web.HTTPBadRequest(reason="Missing X-SignedOperation header") from error
     except json.JSONDecodeError as error:
@@ -259,8 +259,8 @@ async def authenticate_websocket_message(
     message, domain_name: Optional[str] = DOMAIN_NAME
 ) -> str:
     """Authenticate a websocket message since JS cannot configure headers on WebSockets."""
-    signed_pubkey = SignedPubKeyHeader.parse_obj(message["X-SignedPubKey"])
-    signed_operation = SignedOperation.parse_obj(message["X-SignedOperation"])
+    signed_pubkey = SignedPubKeyHeader.model_validate(message["X-SignedPubKey"])
+    signed_operation = SignedOperation.model_validate(message["X-SignedOperation"])
     if signed_operation.content.domain != domain_name:
         logger.debug(
             f"Invalid domain '{signed_pubkey.content.domain}' != '{domain_name}'"

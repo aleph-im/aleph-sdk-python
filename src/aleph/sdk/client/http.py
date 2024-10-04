@@ -180,7 +180,7 @@ class AlephHttpClient(AlephClient):
             posts: List[Post] = []
             for post_raw in posts_raw:
                 try:
-                    posts.append(Post.parse_obj(post_raw))
+                    posts.append(Post.model_validate(post_raw))
                 except ValidationError as e:
                     if not ignore_invalid_messages:
                         raise e

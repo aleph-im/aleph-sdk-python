@@ -71,7 +71,7 @@ def rejected_message():
 @pytest.fixture
 def aleph_messages() -> List[AlephMessage]:
     return [
-        AggregateMessage.parse_obj(
+        AggregateMessage.model_validate(
             {
                 "item_hash": "5b26d949fe05e38f535ef990a89da0473f9d700077cced228f2d36e73fca1fd6",
                 "type": "AGGREGATE",
@@ -95,7 +95,7 @@ def aleph_messages() -> List[AlephMessage]:
                 "confirmed": False,
             }
         ),
-        PostMessage.parse_obj(
+        PostMessage.model_validate(
             {
                 "item_hash": "70f3798fdc68ce0ee03715a5547ee24e2c3e259bf02e3f5d1e4bf5a6f6a5e99f",
                 "type": "POST",
@@ -135,7 +135,7 @@ def json_post() -> dict:
 def raw_messages_response(aleph_messages) -> Callable[[int], Dict[str, Any]]:
     return lambda page: {
         "messages": (
-            [message.dict() for message in aleph_messages] if int(page) == 1 else []
+            [message.model_dump() for message in aleph_messages] if int(page) == 1 else []
         ),
         "pagination_item": "messages",
         "pagination_page": int(page),

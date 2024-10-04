@@ -259,7 +259,7 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
         url = "/api/v0/messages"
         logger.debug(f"Posting message on {url}")
 
-        message_dict = message.dict(include=self.BROADCAST_MESSAGE_FIELDS)
+        message_dict = message.model_dump(include=self.BROADCAST_MESSAGE_FIELDS)
         async with self.http_session.post(
             url,
             json={
@@ -301,7 +301,7 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
         )
 
         message, status, _ = await self.submit(
-            content=content.dict(exclude_none=True),
+            content=content.model_dump(exclude_none=True),
             message_type=MessageType.post,
             channel=channel,
             allow_inlining=inline,
@@ -329,7 +329,7 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
         )
 
         message, status, _ = await self.submit(
-            content=content_.dict(exclude_none=True),
+            content=content_.model_dump(exclude_none=True),
             message_type=MessageType.aggregate,
             channel=channel,
             allow_inlining=inline,
@@ -403,7 +403,7 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
         content = StoreContent(**values)
 
         message, status, _ = await self.submit(
-            content=content.dict(exclude_none=True),
+            content=content.model_dump(exclude_none=True),
             message_type=MessageType.store,
             channel=channel,
             allow_inlining=True,
@@ -496,7 +496,7 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
         assert content.on.persistent == persistent
 
         message, status, _ = await self.submit(
-            content=content.dict(exclude_none=True),
+            content=content.model_dump(exclude_none=True),
             message_type=MessageType.program,
             channel=channel,
             storage_engine=storage_engine,
@@ -572,7 +572,7 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
             payment=payment,
         )
         message, status, response = await self.submit(
-            content=content.dict(exclude_none=True),
+            content=content.model_dump(exclude_none=True),
             message_type=MessageType.instance,
             channel=channel,
             storage_engine=storage_engine,
@@ -618,7 +618,7 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
         )
 
         message, status, _ = await self.submit(
-            content=content.dict(exclude_none=True),
+            content=content.model_dump(exclude_none=True),
             message_type=MessageType.forget,
             channel=channel,
             storage_engine=storage_engine,
@@ -662,11 +662,11 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
         # Prepare the STORE message
         message = await self.generate_signed_message(
             message_type=MessageType.store,
-            content=store_content.dict(exclude_none=True),
+            content=store_content.model_dump(exclude_none=True),
             channel=channel,
         )
         metadata = {
-            "message": message.dict(exclude_none=True),
+            "message": message.model_dump(exclude_none=True),
             "sync": sync,
         }
         data.add_field(

@@ -29,6 +29,7 @@ dependencies = [
     "eth_abi>=4.0.0; python_version>=\"3.11\"",
     "jwcrypto==1.5.6",
     "python-magic",
+    "pydantic-settings",
     "typing_extensions",
     "aioresponses>=0.7.6",
     "aleph-superfluid>=0.2.1",
