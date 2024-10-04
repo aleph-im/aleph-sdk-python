@@ -68,7 +68,7 @@ solana = [
     "pynacl",
 ]
 tezos = [
-    "aleph-pytezos==0.1.1",
+    "aleph-pytezos==3.13.4",
     "pynacl",
 ]
 encryption = [
