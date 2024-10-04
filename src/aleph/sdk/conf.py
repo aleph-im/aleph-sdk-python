@@ -5,10 +5,11 @@ from pathlib import Path
 from shutil import which
 from typing import ClassVar, Dict, List, Optional, Union
 
+from pydantic_settings import BaseSettings
+
 from aleph_message.models import Chain
 from aleph_message.models.execution.environment import HypervisorType
-from pydantic import BaseModel, Field
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 from aleph.sdk.types import ChainInfo
 
@@ -42,7 +43,7 @@ class Settings(BaseSettings):
     REMOTE_CRYPTO_HOST: Optional[str] = None
     REMOTE_CRYPTO_UNIX_SOCKET: Optional[str] = None
     ADDRESS_TO_USE: Optional[str] = None
-    HTTP_REQUEST_TIMEOUT: float = 15.0
+    HTTP_REQUEST_TIMEOUT: ClassVar[float] = 15.0
 
     DEFAULT_CHANNEL: str = "ALEPH-CLOUDSOLUTIONS"
 
@@ -221,8 +222,10 @@ class Settings(BaseSettings):
     DNS_STATIC_DOMAIN: ClassVar[str] = "static.public.aleph.sh"
     DNS_RESOLVERS: ClassVar[List[str]] = ["9.9.9.9", "1.1.1.1"]
 
-    model_config = SettingsConfigDict(
-        env_prefix="ALEPH_", case_sensitive=False, env_file=".env"
+    model_config = ConfigDict(
+       env_prefix="ALEPH_",
+       case_sensitive=False,
+       env_file=".env"
     )
 
 
@@ -234,7 +237,7 @@ class MainConfiguration(BaseModel):
     path: Path
     chain: Chain
 
-    model_config = SettingsConfigDict(use_enum_values=True)
+    model_config = ConfigDict(use_enum_values = True)
 
 
 # Settings singleton
