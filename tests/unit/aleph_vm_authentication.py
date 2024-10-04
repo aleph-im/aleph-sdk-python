@@ -13,7 +13,7 @@ from eth_account import Account
 from eth_account.messages import encode_defunct
 from jwcrypto import jwk
 from jwcrypto.jwa import JWA
-from pydantic import BaseModel, ValidationError, model_validator, field_validator
+from pydantic import BaseModel, ValidationError, field_validator, model_validator
 
 from aleph.sdk.utils import bytes_from_hex
 
@@ -66,17 +66,15 @@ class SignedPubKeyHeader(BaseModel):
     @field_validator("signature")
     def signature_must_be_hex(cls, value: bytes) -> bytes:
         """Convert the signature from hexadecimal to bytes"""
-
         return bytes_from_hex(value.decode())
 
     @field_validator("payload")
     def payload_must_be_hex(cls, value: bytes) -> bytes:
         """Convert the payload from hexadecimal to bytes"""
-
         return bytes_from_hex(value.decode())
 
     @model_validator(mode="after")
-    def check_expiry(cls, values) -> Dict[str, bytes]:
+    def check_expiry(cls, values: "SignedPubKeyHeader") -> "SignedPubKeyHeader":
         """Check that the token has not expired"""
         payload: bytes = values.payload
         content = SignedPubKeyPayload.model_validate_json(payload)
@@ -88,7 +86,7 @@ class SignedPubKeyHeader(BaseModel):
         return values
 
     @model_validator(mode="after")
-    def check_signature(cls, values: Dict[str, bytes]) -> Dict[str, bytes]:
+    def check_signature(cls, values: "SignedPubKeyHeader") -> "SignedPubKeyHeader":
         """Check that the signature is valid"""
         signature: bytes = values.signature
         payload: bytes = values.payload

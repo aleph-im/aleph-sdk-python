@@ -12,7 +12,6 @@ from aleph_message.models import (
     ProgramMessage,
     StoreMessage,
 )
-from aleph_message.models.execution.environment import MachineResources
 from aleph_message.models.execution.volume import (
     EphemeralVolume,
     ImmutableVolume,
@@ -115,17 +114,17 @@ def test_enum_as_str():
         (
             MessageType.aggregate,
             {
-                'address': '0x1',
-                'content': {
-                    'Hello': {
-                        'vcpus': 1,
-                        'memory': 1024,
-                        'seconds': 1,
-                        'published_ports': None,
+                "address": "0x1",
+                "content": {
+                    "Hello": {
+                        "vcpus": 1,
+                        "memory": 1024,
+                        "seconds": 1,
+                        "published_ports": None,
                     },
                 },
-                'key': 'test',
-                'time': 1.0,
+                "key": "test",
+                "time": 1.0,
             },
         ),
     ],

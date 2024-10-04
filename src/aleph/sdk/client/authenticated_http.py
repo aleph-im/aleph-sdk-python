@@ -710,7 +710,7 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
             item_hash=file_hash,
             mime_type=mime_type,
             time=time.time(),
-            **extra_fields,
+            **(extra_fields or {}),
         )
         message, _ = await self._storage_push_file_with_message(
             file_content=file_content,

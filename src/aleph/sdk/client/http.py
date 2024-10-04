@@ -467,3 +467,6 @@ class AlephHttpClient(AlephClient):
             if resp.status == HTTPNotFound.status_code:
                 raise MessageNotFoundError(f"No such hash {item_hash}")
             resp.raise_for_status()
+
+        data = await resp.json()
+        return MessageStatus(**data)

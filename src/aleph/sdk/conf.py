@@ -5,11 +5,10 @@ from pathlib import Path
 from shutil import which
 from typing import ClassVar, Dict, Optional, Union
 
-from pydantic_settings import BaseSettings
-
 from aleph_message.models import Chain
 from aleph_message.models.execution.environment import HypervisorType
 from pydantic import BaseModel, ConfigDict, Field
+from pydantic_settings import BaseSettings
 
 from aleph.sdk.types import ChainInfo
 
@@ -142,12 +141,10 @@ class Settings(BaseSettings):
     DNS_PROGRAM_DOMAIN: ClassVar[str] = "program.public.aleph.sh"
     DNS_INSTANCE_DOMAIN: ClassVar[str] = "instance.public.aleph.sh"
     DNS_STATIC_DOMAIN: ClassVar[str] = "static.public.aleph.sh"
-    DNS_RESOLVERS: ClassVar[str] = ["9.9.9.9", "1.1.1.1"]
+    DNS_RESOLVERS: ClassVar[list[str]] = ["9.9.9.9", "1.1.1.1"]
 
     model_config = ConfigDict(
-       env_prefix="ALEPH_",
-       case_sensitive=False,
-       env_file=".env"
+        env_prefix="ALEPH_", case_sensitive=False, env_file=".env"
     )
 
 
@@ -159,7 +156,7 @@ class MainConfiguration(BaseModel):
     path: Path
     chain: Chain
 
-    model_config = ConfigDict(use_enum_values = True)
+    model_config = ConfigDict(use_enum_values=True)
 
 
 # Settings singleton

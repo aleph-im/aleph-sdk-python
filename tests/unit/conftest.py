@@ -135,7 +135,9 @@ def json_post() -> dict:
 def raw_messages_response(aleph_messages) -> Callable[[int], Dict[str, Any]]:
     return lambda page: {
         "messages": (
-            [message.model_dump() for message in aleph_messages] if int(page) == 1 else []
+            [message.model_dump() for message in aleph_messages]
+            if int(page) == 1
+            else []
         ),
         "pagination_item": "messages",
         "pagination_page": int(page),
