@@ -5,10 +5,11 @@ from typing import Any, AsyncGenerator, Dict, List, Optional, Tuple
 from urllib.parse import urlparse
 
 import aiohttp
-from aleph_message.models import ItemHash
+from aleph_message.models import Chain, ItemHash
 from eth_account.messages import encode_defunct
 from jwcrypto import jwk
 
+from aleph.sdk.chains.solana import SOLAccount
 from aleph.sdk.types import Account
 from aleph.sdk.utils import (
     create_vm_control_payload,
@@ -36,11 +37,13 @@ class VmClient:
         self.account = account
         self.ephemeral_key = jwk.JWK.generate(kty="EC", crv="P-256")
         self.node_url = node_url.rstrip("/")
-        self.pubkey_payload = self._generate_pubkey_payload()
+        self.pubkey_payload = self._generate_pubkey_payload(
+            Chain.SOL if isinstance(account, SOLAccount) else Chain.ETH
+        )
         self.pubkey_signature_header = ""
         self.session = session or aiohttp.ClientSession()
 
-    def _generate_pubkey_payload(self) -> Dict[str, Any]:
+    def _generate_pubkey_payload(self, chain: Chain = Chain.ETH) -> Dict[str, Any]:
         return {
             "pubkey": json.loads(self.ephemeral_key.export_public()),
             "alg": "ECDSA",
@@ -50,12 +53,16 @@ class VmClient:
                 datetime.datetime.utcnow() + datetime.timedelta(days=1)
             ).isoformat()
             + "Z",
+            "chain": chain.value,
         }
 
     async def _generate_pubkey_signature_header(self) -> str:
         pubkey_payload = json.dumps(self.pubkey_payload).encode("utf-8").hex()
-        signable_message = encode_defunct(hexstr=pubkey_payload)
-        buffer_to_sign = signable_message.body
+        if isinstance(self.account, SOLAccount):
+            buffer_to_sign = bytes(pubkey_payload, encoding="utf-8")
+        else:
+            signable_message = encode_defunct(hexstr=pubkey_payload)
+            buffer_to_sign = signable_message.body
 
         signed_message = await self.account.sign_raw(buffer_to_sign)
         pubkey_signature = to_0x_hex(signed_message)
