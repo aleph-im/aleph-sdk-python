@@ -58,8 +58,11 @@ class VmClient:
 
     async def _generate_pubkey_signature_header(self) -> str:
         pubkey_payload = json.dumps(self.pubkey_payload).encode("utf-8").hex()
-        signable_message = encode_defunct(hexstr=pubkey_payload)
-        buffer_to_sign = signable_message.body
+        if isinstance(self.account, SOLAccount):
+            buffer_to_sign = bytes(pubkey_payload, encoding="utf-8")
+        else:
+            signable_message = encode_defunct(hexstr=pubkey_payload)
+            buffer_to_sign = signable_message.body
 
         signed_message = await self.account.sign_raw(buffer_to_sign)
         pubkey_signature = to_0x_hex(signed_message)
