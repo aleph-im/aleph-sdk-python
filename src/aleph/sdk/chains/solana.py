@@ -43,6 +43,12 @@ class SOLAccount(BaseAccount):
         sig = self._signing_key.sign(buffer)
         return sig.signature
 
+    def export_private_key(self) -> str:
+        """Export the private key using Phantom format."""
+        return base58.b58encode(
+            self.private_key + self._signing_key.verify_key.encode()
+        ).decode()
+
     def get_address(self) -> str:
         return encode(self._signing_key.verify_key)
 

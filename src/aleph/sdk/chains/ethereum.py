@@ -1,4 +1,5 @@
 import asyncio
+import base64
 from decimal import Decimal
 from pathlib import Path
 from typing import Awaitable, Optional, Union
@@ -60,6 +61,10 @@ class ETHAccount(BaseAccount):
         return ETHAccount(
             private_key=Account.from_mnemonic(mnemonic=mnemonic).key, chain=chain
         )
+
+    def export_private_key(self) -> str:
+        """Export the private key using standard format."""
+        return f"0x{base64.b16encode(self.private_key).decode().lower()}"
 
     def get_address(self) -> str:
         return self._account.address
