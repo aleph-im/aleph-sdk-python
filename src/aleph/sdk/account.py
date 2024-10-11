@@ -17,46 +17,49 @@ logger = logging.getLogger(__name__)
 
 T = TypeVar("T", bound=AccountFromPrivateKey)
 
+chain_account_map: Dict[Chain, Type[T]] = {  # type: ignore
+    Chain.ETH: ETHAccount,
+    Chain.AVAX: ETHAccount,
+    Chain.BASE: ETHAccount,
+    Chain.SOL: SOLAccount,
+}
+
 
 def load_chain_account_type(chain: Chain) -> Type[AccountFromPrivateKey]:
-    chain_account_map: Dict[Chain, Type[AccountFromPrivateKey]] = {
-        Chain.ETH: ETHAccount,
-        Chain.AVAX: ETHAccount,
-        Chain.BASE: ETHAccount,
-        Chain.SOL: SOLAccount,
-    }
-    return chain_account_map.get(chain) or ETHAccount
+    return chain_account_map.get(chain) or ETHAccount  # type: ignore
 
 
 def account_from_hex_string(
-    private_key_str: str, account_type: Optional[Type[T]], chain: Optional[Chain] = None
-) -> T:
+    private_key_str: str,
+    account_type: Optional[Type[T]],
+    chain: Optional[Chain] = None,
+) -> AccountFromPrivateKey:
     if private_key_str.startswith("0x"):
         private_key_str = private_key_str[2:]
 
     if not chain:
         if not account_type:
-            account_type = ETHAccount
-        return account_type(bytes.fromhex(private_key_str))
+            account_type = load_chain_account_type(Chain.ETH)  # type: ignore
+        return account_type(bytes.fromhex(private_key_str))  # type: ignore
 
     account_type = load_chain_account_type(chain)
     account = account_type(bytes.fromhex(private_key_str))
     if chain in get_chains_with_super_token():
         account.switch_chain(chain)
-    return account
+    return account  # type: ignore
 
 
 def account_from_file(
     private_key_path: Path,
     account_type: Optional[Type[T]],
     chain: Optional[Chain] = None,
-) -> T:
+) -> AccountFromPrivateKey:
     private_key = private_key_path.read_bytes()
 
     if not chain:
         if not account_type:
-            account_type = ETHAccount
-        return account_type(private_key)
+            account_type = load_chain_account_type(Chain.ETH)  # type: ignore
+        return account_type(private_key)  # type: ignore
 
     account_type = load_chain_account_type(chain)
     account = account_type(private_key)
@@ -82,9 +85,11 @@ def _load_account(
                 f"Detected {config.chain} account for path {settings.CONFIG_FILE}"
             )
         else:
-            account_type = ETHAccount  # Defaults to ETHAccount
+            account_type = account_type = load_chain_account_type(
+                Chain.ETH
+            )  # Defaults to ETHAccount
             logger.warning(
-                f"No main configuration data found in {settings.CONFIG_FILE}, defaulting to {account_type.__name__}"
+                f"No main configuration data found in {settings.CONFIG_FILE}, defaulting to {account_type and account_type.__name__}"
             )
 
     # Loads private key from a string
