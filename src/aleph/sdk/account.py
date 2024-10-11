@@ -21,8 +21,8 @@ def load_chain_account_type(chain: Chain) -> Type[AccountFromPrivateKey]:
     chain_account_map: Dict[Chain, Type[AccountFromPrivateKey]] = {
         Chain.ETH: ETHAccount,
         Chain.AVAX: ETHAccount,
-        Chain.SOL: SOLAccount,
         Chain.BASE: ETHAccount,
+        Chain.SOL: SOLAccount,
     }
     return chain_account_map.get(chain) or ETHAccount
 
@@ -43,34 +43,29 @@ def _load_account(
     private_key_path: Optional[Path] = None,
     account_type: Optional[Type[AccountFromPrivateKey]] = None,
 ) -> AccountFromPrivateKey:
-    """Load private key from a string or a file. takes the string argument in priority"""
-    if private_key_str or (private_key_path and private_key_path.is_file()):
-        if account_type:
-            if private_key_path and private_key_path.is_file():
-                return account_from_file(private_key_path, account_type)
-            elif private_key_str:
-                return account_from_hex_string(private_key_str, account_type)
-            else:
-                raise ValueError("Any private key specified")
-        else:
-            main_configuration = load_main_configuration(settings.CONFIG_FILE)
-            if main_configuration:
-                account_type = load_chain_account_type(main_configuration.chain)
-                logger.debug(
-                    f"Detected {main_configuration.chain} account for path {settings.CONFIG_FILE}"
-                )
-            else:
-                account_type = ETHAccount  # Defaults to ETHAccount
-                logger.warning(
-                    f"No main configuration data found in {settings.CONFIG_FILE}, defaulting to {account_type.__name__}"
-                )
-            if private_key_path and private_key_path.is_file():
-                return account_from_file(private_key_path, account_type)
-            elif private_key_str:
-                return account_from_hex_string(private_key_str, account_type)
-            else:
-                raise ValueError("Any private key specified")
+    """Load an account from a private key string or file, or from the configuration file."""
 
+    # Loads configuration if no account_type is specified
+    if not account_type:
+        config = load_main_configuration(settings.CONFIG_FILE)
+        if config and hasattr(config, "chain"):
+            account_type = load_chain_account_type(config.chain)
+            logger.debug(
+                f"Detected {config.chain} account for path {settings.CONFIG_FILE}"
+            )
+        else:
+            account_type = ETHAccount  # Defaults to ETHAccount
+            logger.warning(
+                f"No main configuration data found in {settings.CONFIG_FILE}, defaulting to {account_type.__name__}"
+            )
+
+    # Loads private key from a string
+    if private_key_str:
+        return account_from_hex_string(private_key_str, account_type)
+    # Loads private key from a file
+    elif private_key_path and private_key_path.is_file():
+        return account_from_file(private_key_path, account_type)
+    # For ledger keys
     elif settings.REMOTE_CRYPTO_HOST:
         logger.debug("Using remote account")
         loop = asyncio.get_event_loop()
@@ -80,8 +75,8 @@ def _load_account(
                 unix_socket=settings.REMOTE_CRYPTO_UNIX_SOCKET,
             )
         )
+    # Fallback: config.path if set, else generate a new private key
     else:
-        account_type = ETHAccount  # Defaults to ETHAccount
         new_private_key = get_fallback_private_key()
         account = account_type(private_key=new_private_key)
         logger.info(
