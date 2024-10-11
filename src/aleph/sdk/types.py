@@ -41,6 +41,8 @@ class AccountFromPrivateKey(Account, Protocol):
 
     def export_private_key(self) -> str: ...
 
+    def switch_chain(self, chain: Optional[str] = None) -> None: ...
+
 
 GenericMessage = TypeVar("GenericMessage", bound=AlephMessage)
 

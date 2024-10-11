@@ -10,6 +10,7 @@ from aleph.sdk.chains.ethereum import ETHAccount
 from aleph.sdk.chains.remote import RemoteAccount
 from aleph.sdk.chains.solana import SOLAccount
 from aleph.sdk.conf import load_main_configuration, settings
+from aleph.sdk.evm_utils import get_chains_with_super_token
 from aleph.sdk.types import AccountFromPrivateKey
 
 logger = logging.getLogger(__name__)
@@ -27,21 +28,48 @@ def load_chain_account_type(chain: Chain) -> Type[AccountFromPrivateKey]:
     return chain_account_map.get(chain) or ETHAccount
 
 
-def account_from_hex_string(private_key_str: str, account_type: Type[T]) -> T:
+def account_from_hex_string(
+    private_key_str: str, account_type: Optional[Type[T]], chain: Optional[Chain] = None
+) -> T:
     if private_key_str.startswith("0x"):
         private_key_str = private_key_str[2:]
-    return account_type(bytes.fromhex(private_key_str))
+
+    if not chain:
+        if not account_type:
+            account_type = ETHAccount
+        return account_type(bytes.fromhex(private_key_str))
+
+    account_type = load_chain_account_type(chain)
+    account = account_type(bytes.fromhex(private_key_str))
+    if chain in get_chains_with_super_token():
+        account.switch_chain(chain)
+    return account
 
 
-def account_from_file(private_key_path: Path, account_type: Type[T]) -> T:
+def account_from_file(
+    private_key_path: Path,
+    account_type: Optional[Type[T]],
+    chain: Optional[Chain] = None,
+) -> T:
     private_key = private_key_path.read_bytes()
-    return account_type(private_key)
+
+    if not chain:
+        if not account_type:
+            account_type = ETHAccount
+        return account_type(private_key)
+
+    account_type = load_chain_account_type(chain)
+    account = account_type(private_key)
+    if chain in get_chains_with_super_token():
+        account.switch_chain(chain)
+    return account
 
 
 def _load_account(
     private_key_str: Optional[str] = None,
     private_key_path: Optional[Path] = None,
     account_type: Optional[Type[AccountFromPrivateKey]] = None,
+    chain: Optional[Chain] = None,
 ) -> AccountFromPrivateKey:
     """Load an account from a private key string or file, or from the configuration file."""
 
@@ -61,10 +89,10 @@ def _load_account(
 
     # Loads private key from a string
     if private_key_str:
-        return account_from_hex_string(private_key_str, account_type)
+        return account_from_hex_string(private_key_str, account_type, chain)
     # Loads private key from a file
     elif private_key_path and private_key_path.is_file():
-        return account_from_file(private_key_path, account_type)
+        return account_from_file(private_key_path, account_type, chain)
     # For ledger keys
     elif settings.REMOTE_CRYPTO_HOST:
         logger.debug("Using remote account")
@@ -78,7 +106,9 @@ def _load_account(
     # Fallback: config.path if set, else generate a new private key
     else:
         new_private_key = get_fallback_private_key()
-        account = account_type(private_key=new_private_key)
+        account = account_from_hex_string(
+            bytes.hex(new_private_key), account_type, chain
+        )
         logger.info(
             f"Generated fallback private key with address {account.get_address()}"
         )
