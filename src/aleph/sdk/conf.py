@@ -43,7 +43,7 @@ class Settings(BaseSettings):
     REMOTE_CRYPTO_HOST: Optional[str] = None
     REMOTE_CRYPTO_UNIX_SOCKET: Optional[str] = None
     ADDRESS_TO_USE: Optional[str] = None
-    HTTP_REQUEST_TIMEOUT = 15.0
+    HTTP_REQUEST_TIMEOUT: float = 15.0
 
     DEFAULT_CHANNEL: str = "ALEPH-CLOUDSOLUTIONS"
     DEFAULT_RUNTIME_ID: str = (
