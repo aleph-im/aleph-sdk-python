@@ -28,15 +28,13 @@ from typing import (
 from uuid import UUID
 from zipfile import BadZipFile, ZipFile
 
-from pydantic import BaseModel
-
+import pydantic_core
 from aleph_message.models import ItemHash, MessageType
 from aleph_message.models.execution.program import Encoding
 from aleph_message.models.execution.volume import MachineVolume
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from jwcrypto.jwa import JWA
-import pydantic_core
 
 from aleph.sdk.conf import settings
 from aleph.sdk.types import GenericMessage, SEVInfo, SEVMeasurement
