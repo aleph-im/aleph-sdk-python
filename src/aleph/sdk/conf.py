@@ -5,11 +5,10 @@ from pathlib import Path
 from shutil import which
 from typing import ClassVar, Dict, List, Optional, Union
 
-from pydantic_settings import BaseSettings
-
 from aleph_message.models import Chain
 from aleph_message.models.execution.environment import HypervisorType
 from pydantic import BaseModel, ConfigDict, Field
+from pydantic_settings import BaseSettings
 
 from aleph.sdk.types import ChainInfo
 
@@ -223,9 +222,7 @@ class Settings(BaseSettings):
     DNS_RESOLVERS: ClassVar[List[str]] = ["9.9.9.9", "1.1.1.1"]
 
     model_config = ConfigDict(
-       env_prefix="ALEPH_",
-       case_sensitive=False,
-       env_file=".env"
+        env_prefix="ALEPH_", case_sensitive=False, env_file=".env"
     )
 
 
