@@ -77,6 +77,6 @@ class ChainInfo(BaseModel):
 
     chain_id: int
     rpc: str
-    token: str
+    token: Optional[str] = None
     super_token: Optional[str] = None
     active: bool = True

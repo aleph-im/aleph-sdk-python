@@ -99,10 +99,9 @@ class Settings(BaseSettings):
             active=False,
         ),
         # MAINNETS
-        Chain.ETH: ChainInfo(
-            chain_id=1,
-            rpc="https://eth-mainnet.public.blastapi.io",
-            token="0x27702a26126e0B3702af63Ee09aC4d1A084EF628",
+        Chain.ARBITRUM: ChainInfo(
+            chain_id=42161,
+            rpc="https://arbitrum-one.publicnode.com",
         ),
         Chain.AVAX: ChainInfo(
             chain_id=43114,
@@ -116,11 +115,64 @@ class Settings(BaseSettings):
             token="0xc0Fbc4967259786C743361a5885ef49380473dCF",
             super_token="0xc0Fbc4967259786C743361a5885ef49380473dCF",
         ),
+        Chain.BLAST: ChainInfo(
+            chain_id=81457,
+            rpc="https://blastl2-mainnet.public.blastapi.io",
+        ),
+        Chain.BOB: ChainInfo(
+            chain_id=60808,
+            rpc="https://bob-mainnet.public.blastapi.io",
+        ),
         Chain.BSC: ChainInfo(
             chain_id=56,
             rpc="https://binance.llamarpc.com",
             token="0x82D2f8E02Afb160Dd5A480a617692e62de9038C4",
             active=False,
+        ),
+        Chain.CYBER: ChainInfo(
+            chain_id=7560,
+            rpc="https://rpc.cyber.co",
+        ),
+        Chain.ETH: ChainInfo(
+            chain_id=1,
+            rpc="https://eth-mainnet.public.blastapi.io",
+            token="0x27702a26126e0B3702af63Ee09aC4d1A084EF628",
+        ),
+        Chain.FRAXTAL: ChainInfo(
+            chain_id=252,
+            rpc="https://rpc.frax.com",
+        ),
+        Chain.LINEA: ChainInfo(
+            chain_id=59144,
+            rpc="https://linea-rpc.publicnode.com",
+        ),
+        Chain.LISK: ChainInfo(
+            chain_id=1135,
+            rpc="https://rpc.api.lisk.com",
+        ),
+        Chain.METIS: ChainInfo(
+            chain_id=1088,
+            rpc="https://metis.drpc.org",
+        ),
+        Chain.MODE: ChainInfo(
+            chain_id=34443,
+            rpc="https://mode.drpc.org",
+        ),
+        Chain.OPTIMISM: ChainInfo(
+            chain_id=10,
+            rpc="https://optimism-rpc.publicnode.com",
+        ),
+        Chain.POL: ChainInfo(
+            chain_id=137,
+            rpc="https://polygon.gateway.tenderly.co",
+        ),
+        Chain.WORLDCHAIN: ChainInfo(
+            chain_id=480,
+            rpc="https://worldchain-mainnet.gateway.tenderly.co",
+        ),
+        Chain.ZORA: ChainInfo(
+            chain_id=7777777,
+            rpc="https://rpc.zora.energy/",
         ),
     }
     # Add all placeholders to allow easy dynamic setup of CHAINS

@@ -7,8 +7,10 @@ from aleph_message.models import Chain
 
 from aleph.sdk.chains.common import get_fallback_private_key
 from aleph.sdk.chains.ethereum import ETHAccount
+from aleph.sdk.chains.evm import EVMAccount
 from aleph.sdk.chains.remote import RemoteAccount
 from aleph.sdk.chains.solana import SOLAccount
+from aleph.sdk.chains.substrate import DOTAccount
 from aleph.sdk.conf import load_main_configuration, settings
 from aleph.sdk.evm_utils import get_chains_with_super_token
 from aleph.sdk.types import AccountFromPrivateKey
@@ -18,10 +20,24 @@ logger = logging.getLogger(__name__)
 T = TypeVar("T", bound=AccountFromPrivateKey)
 
 chain_account_map: Dict[Chain, Type[T]] = {  # type: ignore
-    Chain.ETH: ETHAccount,
+    Chain.ARBITRUM: EVMAccount,
     Chain.AVAX: ETHAccount,
     Chain.BASE: ETHAccount,
+    Chain.BLAST: EVMAccount,
+    Chain.BOB: EVMAccount,
+    Chain.CYBER: EVMAccount,
+    Chain.DOT: DOTAccount,
+    Chain.ETH: ETHAccount,
+    Chain.FRAXTAL: EVMAccount,
+    Chain.LINEA: EVMAccount,
+    Chain.LISK: EVMAccount,
+    Chain.METIS: EVMAccount,
+    Chain.MODE: EVMAccount,
+    Chain.OPTIMISM: EVMAccount,
+    Chain.POL: EVMAccount,
     Chain.SOL: SOLAccount,
+    Chain.WORLDCHAIN: EVMAccount,
+    Chain.ZORA: EVMAccount,
 }
 
 
