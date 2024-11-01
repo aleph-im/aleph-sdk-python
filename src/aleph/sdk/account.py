@@ -78,7 +78,7 @@ def account_from_file(
         return account_type(private_key)  # type: ignore
 
     account_type = load_chain_account_type(chain)
-    account = account_type(private_key)
+    account = account_type(private_key, chain)
     if chain in get_chains_with_super_token():
         account.switch_chain(chain)
     return account
@@ -101,7 +101,7 @@ def _load_account(
                 f"Detected {config.chain} account for path {settings.CONFIG_FILE}"
             )
         else:
-            account_type = account_type = load_chain_account_type(
+            account_type = load_chain_account_type(
                 Chain.ETH
             )  # Defaults to ETHAccount
             logger.warning(
