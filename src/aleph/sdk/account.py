@@ -93,7 +93,7 @@ def _load_account(
     """Load an account from a private key string or file, or from the configuration file."""
 
     # Loads configuration if no account_type is specified
-    if not account_type:
+    if not account_type or not chain:
         config = load_main_configuration(settings.CONFIG_FILE)
         if config and hasattr(config, "chain"):
             account_type = load_chain_account_type(config.chain)
@@ -101,9 +101,7 @@ def _load_account(
                 f"Detected {config.chain} account for path {settings.CONFIG_FILE}"
             )
         else:
-            account_type = load_chain_account_type(
-                Chain.ETH
-            )  # Defaults to ETHAccount
+            account_type = load_chain_account_type(Chain.ETH)  # Defaults to ETHAccount
             logger.warning(
                 f"No main configuration data found in {settings.CONFIG_FILE}, defaulting to {account_type and account_type.__name__}"
             )
