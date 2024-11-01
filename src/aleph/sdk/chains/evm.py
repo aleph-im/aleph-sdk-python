@@ -13,7 +13,7 @@ class EVMAccount(ETHAccount):
     def __init__(self, private_key: bytes, chain: Optional[Chain] = None):
         super().__init__(private_key, chain)
         if chain:
-            self.CHAIN = chain.value
+            self.CHAIN = chain
 
     @staticmethod
     def from_mnemonic(mnemonic: str, chain: Optional[Chain] = None) -> "EVMAccount":
