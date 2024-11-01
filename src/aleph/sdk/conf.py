@@ -187,6 +187,8 @@ class Settings(BaseSettings):
     CHAINS_BASE_RPC: Optional[str]
     CHAINS_BSC_RPC: Optional[str]
 
+    DEFAULT_CHAIN: Chain = Chain.ETH
+
     # Dns resolver
     DNS_IPFS_DOMAIN = "ipfs.public.aleph.sh"
     DNS_PROGRAM_DOMAIN = "program.public.aleph.sh"
