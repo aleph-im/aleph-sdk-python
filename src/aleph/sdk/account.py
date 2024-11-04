@@ -7,8 +7,10 @@ from aleph_message.models import Chain
 
 from aleph.sdk.chains.common import get_fallback_private_key
 from aleph.sdk.chains.ethereum import ETHAccount
+from aleph.sdk.chains.evm import EVMAccount
 from aleph.sdk.chains.remote import RemoteAccount
 from aleph.sdk.chains.solana import SOLAccount
+from aleph.sdk.chains.substrate import DOTAccount
 from aleph.sdk.conf import load_main_configuration, settings
 from aleph.sdk.evm_utils import get_chains_with_super_token
 from aleph.sdk.types import AccountFromPrivateKey
@@ -18,10 +20,24 @@ logger = logging.getLogger(__name__)
 T = TypeVar("T", bound=AccountFromPrivateKey)
 
 chain_account_map: Dict[Chain, Type[T]] = {  # type: ignore
-    Chain.ETH: ETHAccount,
+    Chain.ARBITRUM: EVMAccount,
     Chain.AVAX: ETHAccount,
     Chain.BASE: ETHAccount,
+    Chain.BLAST: EVMAccount,
+    Chain.BOB: EVMAccount,
+    Chain.CYBER: EVMAccount,
+    Chain.DOT: DOTAccount,
+    Chain.ETH: ETHAccount,
+    Chain.FRAXTAL: EVMAccount,
+    Chain.LINEA: EVMAccount,
+    Chain.LISK: EVMAccount,
+    Chain.METIS: EVMAccount,
+    Chain.MODE: EVMAccount,
+    Chain.OPTIMISM: EVMAccount,
+    Chain.POL: EVMAccount,
     Chain.SOL: SOLAccount,
+    Chain.WORLDCHAIN: EVMAccount,
+    Chain.ZORA: EVMAccount,
 }
 
 
@@ -43,7 +59,7 @@ def account_from_hex_string(
         return account_type(bytes.fromhex(private_key_str))  # type: ignore
 
     account_type = load_chain_account_type(chain)
-    account = account_type(bytes.fromhex(private_key_str))
+    account = account_type(bytes.fromhex(private_key_str), chain)
     if chain in get_chains_with_super_token():
         account.switch_chain(chain)
     return account  # type: ignore
@@ -62,7 +78,7 @@ def account_from_file(
         return account_type(private_key)  # type: ignore
 
     account_type = load_chain_account_type(chain)
-    account = account_type(private_key)
+    account = account_type(private_key, chain)
     if chain in get_chains_with_super_token():
         account.switch_chain(chain)
     return account
@@ -76,28 +92,29 @@ def _load_account(
 ) -> AccountFromPrivateKey:
     """Load an account from a private key string or file, or from the configuration file."""
 
-    # Loads configuration if no account_type is specified
-    if not account_type:
-        config = load_main_configuration(settings.CONFIG_FILE)
+    config = load_main_configuration(settings.CONFIG_FILE)
+    chain_to_use = settings.DEFAULT_CHAIN
+
+    if not chain:
         if config and hasattr(config, "chain"):
-            account_type = load_chain_account_type(config.chain)
+            chain_to_use = config.chain
             logger.debug(
                 f"Detected {config.chain} account for path {settings.CONFIG_FILE}"
             )
-        else:
-            account_type = account_type = load_chain_account_type(
-                Chain.ETH
-            )  # Defaults to ETHAccount
-            logger.warning(
-                f"No main configuration data found in {settings.CONFIG_FILE}, defaulting to {account_type and account_type.__name__}"
-            )
+
+    # Loads configuration if no account_type is specified
+    if not account_type:
+        account_type = load_chain_account_type(chain_to_use)
+        logger.warning(
+            f"No main configuration data found in {settings.CONFIG_FILE}, defaulting to {account_type and account_type.__name__}"
+        )
 
     # Loads private key from a string
     if private_key_str:
-        return account_from_hex_string(private_key_str, account_type, chain)
+        return account_from_hex_string(private_key_str, account_type, chain_to_use)
     # Loads private key from a file
     elif private_key_path and private_key_path.is_file():
-        return account_from_file(private_key_path, account_type, chain)
+        return account_from_file(private_key_path, account_type, chain_to_use)
     # For ledger keys
     elif settings.REMOTE_CRYPTO_HOST:
         logger.debug("Using remote account")
@@ -112,7 +129,7 @@ def _load_account(
     else:
         new_private_key = get_fallback_private_key()
         account = account_from_hex_string(
-            bytes.hex(new_private_key), account_type, chain
+            bytes.hex(new_private_key), account_type, chain_to_use
         )
         logger.info(
             f"Generated fallback private key with address {account.get_address()}"
