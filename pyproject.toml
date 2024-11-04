@@ -61,7 +61,7 @@ optional-dependencies.encryption = [
   "eciespy>=0.3.13; python_version>='3.11'",
 ]
 optional-dependencies.ledger = [
-  "ledgereth==0.9.1",
+  "ledgereth==0.10",
 ]
 optional-dependencies.mqtt = [
   "aiomqtt<=0.1.3",
