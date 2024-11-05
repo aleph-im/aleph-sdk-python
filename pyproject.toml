@@ -30,16 +30,16 @@ dynamic = [ "version" ]
 dependencies = [
   "aiohttp>=3.8.3",
   "aioresponses>=0.7.6",
-  "aleph-message @ git+https://github.com/aleph-im/aleph-message#egg=main",
+  "aleph-message @ git+https://github.com/aleph-im/aleph-message@108-upgrade-pydantic-version#egg=aleph-message",
   "aleph-superfluid>=0.2.1",
-  "base58==2.1.1",                                                          # Needed now as default with _load_account changement
+  "base58==2.1.1",                                                                                                # Needed now as default with _load_account changement
   "coincurve; python_version<'3.11'",
   "coincurve>=19; python_version>='3.11'",
   "eth-abi>=4; python_version>='3.11'",
   "eth-typing==4.3.1",
   "jwcrypto==1.5.6",
   "pydantic-settings>=2",
-  "pynacl==1.5",                                                            # Needed now as default with _load_account changement
+  "pynacl==1.5",                                                                                                  # Needed now as default with _load_account changement
   "python-magic",
   "typing-extensions",
   "web3==6.3",
