@@ -3,7 +3,7 @@ import logging
 import os
 from pathlib import Path
 from shutil import which
-from typing import ClassVar, Dict, Optional, Union, List
+from typing import ClassVar, Dict, List, Optional, Union
 
 from aleph_message.models import Chain
 from aleph_message.models.execution.environment import HypervisorType
