@@ -35,7 +35,7 @@ dependencies = [
   "base58==2.1.1",                                                                                                # Needed now as default with _load_account changement
   "coincurve; python_version<'3.11'",
   "coincurve>=19.0.0; python_version>='3.11'",
-  "eth-abi>=4.0.O; python_version>='3.11'",
+  "eth-abi>=4.0.0; python_version>='3.11'",
   "eth-typing==4.3.1",
   "jwcrypto==1.5.6",
   "pydantic-settings>=2",
