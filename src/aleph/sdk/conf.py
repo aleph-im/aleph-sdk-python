@@ -3,7 +3,7 @@ import logging
 import os
 from pathlib import Path
 from shutil import which
-from typing import ClassVar, Dict, Optional, Union
+from typing import ClassVar, Dict, Optional, Union, List
 
 from aleph_message.models import Chain
 from aleph_message.models.execution.environment import HypervisorType
@@ -141,7 +141,7 @@ class Settings(BaseSettings):
     DNS_PROGRAM_DOMAIN: ClassVar[str] = "program.public.aleph.sh"
     DNS_INSTANCE_DOMAIN: ClassVar[str] = "instance.public.aleph.sh"
     DNS_STATIC_DOMAIN: ClassVar[str] = "static.public.aleph.sh"
-    DNS_RESOLVERS: ClassVar[list[str]] = ["9.9.9.9", "1.1.1.1"]
+    DNS_RESOLVERS: ClassVar[List[str]] = ["9.9.9.9", "1.1.1.1"]
 
     model_config = ConfigDict(
         env_prefix="ALEPH_", case_sensitive=False, env_file=".env"
