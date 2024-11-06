@@ -93,28 +93,35 @@ def _load_account(
     """Load an account from a private key string or file, or from the configuration file."""
 
     config = load_main_configuration(settings.CONFIG_FILE)
-    chain_to_use = settings.DEFAULT_CHAIN
+    default_chain = settings.DEFAULT_CHAIN
 
     if not chain:
         if config and hasattr(config, "chain"):
-            chain_to_use = config.chain
+            chain = config.chain
             logger.debug(
                 f"Detected {config.chain} account for path {settings.CONFIG_FILE}"
             )
+        else:
+            chain = default_chain
+            logger.warning(
+                f"No main configuration found on path {settings.CONFIG_FILE}, defaulting to {chain}"
+            )
+    else:
+        chain = default_chain
 
     # Loads configuration if no account_type is specified
     if not account_type:
-        account_type = load_chain_account_type(chain_to_use)
-        logger.warning(
-            f"No main configuration data found in {settings.CONFIG_FILE}, defaulting to {account_type and account_type.__name__}"
+        account_type = load_chain_account_type(chain)
+        logger.debug(
+            f"No account type specified defaulting to {account_type and account_type.__name__}"
         )
 
     # Loads private key from a string
     if private_key_str:
-        return account_from_hex_string(private_key_str, account_type, chain_to_use)
+        return account_from_hex_string(private_key_str, account_type, chain)
     # Loads private key from a file
     elif private_key_path and private_key_path.is_file():
-        return account_from_file(private_key_path, account_type, chain_to_use)
+        return account_from_file(private_key_path, account_type, chain)
     # For ledger keys
     elif settings.REMOTE_CRYPTO_HOST:
         logger.debug("Using remote account")
@@ -129,7 +136,7 @@ def _load_account(
     else:
         new_private_key = get_fallback_private_key()
         account = account_from_hex_string(
-            bytes.hex(new_private_key), account_type, chain_to_use
+            bytes.hex(new_private_key), account_type, chain
         )
         logger.info(
             f"Generated fallback private key with address {account.get_address()}"
