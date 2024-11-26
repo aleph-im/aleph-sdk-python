@@ -6,7 +6,7 @@ from pydantic import BaseModel
 
 __all__ = ("StorageEnum", "Account", "AccountFromPrivateKey", "GenericMessage")
 
-from aleph_message.models import AlephMessage
+from aleph_message.models import AlephMessage, Chain
 
 
 class StorageEnum(str, Enum):
@@ -35,7 +35,7 @@ class Account(Protocol):
 class AccountFromPrivateKey(Account, Protocol):
     """Only accounts that are initialized from a private key string are supported."""
 
-    def __init__(self, private_key: bytes): ...
+    def __init__(self, private_key: bytes, chain: Chain): ...
 
     async def sign_raw(self, buffer: bytes) -> bytes: ...
 
@@ -77,6 +77,6 @@ class ChainInfo(BaseModel):
 
     chain_id: int
     rpc: str
-    token: str
+    token: Optional[str] = None
     super_token: Optional[str] = None
     active: bool = True
