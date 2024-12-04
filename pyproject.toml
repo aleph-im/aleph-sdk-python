@@ -155,6 +155,7 @@ dependencies = [
   "ruff==0.4.8",
   "isort==5.13.2",
   "pyproject-fmt==2.2.1",
+  "pydantic-settings>=2",
 ]
 [tool.hatch.envs.linting.scripts]
 typing = "mypy --config-file=pyproject.toml {args:} ./src/ ./tests/ ./examples/"

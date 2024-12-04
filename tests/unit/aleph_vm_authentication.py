@@ -75,7 +75,7 @@ class SignedPubKeyHeader(BaseModel):
         """Convert the payload from hexadecimal to bytes"""
         return bytes_from_hex(value.decode())
 
-    @model_validator(mode="after")
+    @model_validator(mode="after")  # type: ignore
     def check_expiry(cls, values: SignedPubKeyHeader) -> SignedPubKeyHeader:
         """Check that the token has not expired"""
         payload: bytes = values.payload
@@ -87,7 +87,7 @@ class SignedPubKeyHeader(BaseModel):
 
         return values
 
-    @model_validator(mode="after")
+    @model_validator(mode="after")  # type: ignore
     def check_signature(cls, values: SignedPubKeyHeader) -> SignedPubKeyHeader:
         signature: bytes = values.signature
         payload: bytes = values.payload
@@ -262,7 +262,7 @@ async def authenticate_websocket_message(
     signed_operation = SignedOperation.model_validate(message["X-SignedOperation"])
     if signed_operation.content.domain != domain_name:
         logger.debug(
-            f"Invalid domain '{signed_pubkey.content.domain}' != '{domain_name}'"
+            f"Invalid domain '{signed_operation.content.domain}' != '{domain_name}'"
         )
         raise web.HTTPUnauthorized(reason="Invalid domain")
     return verify_signed_operation(signed_operation, signed_pubkey)

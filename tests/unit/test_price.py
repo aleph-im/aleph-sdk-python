@@ -18,7 +18,7 @@ async def test_get_program_price_valid():
     mock_session = make_mock_get_session(expected_response)
     async with mock_session:
         response = await mock_session.get_program_price("cacacacacacaca")
-        assert response == PriceResponse(**expected_response)
+        assert response == PriceResponse(**expected_response)  # type: ignore
 
 
 @pytest.mark.asyncio
