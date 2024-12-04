@@ -28,13 +28,13 @@ from typing import (
 from uuid import UUID
 from zipfile import BadZipFile, ZipFile
 
+import pydantic_core
 from aleph_message.models import ItemHash, MessageType
 from aleph_message.models.execution.program import Encoding
 from aleph_message.models.execution.volume import MachineVolume
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from jwcrypto.jwa import JWA
-from pydantic.json import pydantic_encoder
 
 from aleph.sdk.conf import settings
 from aleph.sdk.types import GenericMessage, SEVInfo, SEVMeasurement
@@ -173,19 +173,15 @@ def extended_json_encoder(obj: Any) -> Any:
     elif isinstance(obj, time):
         return obj.hour * 3600 + obj.minute * 60 + obj.second + obj.microsecond / 1e6
     else:
-        return pydantic_encoder(obj)
+        return pydantic_core.to_jsonable_python(obj)
 
 
 def parse_volume(volume_dict: Union[Mapping, MachineVolume]) -> MachineVolume:
     # Python 3.9 does not support `isinstance(volume_dict, MachineVolume)`,
     # so we need to iterate over all types.
-    if any(
-        isinstance(volume_dict, volume_type) for volume_type in get_args(MachineVolume)
-    ):
-        return volume_dict
     for volume_type in get_args(MachineVolume):
         try:
-            return volume_type.parse_obj(volume_dict)
+            return volume_type.model_validate(volume_dict)
         except ValueError:
             continue
     else:
