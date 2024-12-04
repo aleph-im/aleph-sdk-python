@@ -75,7 +75,7 @@ class SignedPubKeyHeader(BaseModel):
         """Convert the payload from hexadecimal to bytes"""
         return bytes_from_hex(value.decode())
 
-    @model_validator(mode="after")
+    @model_validator(mode="after")  # type: ignore
     def check_expiry(cls, values: SignedPubKeyHeader) -> SignedPubKeyHeader:
         """Check that the token has not expired"""
         payload: bytes = values.payload
@@ -87,7 +87,7 @@ class SignedPubKeyHeader(BaseModel):
 
         return values
 
-    @model_validator(mode="after")
+    @model_validator(mode="after")  # type: ignore
     def check_signature(cls, values: SignedPubKeyHeader) -> SignedPubKeyHeader:
         signature: bytes = values.signature
         payload: bytes = values.payload

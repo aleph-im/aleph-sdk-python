@@ -7,8 +7,8 @@ from typing import ClassVar, Dict, List, Optional, Union
 
 from aleph_message.models import Chain
 from aleph_message.models.execution.environment import HypervisorType
-from pydantic import BaseModel, ConfigDict, Field
-from pydantic_settings import BaseSettings
+from pydantic import BaseModel, Field
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from aleph.sdk.types import ChainInfo
 
@@ -221,7 +221,7 @@ class Settings(BaseSettings):
     DNS_STATIC_DOMAIN: ClassVar[str] = "static.public.aleph.sh"
     DNS_RESOLVERS: ClassVar[List[str]] = ["9.9.9.9", "1.1.1.1"]
 
-    model_config = ConfigDict(
+    model_config = SettingsConfigDict(
         env_prefix="ALEPH_", case_sensitive=False, env_file=".env"
     )
 
@@ -234,7 +234,7 @@ class MainConfiguration(BaseModel):
     path: Path
     chain: Chain
 
-    model_config = ConfigDict(use_enum_values=True)
+    model_config = SettingsConfigDict(use_enum_values=True)
 
 
 # Settings singleton
