@@ -182,11 +182,38 @@ class Settings(BaseSettings):
     CHAINS_AVAX_ACTIVE: Optional[bool] = None
     CHAINS_BASE_ACTIVE: Optional[bool] = None
     CHAINS_BSC_ACTIVE: Optional[bool] = None
+    CHAINS_ARBITRUM_ACTIVE: Optional[bool] = None
+    CHAINS_BLAST_ACTIVE: Optional[bool] = None
+    CHAINS_BOB_ACTIVE: Optional[bool] = None
+    CHAINS_CYBER_ACTIVE: Optional[bool] = None
+    CHAINS_FRAXTAL_ACTIVE: Optional[bool] = None
+    CHAINS_LINEA_ACTIVE: Optional[bool] = None
+    CHAINS_LISK_ACTIVE: Optional[bool] = None
+    CHAINS_METIS_ACTIVE: Optional[bool] = None
+    CHAINS_MODE_ACTIVE: Optional[bool] = None
+    CHAINS_OPTIMISM_ACTIVE: Optional[bool] = None
+    CHAINS_POL_ACTIVE: Optional[bool] = None
+    CHAINS_WORLDCHAIN_ACTIVE: Optional[bool] = None
+    CHAINS_ZORA_ACTIVE: Optional[bool] = None
+
     CHAINS_SEPOLIA_RPC: Optional[str] = None
     CHAINS_ETH_RPC: Optional[str] = None
     CHAINS_AVAX_RPC: Optional[str] = None
     CHAINS_BASE_RPC: Optional[str] = None
     CHAINS_BSC_RPC: Optional[str] = None
+    CHAINS_ARBITRUM_RPC: Optional[str] = None
+    CHAINS_BLAST_RPC: Optional[str] = None
+    CHAINS_BOB_RPC: Optional[str] = None
+    CHAINS_CYBER_RPC: Optional[str] = None
+    CHAINS_FRAXTAL_RPC: Optional[str] = None
+    CHAINS_LINEA_RPC: Optional[str] = None
+    CHAINS_LISK_RPC: Optional[str] = None
+    CHAINS_METIS_RPC: Optional[str] = None
+    CHAINS_MODE_RPC: Optional[str] = None
+    CHAINS_OPTIMISM_RPC: Optional[str] = None
+    CHAINS_POL_RPC: Optional[str] = None
+    CHAINS_WORLDCHAIN_RPC: Optional[str] = None
+    CHAINS_ZORA_RPC: Optional[str] = None
 
     DEFAULT_CHAIN: Chain = Chain.ETH
 

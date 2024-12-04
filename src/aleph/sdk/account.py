@@ -54,12 +54,14 @@ def account_from_hex_string(
         private_key_str = private_key_str[2:]
 
     if not chain:
-        if not account_type:
-            account_type = load_chain_account_type(Chain.ETH)  # type: ignore
-        return account_type(bytes.fromhex(private_key_str))  # type: ignore
+        chain = settings.DEFAULT_CHAIN
+    if not account_type:
+        account_type = load_chain_account_type(chain)  # type: ignore
+    account = account_type(
+        bytes.fromhex(private_key_str),
+        **({"chain": chain} if type(account_type) in [ETHAccount, EVMAccount] else {}),
+    )  # type: ignore
 
-    account_type = load_chain_account_type(chain)
-    account = account_type(bytes.fromhex(private_key_str), chain)
     if chain in get_chains_with_super_token():
         account.switch_chain(chain)
     return account  # type: ignore
@@ -73,12 +75,14 @@ def account_from_file(
     private_key = private_key_path.read_bytes()
 
     if not chain:
-        if not account_type:
-            account_type = load_chain_account_type(Chain.ETH)  # type: ignore
-        return account_type(private_key)  # type: ignore
+        chain = settings.DEFAULT_CHAIN
+    if not account_type:
+        account_type = load_chain_account_type(chain)  # type: ignore
+    account = account_type(
+        private_key,
+        **({"chain": chain} if type(account_type) in [ETHAccount, EVMAccount] else {}),
+    )  # type: ignore
 
-    account_type = load_chain_account_type(chain)
-    account = account_type(private_key, chain)
     if chain in get_chains_with_super_token():
         account.switch_chain(chain)
     return account
@@ -106,8 +110,6 @@ def _load_account(
             logger.warning(
                 f"No main configuration found on path {settings.CONFIG_FILE}, defaulting to {chain}"
             )
-    else:
-        chain = default_chain
 
     # Loads configuration if no account_type is specified
     if not account_type:
