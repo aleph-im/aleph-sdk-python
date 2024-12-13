@@ -5,6 +5,7 @@ from typing import Any, AsyncGenerator, Dict, List, Optional, Tuple
 from urllib.parse import urlparse
 
 import aiohttp
+from aiohttp.client import _RequestContextManager
 from aleph_message.models import Chain, ItemHash
 from eth_account.messages import encode_defunct
 from jwcrypto import jwk
@@ -126,6 +127,32 @@ class VmClient:
         except aiohttp.ClientError as e:
             logger.error(f"HTTP error during operation {operation}: {str(e)}")
             return None, str(e)
+
+    def operate(
+        self, vm_id: ItemHash, operation: str, method: str = "POST"
+    ) -> _RequestContextManager:
+        """Request a CRN an operation for a VM (eg reboot, logs)
+
+        This operation is authenticated via the user wallet.
+        Use as an async context manager.
+        e.g  `async with client.operate(vm_id=item_hash, operation="logs", method="GET") as response:`
+        """
+
+        async def authenticated_request():
+            if not self.pubkey_signature_header:
+                self.pubkey_signature_header = (
+                    await self._generate_pubkey_signature_header()
+                )
+
+            url, header = await self._generate_header(
+                vm_id=vm_id, operation=operation, method=method
+            )
+            resp = await self.session._request(
+                method=method, str_or_url=url, headers=header
+            )
+            return resp
+
+        return _RequestContextManager(authenticated_request())
 
     async def get_logs(self, vm_id: ItemHash) -> AsyncGenerator[str, None]:
         if not self.pubkey_signature_header:
