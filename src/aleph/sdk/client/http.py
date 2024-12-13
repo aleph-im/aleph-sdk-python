@@ -20,7 +20,7 @@ from typing import (
 import aiohttp
 from aiohttp.web import HTTPNotFound
 from aleph_message import parse_message
-from aleph_message.models import AlephMessage, ItemHash, ItemType
+from aleph_message.models import AlephMessage, ItemHash, ItemType, MessageType
 from aleph_message.status import MessageStatus
 from pydantic import ValidationError
 
@@ -33,13 +33,14 @@ from ..exceptions import (
 )
 from ..query.filters import MessageFilter, PostFilter
 from ..query.responses import MessagesResponse, Post, PostsResponse, PriceResponse
-from ..types import GenericMessage
+from ..types import GenericMessage, StoredContent
 from ..utils import (
     Writable,
     check_unix_socket_valid,
     copy_async_readable_to_buffer,
     extended_json_encoder,
     get_message_type_value,
+    safe_getattr,
 )
 from .abstract import AlephClient
 
@@ -469,3 +470,36 @@ class AlephHttpClient(AlephClient):
             resp.raise_for_status()
             result = await resp.json()
             return MessageStatus(result["status"])
+
+    async def get_stored_content(
+        self,
+        item_hash: str,
+    ) -> StoredContent:
+        """return the underlying content for a store message"""
+
+        result, resp = None, None
+        try:
+            message: AlephMessage
+            message, status = await self.get_message(
+                item_hash=ItemHash(item_hash), with_status=True
+            )
+            if status != MessageStatus.PROCESSED:
+                resp = f"Invalid message status: {status}"
+            elif message.type != MessageType.store:
+                resp = f"Invalid message type: {message.type}"
+            elif not message.content.item_hash:
+                resp = f"Invalid CID: {message.content.item_hash}"
+            else:
+                filename = safe_getattr(message.content, "metadata.name")
+                hash = message.content.item_hash
+                url = (
+                    f"{self.api_server}/api/v0/storage/raw/"
+                    if len(hash) == 64
+                    else settings.IPFS_GATEWAY
+                ) + hash
+                result = StoredContent(filename=filename, hash=hash, url=url)
+        except MessageNotFoundError:
+            resp = f"Message not found: {item_hash}"
+        except ForgottenMessageError:
+            resp = f"Message forgotten: {item_hash}"
+        return result if result else StoredContent(error=resp)
