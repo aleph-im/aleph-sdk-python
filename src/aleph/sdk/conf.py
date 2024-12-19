@@ -85,6 +85,7 @@ class Settings(BaseSettings):
 
     VM_URL_PATH = "https://aleph.sh/vm/{hash}"
     VM_URL_HOST = "https://{hash_base32}.aleph.sh"
+    IPFS_GATEWAY = "https://ipfs.aleph.cloud/ipfs/"
 
     # Web3Provider settings
     TOKEN_DECIMALS = 18

@@ -80,3 +80,10 @@ class ChainInfo(BaseModel):
     token: Optional[str] = None
     super_token: Optional[str] = None
     active: bool = True
+
+
+class StoredContent(BaseModel):
+    filename: Optional[str]
+    hash: Optional[str]
+    url: Optional[str]
+    error: Optional[str]
