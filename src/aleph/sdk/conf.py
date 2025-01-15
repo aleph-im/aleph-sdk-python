@@ -84,9 +84,9 @@ class Settings(BaseSettings):
 
     CODE_USES_SQUASHFS: bool = which("mksquashfs") is not None  # True if command exists
 
-    VM_URL_PATH = "https://aleph.sh/vm/{hash}"
-    VM_URL_HOST = "https://{hash_base32}.aleph.sh"
-    IPFS_GATEWAY = "https://ipfs.aleph.cloud/ipfs/"
+    VM_URL_PATH: ClassVar[str] = "https://aleph.sh/vm/{hash}"
+    VM_URL_HOST: ClassVar[str] = "https://{hash_base32}.aleph.sh"
+    IPFS_GATEWAY: ClassVar[str] = "https://ipfs.aleph.cloud/ipfs/"
 
     # Web3Provider settings
     TOKEN_DECIMALS: ClassVar[int] = 18
