@@ -30,7 +30,7 @@ dynamic = [ "version" ]
 dependencies = [
   "aiohttp>=3.8.3",
   "aioresponses>=0.7.6",
-  "aleph-message @ git+https://github.com/aleph-im/aleph-message@108-upgrade-pydantic-version#egg=aleph-message",
+  "aleph-message>=0.6",
   "aleph-superfluid>=0.2.1",
   "base58==2.1.1",                                                                                                # Needed now as default with _load_account changement
   "coincurve; python_version<'3.11'",
@@ -62,7 +62,7 @@ optional-dependencies.encryption = [
   "eciespy>=0.3.13; python_version>='3.11'",
 ]
 optional-dependencies.ledger = [
-  "ledgereth==0.9.1",
+  "ledgereth==0.10",
 ]
 optional-dependencies.mqtt = [
   "aiomqtt<=0.1.3",
@@ -81,7 +81,7 @@ optional-dependencies.substrate = [
   "substrate-interface",
 ]
 optional-dependencies.tezos = [
-  "aleph-pytezos==0.1.1",
+  "aleph-pytezos==3.13.4",
   "pynacl",
 ]
 urls.Documentation = "https://aleph.im/"

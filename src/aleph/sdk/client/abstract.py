@@ -430,7 +430,7 @@ class AuthenticatedAlephClient(AlephClient):
         :param channel: Channel to use (Default: "TEST")
         :param address: Address to use (Default: account.get_address())
         :param sync: If true, waits for the message to be processed by the API server
-        :param memory: Memory in MB for the VM to be allocated (Default: 128)
+        :param memory: Memory in MB for the VM to be allocated (Default: 2048)
         :param vcpus: Number of vCPUs to allocate (Default: 1)
         :param timeout_seconds: Timeout in seconds (Default: 30.0)
         :param allow_amend: Whether the deployed VM image may be changed (Default: False)

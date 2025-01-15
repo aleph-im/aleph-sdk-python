@@ -389,3 +389,11 @@ def make_packet_header(
     header[20:52] = h.digest()
 
     return header
+
+
+def safe_getattr(obj, attr, default=None):
+    for part in attr.split("."):
+        obj = getattr(obj, part, default)
+        if obj is default:
+            break
+    return obj
