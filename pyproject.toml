@@ -134,6 +134,7 @@ dependencies = [
   "httpx",
   "secp256k1",
 ]
+
 [tool.hatch.envs.testing.scripts]
 test = "pytest {args:} ./src/ ./tests/ ./examples/"
 test-cov = "pytest --cov {args:} ./src/ ./tests/ ./examples/"
