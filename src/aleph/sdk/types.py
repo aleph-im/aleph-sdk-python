@@ -100,3 +100,7 @@ class TokenType(str, Enum):
 
     GAS = "GAS"
     ALEPH = "ALEPH"
+    filename: Optional[str] = Field(default=None)
+    hash: Optional[str] = Field(default=None)
+    url: Optional[str] = Field(default=None)
+    error: Optional[str] = Field(default=None)
