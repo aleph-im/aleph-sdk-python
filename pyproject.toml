@@ -81,7 +81,7 @@ optional-dependencies.substrate = [
   "substrate-interface",
 ]
 optional-dependencies.tezos = [
-  "aleph-pytezos==3.13.4",
+  "aleph-pytezos==0.1.1",
   "pynacl",
 ]
 urls.Documentation = "https://aleph.im/"
