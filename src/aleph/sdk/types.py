@@ -2,7 +2,7 @@ from abc import abstractmethod
 from enum import Enum
 from typing import Dict, Optional, Protocol, TypeVar
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 __all__ = ("StorageEnum", "Account", "AccountFromPrivateKey", "GenericMessage")
 
@@ -83,7 +83,7 @@ class ChainInfo(BaseModel):
 
 
 class StoredContent(BaseModel):
-    filename: Optional[str]
-    hash: Optional[str]
-    url: Optional[str]
-    error: Optional[str]
+    filename: Optional[str] = Field(default=None)
+    hash: Optional[str] = Field(default=None)
+    url: Optional[str] = Field(default=None)
+    error: Optional[str] = Field(default=None)
