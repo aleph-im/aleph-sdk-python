@@ -6,6 +6,7 @@ from typing import Dict, Optional, Type, TypeVar
 from aleph_message.models import Chain
 
 from aleph.sdk.chains.common import get_fallback_private_key
+from aleph.sdk.chains.cosmos import CSDKAccount
 from aleph.sdk.chains.ethereum import ETHAccount
 from aleph.sdk.chains.evm import EVMAccount
 from aleph.sdk.chains.remote import RemoteAccount
@@ -38,6 +39,7 @@ chain_account_map: Dict[Chain, Type[T]] = {  # type: ignore
     Chain.SOL: SOLAccount,
     Chain.WORLDCHAIN: EVMAccount,
     Chain.ZORA: EVMAccount,
+    Chain.CSDK: CSDKAccount,
 }
 
 
