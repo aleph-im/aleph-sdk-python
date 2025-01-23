@@ -27,6 +27,7 @@ async def test_verify_signature(cosmos_account):
             "SomeHash",
         )
     )
+
     await cosmos_account.sign_message(message)
     assert message["signature"]
     signature = json.loads(message["signature"])
@@ -57,7 +58,7 @@ async def test_verify_signature_raw(cosmos_account):
     raw_signature = await cosmos_account.sign_raw(raw_message)
     assert isinstance(raw_signature, bytes)
 
-    pub_key = cosmos_account.get_public_key()
+    pub_key = bytes.fromhex(cosmos_account.get_public_key())
     verify_signature(
         raw_signature.decode(),
         pub_key,

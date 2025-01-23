@@ -54,7 +54,8 @@ class CSDKAccount(BaseAccount):
     async def sign_message(self, message):
         message = self._setup_sender(message)
         verif = get_verification_string(message)
-        base64_pubkey = base64.b64encode(self.get_public_key()).decode("utf-8")
+        pub_key = bytes.fromhex(self.get_public_key())
+        base64_pubkey = base64.b64encode(pub_key).decode()
         signature = await self.sign_raw(verif.encode("utf-8"))
 
         sig = {
@@ -80,7 +81,7 @@ class CSDKAccount(BaseAccount):
         return privkey_to_address(self.private_key)
 
     def get_public_key(self) -> str:
-        return privkey_to_pubkey(self.private_key)
+        return privkey_to_pubkey(self.private_key).hex()
 
 
 def get_fallback_account(path: Optional[Path] = None, hrp=DEFAULT_HRP):
