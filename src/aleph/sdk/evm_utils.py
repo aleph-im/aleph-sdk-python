@@ -1,4 +1,5 @@
 from decimal import Decimal
+from enum import Enum
 from typing import List, Optional, Union
 
 from aleph_message.models import Chain
@@ -21,11 +22,18 @@ BALANCEOF_ABI = """[{
 }]"""
 
 
-def to_human_readable_token(amount: Decimal) -> float:
-    return float(amount / (Decimal(10) ** Decimal(settings.TOKEN_DECIMALS)))
+class FlowUpdate(str, Enum):
+    REDUCE = "reduce"
+    INCREASE = "increase"
+
+
+def from_wei_token(amount: Decimal) -> Decimal:
+    """Converts the given wei value to ether."""
+    return amount / Decimal(10) ** Decimal(settings.TOKEN_DECIMALS)
 
 
 def to_wei_token(amount: Decimal) -> Decimal:
+    """Converts the given ether value to wei."""
     return amount * Decimal(10) ** Decimal(settings.TOKEN_DECIMALS)
 
 

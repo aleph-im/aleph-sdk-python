@@ -5,6 +5,7 @@ from typing import Awaitable, Optional
 from aleph_message.models import Chain
 from eth_account import Account  # type: ignore
 
+from ..evm_utils import FlowUpdate
 from .common import get_fallback_private_key
 from .ethereum import ETHAccount
 
@@ -29,6 +30,9 @@ class EVMAccount(ETHAccount):
     def get_super_token_balance(self) -> Decimal:
         raise ValueError(f"Super token not implemented for this chain {self.CHAIN}")
 
+    def can_start_flow(self, flow: Decimal) -> Awaitable[bool]:
+        raise ValueError(f"Flow checking not implemented for this chain {self.CHAIN}")
+
     def create_flow(self, receiver: str, flow: Decimal) -> Awaitable[str]:
         raise ValueError(f"Flow creation not implemented for this chain {self.CHAIN}")
 
@@ -40,6 +44,11 @@ class EVMAccount(ETHAccount):
 
     def delete_flow(self, receiver: str) -> Awaitable[str]:
         raise ValueError(f"Flow deletion not implemented for this chain {self.CHAIN}")
+
+    def manage_flow(
+        self, receiver: str, flow: Decimal, update_type: FlowUpdate
+    ) -> Awaitable[Optional[str]]:
+        raise ValueError(f"Flow management not implemented for this chain {self.CHAIN}")
 
 
 def get_fallback_account(
