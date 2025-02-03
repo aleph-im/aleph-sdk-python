@@ -125,7 +125,7 @@ class Superfluid:
         # Retrieve current flow info
         flow_info: Web3FlowInfo = await self.account.get_flow(receiver)
 
-        current_flow_rate_wei: Decimal = Decimal(flow_info["flowRate"] or "0")
+        current_flow_rate_wei: Decimal = Decimal(flow_info["flowRate"] or 0)
         flow_rate_wei: int = int(to_wei_token(flow))
 
         if update_type == FlowUpdate.INCREASE:

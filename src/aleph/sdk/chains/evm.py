@@ -30,7 +30,7 @@ class EVMAccount(ETHAccount):
     def get_super_token_balance(self) -> Decimal:
         raise ValueError(f"Super token not implemented for this chain {self.CHAIN}")
 
-    def can_start_flow(self, flow: Decimal) -> Awaitable[bool]:
+    def can_start_flow(self, flow: Decimal) -> bool:
         raise ValueError(f"Flow checking not implemented for this chain {self.CHAIN}")
 
     def create_flow(self, receiver: str, flow: Decimal) -> Awaitable[str]:
