@@ -28,9 +28,24 @@ from typing import (
 from uuid import UUID
 from zipfile import BadZipFile, ZipFile
 
-from aleph_message.models import ItemHash, MessageType
+from aleph_message.models import (
+    Chain,
+    InstanceContent,
+    ItemHash,
+    MessageType,
+    ProgramContent,
+)
+from aleph_message.models.execution.base import Payment, PaymentType
+from aleph_message.models.execution.environment import (
+    HostRequirements,
+    HypervisorType,
+    InstanceEnvironment,
+    MachineResources,
+    TrustedExecutionEnvironment,
+)
+from aleph_message.models.execution.instance import RootfsVolume
 from aleph_message.models.execution.program import Encoding
-from aleph_message.models.execution.volume import MachineVolume
+from aleph_message.models.execution.volume import MachineVolume, ParentVolume
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from jwcrypto.jwa import JWA
@@ -401,3 +416,67 @@ def safe_getattr(obj, attr, default=None):
         if obj is default:
             break
     return obj
+
+
+def make_instance_content(
+    rootfs: str,
+    rootfs_size: int,
+    payment: Optional[Payment] = None,
+    environment_variables: Optional[Mapping[str, str]] = None,
+    address: Optional[str] = None,
+    memory: Optional[int] = None,
+    vcpus: Optional[int] = None,
+    timeout_seconds: Optional[float] = None,
+    allow_amend: bool = False,
+    internet: bool = True,
+    aleph_api: bool = True,
+    hypervisor: Optional[HypervisorType] = None,
+    trusted_execution: Optional[TrustedExecutionEnvironment] = None,
+    volumes: Optional[List[Mapping]] = None,
+    ssh_keys: Optional[List[str]] = None,
+    metadata: Optional[Mapping[str, Any]] = None,
+    requirements: Optional[HostRequirements] = None,
+) -> InstanceContent:
+    """
+    Create InstanceContent object given the provided fields.
+    """
+
+    address = address or "0x0000000000000000000000000000000000000000"
+    payment = payment or Payment(chain=Chain.ETH, type=PaymentType.hold)
+    selected_hypervisor: HypervisorType = hypervisor or HypervisorType.qemu
+    vcpus = vcpus or settings.DEFAULT_VM_VCPUS
+    memory = memory or settings.DEFAULT_VM_MEMORY
+    timeout_seconds = timeout_seconds or settings.DEFAULT_VM_TIMEOUT
+    volumes = volumes if volumes is not None else []
+
+    return InstanceContent(
+        address=address,
+        allow_amend=allow_amend,
+        environment=InstanceEnvironment(
+            internet=internet,
+            aleph_api=aleph_api,
+            hypervisor=selected_hypervisor,
+            trusted_execution=trusted_execution,
+        ),
+        variables=environment_variables,
+        resources=MachineResources(
+            vcpus=vcpus,
+            memory=memory,
+            seconds=timeout_seconds,
+        ),
+        rootfs=RootfsVolume(
+            parent=ParentVolume(
+                ref=rootfs,
+                use_latest=True,
+            ),
+            size_mib=rootfs_size,
+            persistence="host",
+            use_latest=True,
+        ),
+        volumes=[parse_volume(volume) for volume in volumes],
+        requirements=requirements,
+        time=datetime.now().timestamp(),
+        authorized_keys=ssh_keys,
+        metadata=metadata,
+        payment=payment,
+    )
