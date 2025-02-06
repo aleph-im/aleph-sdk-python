@@ -20,12 +20,14 @@ from typing import (
 
 from aleph_message.models import (
     AlephMessage,
+    InstanceContent,
     ItemHash,
     ItemType,
     MessagesResponse,
     MessageType,
     Payment,
     PostMessage,
+    ProgramContent,
     parse_message,
 )
 from aleph_message.models.execution.environment import (
@@ -239,6 +241,18 @@ class AlephClient(ABC):
         Iterate over current and future matching messages asynchronously.
 
         :param message_filter: Filter to apply to the messages
+        """
+        raise NotImplementedError("Did you mean to import `AlephHttpClient`?")
+
+    @abstractmethod
+    def get_estimated_price(
+        self,
+        content: ProgramContent | InstanceContent,
+    ) -> Coroutine[Any, Any, PriceResponse]:
+        """
+        Get Instance/Program content estimated price
+
+        :param content: Instance or Program content
         """
         raise NotImplementedError("Did you mean to import `AlephHttpClient`?")
 

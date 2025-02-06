@@ -2,6 +2,7 @@ import json
 import logging
 import os.path
 import ssl
+import time
 from io import BytesIO
 from pathlib import Path
 from typing import (
@@ -20,7 +21,15 @@ from typing import (
 import aiohttp
 from aiohttp.web import HTTPNotFound
 from aleph_message import parse_message
-from aleph_message.models import AlephMessage, ItemHash, ItemType, MessageType
+from aleph_message.models import (
+    AlephMessage,
+    Chain,
+    InstanceContent,
+    ItemHash,
+    ItemType,
+    MessageType,
+    ProgramContent,
+)
 from aleph_message.status import MessageStatus
 from pydantic import ValidationError
 
@@ -37,6 +46,7 @@ from ..types import GenericMessage, StoredContent
 from ..utils import (
     Writable,
     check_unix_socket_valid,
+    compute_sha256,
     copy_async_readable_to_buffer,
     extended_json_encoder,
     get_message_type_value,
@@ -447,6 +457,44 @@ class AlephHttpClient(AlephClient):
                         yield parse_message(data)
                 elif msg.type == aiohttp.WSMsgType.ERROR:
                     break
+
+    async def get_estimated_price(
+        self,
+        content: ProgramContent | InstanceContent,
+    ) -> PriceResponse:
+        item_content: str = json.dumps(
+            content, separators=(",", ":"), default=extended_json_encoder
+        )
+        message = parse_message(
+            dict(
+                sender=content.address,
+                chain=Chain.ETH,
+                type=(
+                    MessageType.program
+                    if isinstance(content, ProgramContent)
+                    else MessageType.instance
+                ),
+                content=content.dict(exclude_none=True),
+                item_content=item_content,
+                time=time.time(),
+                channel=settings.DEFAULT_CHANNEL,
+                item_type=ItemType.inline,
+                item_hash=compute_sha256(item_content),
+            )
+        )
+
+        async with self.http_session.post(
+            "/api/v0/price/estimate", json=dict(message=message)
+        ) as resp:
+            try:
+                resp.raise_for_status()
+                response_json = await resp.json()
+                return PriceResponse(
+                    required_tokens=response_json["required_tokens"],
+                    payment_type=response_json["payment_type"],
+                )
+            except aiohttp.ClientResponseError as e:
+                raise e
 
     async def get_program_price(self, item_hash: str) -> PriceResponse:
         async with self.http_session.get(f"/api/v0/price/{item_hash}") as resp:
