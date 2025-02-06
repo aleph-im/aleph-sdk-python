@@ -12,10 +12,8 @@ from aleph_message.models import (
     AggregateContent,
     AggregateMessage,
     AlephMessage,
-    Chain,
     ForgetContent,
     ForgetMessage,
-    InstanceContent,
     InstanceMessage,
     ItemHash,
     MessageType,
@@ -26,24 +24,22 @@ from aleph_message.models import (
     StoreContent,
     StoreMessage,
 )
-from aleph_message.models.execution.base import Encoding, Payment, PaymentType
+from aleph_message.models.execution.base import Encoding, Payment
 from aleph_message.models.execution.environment import (
     FunctionEnvironment,
     HostRequirements,
     HypervisorType,
-    InstanceEnvironment,
     MachineResources,
     TrustedExecutionEnvironment,
 )
-from aleph_message.models.execution.instance import RootfsVolume
 from aleph_message.models.execution.program import CodeContent, FunctionRuntime
-from aleph_message.models.execution.volume import MachineVolume, ParentVolume
+from aleph_message.models.execution.volume import MachineVolume
 from aleph_message.status import MessageStatus
 
 from ..conf import settings
 from ..exceptions import BroadcastError, InsufficientFundsError, InvalidMessageError
 from ..types import Account, StorageEnum
-from ..utils import extended_json_encoder, parse_volume
+from ..utils import extended_json_encoder, make_instance_content, parse_volume
 from .abstract import AuthenticatedAlephClient
 from .http import AlephHttpClient
 
@@ -530,47 +526,26 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
     ) -> Tuple[InstanceMessage, MessageStatus]:
         address = address or settings.ADDRESS_TO_USE or self.account.get_address()
 
-        volumes = volumes if volumes is not None else []
-        memory = memory or settings.DEFAULT_VM_MEMORY
-        vcpus = vcpus or settings.DEFAULT_VM_VCPUS
-        timeout_seconds = timeout_seconds or settings.DEFAULT_VM_TIMEOUT
-
-        payment = payment or Payment(chain=Chain.ETH, type=PaymentType.hold)
-
-        # Default to the QEMU hypervisor for instances.
-        selected_hypervisor: HypervisorType = hypervisor or HypervisorType.qemu
-
-        content = InstanceContent(
-            address=address,
-            allow_amend=allow_amend,
-            environment=InstanceEnvironment(
-                internet=internet,
-                aleph_api=aleph_api,
-                hypervisor=selected_hypervisor,
-                trusted_execution=trusted_execution,
-            ),
-            variables=environment_variables,
-            resources=MachineResources(
-                vcpus=vcpus,
-                memory=memory,
-                seconds=timeout_seconds,
-            ),
-            rootfs=RootfsVolume(
-                parent=ParentVolume(
-                    ref=rootfs,
-                    use_latest=True,
-                ),
-                size_mib=rootfs_size,
-                persistence="host",
-                use_latest=True,
-            ),
-            volumes=[parse_volume(volume) for volume in volumes],
-            requirements=requirements,
-            time=time.time(),
-            authorized_keys=ssh_keys,
-            metadata=metadata,
+        content = make_instance_content(
+            rootfs=rootfs,
+            rootfs_size=rootfs_size,
             payment=payment,
+            environment_variables=environment_variables,
+            address=address,
+            memory=memory,
+            vcpus=vcpus,
+            timeout_seconds=timeout_seconds,
+            allow_amend=allow_amend,
+            internet=internet,
+            aleph_api=aleph_api,
+            hypervisor=hypervisor,
+            trusted_execution=trusted_execution,
+            volumes=volumes,
+            ssh_keys=ssh_keys,
+            metadata=metadata,
+            requirements=requirements,
         )
+
         message, status, response = await self.submit(
             content=content.dict(exclude_none=True),
             message_type=MessageType.instance,
