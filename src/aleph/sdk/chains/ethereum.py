@@ -15,6 +15,7 @@ from web3.middleware import geth_poa_middleware
 from web3.types import TxParams, TxReceipt
 
 from aleph.sdk.exceptions import InsufficientFundsError
+from aleph.sdk.types import TokenType
 
 from ..conf import settings
 from ..connectors.superfluid import Superfluid
@@ -107,6 +108,7 @@ class ETHAccount(BaseAccount):
         valid = balance > MIN_ETH_BALANCE_WEI if self.chain else False
         if not valid and block:
             raise InsufficientFundsError(
+                token_type=TokenType.GAS,
                 required_funds=MIN_ETH_BALANCE,
                 available_funds=float(from_wei_token(balance)),
             )

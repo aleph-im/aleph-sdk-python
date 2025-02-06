@@ -8,6 +8,7 @@ import logging
 import os
 import subprocess
 from datetime import date, datetime, time
+from decimal import ROUND_CEILING, Decimal
 from enum import Enum
 from pathlib import Path
 from shutil import make_archive
@@ -28,13 +29,7 @@ from typing import (
 from uuid import UUID
 from zipfile import BadZipFile, ZipFile
 
-from aleph_message.models import (
-    Chain,
-    InstanceContent,
-    ItemHash,
-    MessageType,
-    ProgramContent,
-)
+from aleph_message.models import Chain, InstanceContent, ItemHash, MessageType
 from aleph_message.models.execution.base import Payment, PaymentType
 from aleph_message.models.execution.environment import (
     HostRequirements,
@@ -416,6 +411,22 @@ def safe_getattr(obj, attr, default=None):
         if obj is default:
             break
     return obj
+
+
+def displayable_amount(
+    amount: str | int | float | Decimal, decimals: Optional[int] = None
+) -> str:
+    """Returns the amount as a string without unnecessary decimals."""
+
+    str_amount = ""
+    try:
+        dec_amount = Decimal(amount)
+        if decimals:
+            dec_amount = dec_amount.quantize(Decimal(1) / Decimal(10**decimals))
+        str_amount = str(format(dec_amount.normalize(), "f"))
+    except ValueError as e:
+        raise ValueError(f"Invalid amount: {amount}") from e
+    return str_amount
 
 
 def make_instance_content(

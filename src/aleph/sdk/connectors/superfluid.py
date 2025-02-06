@@ -6,14 +6,14 @@ from typing import TYPE_CHECKING, Optional
 from eth_utils import to_normalized_address
 from superfluid import CFA_V1, Operation, Web3FlowInfo
 
-from aleph.sdk.exceptions import InsufficientFundsError
-
-from ..evm_utils import (
+from aleph.sdk.evm_utils import (
     FlowUpdate,
     from_wei_token,
     get_super_token_address,
     to_wei_token,
 )
+from aleph.sdk.exceptions import InsufficientFundsError
+from aleph.sdk.types import TokenType
 
 if TYPE_CHECKING:
     from aleph.sdk.chains.ethereum import ETHAccount
@@ -57,6 +57,7 @@ class Superfluid:
             valid = balance > MIN_FLOW_4H
             if not valid and block:
                 raise InsufficientFundsError(
+                    token_type=TokenType.ALEPH,
                     required_funds=float(MIN_FLOW_4H),
                     available_funds=float(from_wei_token(balance)),
                 )

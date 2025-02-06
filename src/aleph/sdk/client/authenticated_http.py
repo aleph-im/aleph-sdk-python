@@ -38,7 +38,7 @@ from aleph_message.status import MessageStatus
 
 from ..conf import settings
 from ..exceptions import BroadcastError, InsufficientFundsError, InvalidMessageError
-from ..types import Account, StorageEnum
+from ..types import Account, StorageEnum, TokenType
 from ..utils import extended_json_encoder, make_instance_content, parse_volume
 from .abstract import AuthenticatedAlephClient
 from .http import AlephHttpClient
@@ -569,7 +569,9 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
             account_balance = float(error["account_balance"])
             required_balance = float(error["required_balance"])
             raise InsufficientFundsError(
-                required_funds=required_balance, available_funds=account_balance
+                token_type=TokenType.ALEPH,
+                required_funds=required_balance,
+                available_funds=account_balance,
             )
         else:
             raise ValueError(f"Unknown error code {error_code}: {rejected_message}")

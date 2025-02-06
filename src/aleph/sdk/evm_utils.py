@@ -39,7 +39,7 @@ def to_wei_token(amount: Decimal) -> Decimal:
 
 def ether_rounding(amount: Decimal) -> Decimal:
     """Rounds the given value to 18 decimals."""
-    return amount.quantize(Decimal(1) / 10**18, rounding=ROUND_CEILING)
+    return amount.quantize(Decimal(1) / Decimal(10**18), rounding=ROUND_CEILING)
 
 
 def get_chain_id(chain: Union[Chain, str, None]) -> Optional[int]:
