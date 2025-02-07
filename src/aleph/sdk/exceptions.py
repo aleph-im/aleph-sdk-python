@@ -80,10 +80,10 @@ class InsufficientFundsError(Exception):
         self, token_type: TokenType, required_funds: float, available_funds: float
     ):
         self.token_type = token_type
-        self.required_funds = displayable_amount(required_funds, decimals=8)
-        self.available_funds = displayable_amount(available_funds, decimals=8)
+        self.required_funds = required_funds
+        self.available_funds = available_funds
         super().__init__(
-            f"Insufficient funds ({self.token_type.value}): required {self.required_funds}, available {self.available_funds}"
+            f"Insufficient funds ({self.token_type.value}): required {displayable_amount(self.required_funds, decimals=8)}, available {displayable_amount(self.available_funds, decimals=8)}"
         )
 
 

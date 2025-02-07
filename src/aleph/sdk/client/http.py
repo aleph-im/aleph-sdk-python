@@ -24,7 +24,7 @@ from aleph_message import parse_message
 from aleph_message.models import (
     AlephMessage,
     Chain,
-    InstanceContent,
+    ExecutableContent,
     ItemHash,
     ItemType,
     MessageType,
@@ -460,7 +460,7 @@ class AlephHttpClient(AlephClient):
 
     async def get_estimated_price(
         self,
-        content: ProgramContent | InstanceContent,
+        content: ExecutableContent,
     ) -> PriceResponse:
         item_content: str = json.dumps(
             content, separators=(",", ":"), default=extended_json_encoder

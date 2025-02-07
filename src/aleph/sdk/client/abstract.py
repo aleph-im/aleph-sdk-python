@@ -20,14 +20,13 @@ from typing import (
 
 from aleph_message.models import (
     AlephMessage,
-    InstanceContent,
+    ExecutableContent,
     ItemHash,
     ItemType,
     MessagesResponse,
     MessageType,
     Payment,
     PostMessage,
-    ProgramContent,
     parse_message,
 )
 from aleph_message.models.execution.environment import (
@@ -247,7 +246,7 @@ class AlephClient(ABC):
     @abstractmethod
     def get_estimated_price(
         self,
-        content: ProgramContent | InstanceContent,
+        content: ExecutableContent,
     ) -> Coroutine[Any, Any, PriceResponse]:
         """
         Get Instance/Program content estimated price

@@ -8,7 +8,7 @@ import logging
 import os
 import subprocess
 from datetime import date, datetime, time
-from decimal import ROUND_CEILING, Decimal
+from decimal import Decimal
 from enum import Enum
 from pathlib import Path
 from shutil import make_archive
@@ -414,7 +414,7 @@ def safe_getattr(obj, attr, default=None):
 
 
 def displayable_amount(
-    amount: str | int | float | Decimal, decimals: Optional[int] = None
+    amount: Union[str, int, float, Decimal], decimals: Optional[int] = None
 ) -> str:
     """Returns the amount as a string without unnecessary decimals."""
 
