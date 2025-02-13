@@ -58,7 +58,7 @@ class Superfluid:
             if not valid and block:
                 raise InsufficientFundsError(
                     token_type=TokenType.ALEPH,
-                    required_funds=float(MIN_FLOW_4H),
+                    required_funds=float(from_wei_token(MIN_FLOW_4H)),
                     available_funds=float(from_wei_token(balance)),
                 )
         return valid

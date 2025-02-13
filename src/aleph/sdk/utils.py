@@ -8,7 +8,7 @@ import logging
 import os
 import subprocess
 from datetime import date, datetime, time
-from decimal import Decimal
+from decimal import Context, Decimal, InvalidOperation
 from enum import Enum
 from pathlib import Path
 from shutil import make_archive
@@ -414,7 +414,7 @@ def safe_getattr(obj, attr, default=None):
 
 
 def displayable_amount(
-    amount: Union[str, int, float, Decimal], decimals: Optional[int] = None
+    amount: Union[str, int, float, Decimal], decimals: int = 18
 ) -> str:
     """Returns the amount as a string without unnecessary decimals."""
 
@@ -422,10 +422,16 @@ def displayable_amount(
     try:
         dec_amount = Decimal(amount)
         if decimals:
-            dec_amount = dec_amount.quantize(Decimal(1) / Decimal(10**decimals))
+            dec_amount = dec_amount.quantize(
+                Decimal(1) / Decimal(10**decimals), context=Context(prec=36)
+            )
         str_amount = str(format(dec_amount.normalize(), "f"))
-    except ValueError as e:
-        raise ValueError(f"Invalid amount: {amount}") from e
+    except ValueError:
+        logger.error(f"Invalid amount to display: {amount}")
+        exit(1)
+    except InvalidOperation:
+        logger.error(f"Invalid operation on amount to display: {amount}")
+        exit(1)
     return str_amount
 
 
