@@ -263,7 +263,7 @@ async def authenticate_websocket_message(
     signed_operation = SignedOperation.parse_obj(message["X-SignedOperation"])
     if signed_operation.content.domain != domain_name:
         logger.debug(
-            f"Invalid domain '{signed_pubkey.content.domain}' != '{domain_name}'"
+            f"Invalid domain '{signed_operation.content.domain}' != '{domain_name}'"
         )
         raise web.HTTPUnauthorized(reason="Invalid domain")
     return verify_signed_operation(signed_operation, signed_pubkey)

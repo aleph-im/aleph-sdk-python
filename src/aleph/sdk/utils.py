@@ -16,7 +16,6 @@ from typing import (
     Any,
     Dict,
     Iterable,
-    List,
     Mapping,
     Optional,
     Protocol,
@@ -187,19 +186,15 @@ def extended_json_encoder(obj: Any) -> Any:
 
 
 def parse_volume(volume_dict: Union[Mapping, MachineVolume]) -> MachineVolume:
-    # Python 3.9 does not support `isinstance(volume_dict, MachineVolume)`,
-    # so we need to iterate over all types.
-    if any(
+    if not any(
         isinstance(volume_dict, volume_type) for volume_type in get_args(MachineVolume)
     ):
-        return volume_dict
     for volume_type in get_args(MachineVolume):
         try:
             return volume_type.parse_obj(volume_dict)
-        except ValueError:
-            continue
-    else:
-        raise ValueError(f"Could not parse volume: {volume_dict}")
+            except ValueError as e:
+                raise ValueError(f"Could not parse volume: {volume_dict}") from e
+    return volume_dict  # type: ignore
 
 
 def compute_sha256(s: str) -> str:
@@ -244,7 +239,7 @@ def sign_vm_control_payload(payload: Dict[str, str], ephemeral_key) -> str:
 
 
 async def run_in_subprocess(
-    command: List[str], check: bool = True, stdin_input: Optional[bytes] = None
+    command: list[str], check: bool = True, stdin_input: Optional[bytes] = None
 ) -> bytes:
     """Run the specified command in a subprocess, returns the stdout of the process."""
     logger.debug(f"command: {' '.join(command)}")
@@ -439,7 +434,7 @@ def make_instance_content(
     rootfs: str,
     rootfs_size: int,
     payment: Optional[Payment] = None,
-    environment_variables: Optional[Mapping[str, str]] = None,
+    environment_variables: Optional[dict[str, str]] = None,
     address: Optional[str] = None,
     memory: Optional[int] = None,
     vcpus: Optional[int] = None,
@@ -449,9 +444,9 @@ def make_instance_content(
     aleph_api: bool = True,
     hypervisor: Optional[HypervisorType] = None,
     trusted_execution: Optional[TrustedExecutionEnvironment] = None,
-    volumes: Optional[List[Mapping]] = None,
-    ssh_keys: Optional[List[str]] = None,
-    metadata: Optional[Mapping[str, Any]] = None,
+    volumes: Optional[list[Mapping]] = None,
+    ssh_keys: Optional[list[str]] = None,
+    metadata: Optional[dict[str, Any]] = None,
     requirements: Optional[HostRequirements] = None,
 ) -> InstanceContent:
     """
@@ -459,7 +454,7 @@ def make_instance_content(
     """
 
     address = address or "0x0000000000000000000000000000000000000000"
-    payment = payment or Payment(chain=Chain.ETH, type=PaymentType.hold)
+    payment = payment or Payment(chain=Chain.ETH, type=PaymentType.hold, receiver=None)
     selected_hypervisor: HypervisorType = hypervisor or HypervisorType.qemu
     vcpus = vcpus or settings.DEFAULT_VM_VCPUS
     memory = memory or settings.DEFAULT_VM_MEMORY
@@ -478,17 +473,16 @@ def make_instance_content(
         variables=environment_variables,
         resources=MachineResources(
             vcpus=vcpus,
-            memory=memory,
-            seconds=timeout_seconds,
+            memory=Mebibytes(memory),
+            seconds=int(timeout_seconds),
         ),
         rootfs=RootfsVolume(
             parent=ParentVolume(
-                ref=rootfs,
+                ref=ItemHash(rootfs),
                 use_latest=True,
             ),
-            size_mib=rootfs_size,
-            persistence="host",
-            use_latest=True,
+            size_mib=PersistentVolumeSizeMib(rootfs_size),
+            persistence=VolumePersistence.host,
         ),
         volumes=[parse_volume(volume) for volume in volumes],
         requirements=requirements,

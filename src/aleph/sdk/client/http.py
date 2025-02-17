@@ -368,7 +368,7 @@ class AlephHttpClient(AlephClient):
             )
 
     @overload
-    async def get_message(
+    async def get_message(  # type: ignore
         self,
         item_hash: str,
         message_type: Optional[Type[GenericMessage]] = None,
@@ -393,7 +393,7 @@ class AlephHttpClient(AlephClient):
                 resp.raise_for_status()
             except aiohttp.ClientResponseError as e:
                 if e.status == 404:
-                    raise MessageNotFoundError(f"No such hash {item_hash}")
+                    raise MessageNotFoundError(f"No such hash {item_hash}") from e
                 raise e
             message_raw = await resp.json()
         if message_raw["status"] == "forgotten":
@@ -409,9 +409,9 @@ class AlephHttpClient(AlephClient):
                     f"does not match the expected type '{expected_type}'"
                 )
         if with_status:
-            return message, message_raw["status"]
+            return message, message_raw["status"]  # type: ignore
         else:
-            return message
+            return message  # type: ignore
 
     async def get_message_error(
         self,
@@ -539,15 +539,21 @@ class AlephHttpClient(AlephClient):
                 resp = f"Invalid CID: {message.content.item_hash}"
             else:
                 filename = safe_getattr(message.content, "metadata.name")
-                hash = message.content.item_hash
+                item_hash = message.content.item_hash
                 url = (
                     f"{self.api_server}/api/v0/storage/raw/"
-                    if len(hash) == 64
+                    if len(item_hash) == 64
                     else settings.IPFS_GATEWAY
-                ) + hash
-                result = StoredContent(filename=filename, hash=hash, url=url)
+                ) + item_hash
+                result = StoredContent(
+                    filename=filename, hash=item_hash, url=url, error=None
+                )
         except MessageNotFoundError:
             resp = f"Message not found: {item_hash}"
         except ForgottenMessageError:
             resp = f"Message forgotten: {item_hash}"
-        return result if result else StoredContent(error=resp)
+        return (
+            result
+            if result
+            else StoredContent(error=resp, filename=None, hash=None, url=None)
+        )

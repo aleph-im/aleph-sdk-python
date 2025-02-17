@@ -5,7 +5,7 @@ import ssl
 import time
 from io import BytesIO
 from pathlib import Path
-from typing import Any, Dict, List, Mapping, NoReturn, Optional, Tuple, Union
+from typing import Any, Dict, Mapping, NoReturn, Optional, Tuple, Union
 
 import aiohttp
 from aleph_message.models import (
@@ -16,30 +16,26 @@ from aleph_message.models import (
     ForgetMessage,
     InstanceMessage,
     ItemHash,
+    ItemType,
     MessageType,
     PostContent,
     PostMessage,
-    ProgramContent,
     ProgramMessage,
     StoreContent,
     StoreMessage,
 )
 from aleph_message.models.execution.base import Encoding, Payment
 from aleph_message.models.execution.environment import (
-    FunctionEnvironment,
     HostRequirements,
     HypervisorType,
-    MachineResources,
     TrustedExecutionEnvironment,
 )
-from aleph_message.models.execution.program import CodeContent, FunctionRuntime
-from aleph_message.models.execution.volume import MachineVolume
 from aleph_message.status import MessageStatus
 
 from ..conf import settings
 from ..exceptions import BroadcastError, InsufficientFundsError, InvalidMessageError
 from ..types import Account, StorageEnum, TokenType
-from ..utils import extended_json_encoder, make_instance_content, parse_volume
+from ..utils import extended_json_encoder, make_instance_content, make_program_content
 from .abstract import AuthenticatedAlephClient
 from .http import AlephHttpClient
 
@@ -281,7 +277,7 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
         post_type: str,
         ref: Optional[str] = None,
         address: Optional[str] = None,
-        channel: Optional[str] = None,
+        channel: Optional[str] = settings.DEFAULT_CHANNEL,
         inline: bool = True,
         storage_engine: StorageEnum = StorageEnum.storage,
         sync: bool = False,
@@ -304,14 +300,14 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
             storage_engine=storage_engine,
             sync=sync,
         )
-        return message, status
+        return message, status  # type: ignore
 
     async def create_aggregate(
         self,
         key: str,
-        content: Mapping[str, Any],
+        content: dict[str, Any],
         address: Optional[str] = None,
-        channel: Optional[str] = None,
+        channel: Optional[str] = settings.DEFAULT_CHANNEL,
         inline: bool = True,
         sync: bool = False,
     ) -> Tuple[AggregateMessage, MessageStatus]:
@@ -331,7 +327,7 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
             allow_inlining=inline,
             sync=sync,
         )
-        return message, status
+        return message, status  # type: ignore
 
     async def create_store(
         self,
@@ -343,7 +339,7 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
         ref: Optional[str] = None,
         storage_engine: StorageEnum = StorageEnum.storage,
         extra_fields: Optional[dict] = None,
-        channel: Optional[str] = None,
+        channel: Optional[str] = settings.DEFAULT_CHANNEL,
         sync: bool = False,
     ) -> Tuple[StoreMessage, MessageStatus]:
         address = address or settings.ADDRESS_TO_USE or self.account.get_address()
@@ -396,7 +392,7 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
         if extra_fields is not None:
             values.update(extra_fields)
 
-        content = StoreContent(**values)
+        content = StoreContent.parse_obj(values)
 
         message, status, _ = await self.submit(
             content=content.dict(exclude_none=True),
@@ -405,7 +401,7 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
             allow_inlining=True,
             sync=sync,
         )
-        return message, status
+        return message, status  # type: ignore
 
     async def create_program(
         self,
@@ -457,7 +453,7 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
             address=address,
             allow_amend=allow_amend,
             code=CodeContent(
-                encoding=encoding,
+            encoding=encoding,
                 entrypoint=entrypoint,
                 ref=program_ref,
                 use_latest=True,
@@ -498,16 +494,16 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
             storage_engine=storage_engine,
             sync=sync,
         )
-        return message, status
+        return message, status  # type: ignore
 
     async def create_instance(
         self,
         rootfs: str,
         rootfs_size: int,
         payment: Optional[Payment] = None,
-        environment_variables: Optional[Mapping[str, str]] = None,
+        environment_variables: Optional[dict[str, str]] = None,
         storage_engine: StorageEnum = StorageEnum.storage,
-        channel: Optional[str] = None,
+        channel: Optional[str] = settings.DEFAULT_CHANNEL,
         address: Optional[str] = None,
         sync: bool = False,
         memory: Optional[int] = None,
@@ -518,10 +514,10 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
         aleph_api: bool = True,
         hypervisor: Optional[HypervisorType] = None,
         trusted_execution: Optional[TrustedExecutionEnvironment] = None,
-        volumes: Optional[List[Mapping]] = None,
+        volumes: Optional[list[Mapping]] = None,
         volume_persistence: str = "host",
-        ssh_keys: Optional[List[str]] = None,
-        metadata: Optional[Mapping[str, Any]] = None,
+        ssh_keys: Optional[list[str]] = None,
+        metadata: Optional[dict[str, Any]] = None,
         requirements: Optional[HostRequirements] = None,
     ) -> Tuple[InstanceMessage, MessageStatus]:
         address = address or settings.ADDRESS_TO_USE or self.account.get_address()
@@ -555,7 +551,7 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
             raise_on_rejected=False,
         )
         if status in (MessageStatus.PROCESSED, MessageStatus.PENDING):
-            return message, status
+            return message, status  # type: ignore
 
         # get the reason for rejection
         rejected_message = await self.get_message_error(message.item_hash)
@@ -578,10 +574,10 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
 
     async def forget(
         self,
-        hashes: List[ItemHash],
+        hashes: list[ItemHash],
         reason: Optional[str],
         storage_engine: StorageEnum = StorageEnum.storage,
-        channel: Optional[str] = None,
+        channel: Optional[str] = settings.DEFAULT_CHANNEL,
         address: Optional[str] = None,
         sync: bool = False,
     ) -> Tuple[ForgetMessage, MessageStatus]:
@@ -602,13 +598,13 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
             allow_inlining=True,
             sync=sync,
         )
-        return message, status
+        return message, status  # type: ignore
 
     async def submit(
         self,
         content: Dict[str, Any],
         message_type: MessageType,
-        channel: Optional[str] = None,
+        channel: Optional[str] = settings.DEFAULT_CHANNEL,
         storage_engine: StorageEnum = StorageEnum.storage,
         allow_inlining: bool = True,
         sync: bool = False,
@@ -630,7 +626,7 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
         self,
         file_content: bytes,
         store_content: StoreContent,
-        channel: Optional[str] = None,
+        channel: Optional[str] = settings.DEFAULT_CHANNEL,
         sync: bool = False,
     ) -> Tuple[StoreMessage, MessageStatus]:
         """Push a file to the storage service."""
@@ -662,7 +658,7 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
             message_status = (
                 MessageStatus.PENDING if resp.status == 202 else MessageStatus.PROCESSED
             )
-            return message, message_status
+            return message, message_status  # type: ignore
 
     async def _upload_file_native(
         self,
@@ -671,7 +667,7 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
         guess_mime_type: bool = False,
         ref: Optional[str] = None,
         extra_fields: Optional[dict] = None,
-        channel: Optional[str] = None,
+        channel: Optional[str] = settings.DEFAULT_CHANNEL,
         sync: bool = False,
     ) -> Tuple[StoreMessage, MessageStatus]:
         file_hash = hashlib.sha256(file_content).hexdigest()
@@ -683,9 +679,9 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
         store_content = StoreContent(
             address=address,
             ref=ref,
-            item_type=StorageEnum.storage,
-            item_hash=file_hash,
-            mime_type=mime_type,
+            item_type=ItemType.storage,
+            item_hash=ItemHash(file_hash),
+            mime_type=mime_type,  # type: ignore
             time=time.time(),
             **extra_fields,
         )
