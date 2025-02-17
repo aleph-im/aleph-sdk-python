@@ -206,15 +206,17 @@ def extended_json_encoder(obj: Any) -> Any:
 
 
 def parse_volume(volume_dict: Union[Mapping, MachineVolume]) -> MachineVolume:
-    if not any(
+    if any(
         isinstance(volume_dict, volume_type) for volume_type in get_args(MachineVolume)
     ):
-        for volume_type in get_args(MachineVolume):
-            try:
-                return volume_type.parse_obj(volume_dict)
-            except ValueError as e:
-                raise ValueError(f"Could not parse volume: {volume_dict}") from e
-    return volume_dict  # type: ignore
+        return volume_dict  # type: ignore
+
+    for volume_type in get_args(MachineVolume):
+        try:
+            return volume_type.parse_obj(volume_dict)
+        except ValueError:
+            pass
+    raise ValueError(f"Could not parse volume: {volume_dict}")
 
 
 def compute_sha256(s: str) -> str:

@@ -1,5 +1,6 @@
 import base64
 import datetime
+from unittest.mock import MagicMock
 
 import pytest as pytest
 from aleph_message.models import (
@@ -158,6 +159,7 @@ def test_parse_immutable_volume():
 def test_parse_ephemeral_volume():
     volume_dict = {
         "comment": "Dummy hash",
+        "mount": "/opt/data",
         "ephemeral": True,
         "size_mib": 1,
     }
@@ -169,6 +171,8 @@ def test_parse_ephemeral_volume():
 
 def test_parse_persistent_volume():
     volume_dict = {
+        "comment": "Dummy hash",
+        "mount": "/opt/data",
         "parent": {
             "ref": "QmX8K1c22WmQBAww5ShWQqwMiFif7XFrJD6iFBj7skQZXW",
             "use_latest": True,
@@ -184,9 +188,9 @@ def test_parse_persistent_volume():
     assert isinstance(volume, PersistentVolume)
 
 
-def test_calculate_firmware_hash(mocker):
-    mock_path = mocker.Mock(
-        read_bytes=mocker.Mock(return_value=b"abc"),
+def test_calculate_firmware_hash():
+    mock_path = MagicMock(
+        read_bytes=MagicMock(return_value=b"abc"),
     )
 
     assert (
