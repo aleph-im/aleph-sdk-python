@@ -28,18 +28,38 @@ from typing import (
 from uuid import UUID
 from zipfile import BadZipFile, ZipFile
 
-from aleph_message.models import Chain, InstanceContent, ItemHash, MessageType
+from aleph_message.models import (
+    Chain,
+    InstanceContent,
+    ItemHash,
+    MachineType,
+    MessageType,
+    ProgramContent,
+)
 from aleph_message.models.execution.base import Payment, PaymentType
 from aleph_message.models.execution.environment import (
+    FunctionEnvironment,
+    FunctionTriggers,
     HostRequirements,
     HypervisorType,
     InstanceEnvironment,
     MachineResources,
+    Subscription,
     TrustedExecutionEnvironment,
 )
 from aleph_message.models.execution.instance import RootfsVolume
-from aleph_message.models.execution.program import Encoding
-from aleph_message.models.execution.volume import MachineVolume, ParentVolume
+from aleph_message.models.execution.program import (
+    CodeContent,
+    Encoding,
+    FunctionRuntime,
+)
+from aleph_message.models.execution.volume import (
+    MachineVolume,
+    ParentVolume,
+    PersistentVolumeSizeMib,
+    VolumePersistence,
+)
+from aleph_message.utils import Mebibytes
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from jwcrypto.jwa import JWA
@@ -189,9 +209,9 @@ def parse_volume(volume_dict: Union[Mapping, MachineVolume]) -> MachineVolume:
     if not any(
         isinstance(volume_dict, volume_type) for volume_type in get_args(MachineVolume)
     ):
-    for volume_type in get_args(MachineVolume):
-        try:
-            return volume_type.parse_obj(volume_dict)
+        for volume_type in get_args(MachineVolume):
+            try:
+                return volume_type.parse_obj(volume_dict)
             except ValueError as e:
                 raise ValueError(f"Could not parse volume: {volume_dict}") from e
     return volume_dict  # type: ignore
@@ -489,5 +509,83 @@ def make_instance_content(
         time=datetime.now().timestamp(),
         authorized_keys=ssh_keys,
         metadata=metadata,
+        payment=payment,
+    )
+
+
+def make_program_content(
+    program_ref: str,
+    entrypoint: str,
+    runtime: str,
+    metadata: Optional[dict[str, Any]] = None,
+    address: Optional[str] = None,
+    vcpus: Optional[int] = None,
+    memory: Optional[int] = None,
+    timeout_seconds: Optional[float] = None,
+    internet: bool = False,
+    aleph_api: bool = True,
+    allow_amend: bool = False,
+    encoding: Encoding = Encoding.zip,
+    persistent: bool = False,
+    volumes: Optional[list[Mapping]] = None,
+    environment_variables: Optional[dict[str, str]] = None,
+    subscriptions: Optional[list[dict]] = None,
+    payment: Optional[Payment] = None,
+) -> ProgramContent:
+    """
+    Create ProgramContent object given the provided fields.
+    """
+
+    address = address or "0x0000000000000000000000000000000000000000"
+    payment = payment or Payment(chain=Chain.ETH, type=PaymentType.hold, receiver=None)
+    vcpus = vcpus or settings.DEFAULT_VM_VCPUS
+    memory = memory or settings.DEFAULT_VM_MEMORY
+    timeout_seconds = timeout_seconds or settings.DEFAULT_VM_TIMEOUT
+    volumes = volumes if volumes is not None else []
+    subscriptions = (
+        [Subscription(**sub) for sub in subscriptions]
+        if subscriptions is not None
+        else None
+    )
+
+    return ProgramContent(
+        type=MachineType.vm_function,
+        address=address,
+        allow_amend=allow_amend,
+        code=CodeContent(
+            encoding=encoding,
+            entrypoint=entrypoint,
+            ref=ItemHash(program_ref),
+            use_latest=True,
+        ),
+        on=FunctionTriggers(
+            http=True,
+            persistent=persistent,
+            message=subscriptions,
+        ),
+        environment=FunctionEnvironment(
+            reproducible=False,
+            internet=internet,
+            aleph_api=aleph_api,
+        ),
+        variables=environment_variables,
+        resources=MachineResources(
+            vcpus=vcpus,
+            memory=Mebibytes(memory),
+            seconds=int(timeout_seconds),
+        ),
+        runtime=FunctionRuntime(
+            ref=ItemHash(runtime),
+            use_latest=True,
+            comment=(
+                "Official aleph.im runtime"
+                if runtime == settings.DEFAULT_RUNTIME_ID
+                else ""
+            ),
+        ),
+        volumes=[parse_volume(volume) for volume in volumes],
+        time=datetime.now().timestamp(),
+        metadata=metadata,
+        authorized_keys=[],
         payment=payment,
     )
