@@ -7,6 +7,7 @@ from aleph_message.models import (
     Chain,
     ForgetMessage,
     InstanceMessage,
+    ItemHash,
     MessageType,
     Payment,
     PaymentType,
@@ -184,12 +185,16 @@ async def test_create_confidential_instance(mock_session_with_post_success):
             ),
             hypervisor=HypervisorType.qemu,
             trusted_execution=TrustedExecutionEnvironment(
-                firmware="cafecafecafecafecafecafecafecafecafecafecafecafecafecafecafecafe",
+                firmware=ItemHash(
+                    "cafecafecafecafecafecafecafecafecafecafecafecafecafecafecafecafe"
+                ),
                 policy=0b1,
             ),
             requirements=HostRequirements(
                 node=NodeRequirements(
-                    node_hash="cafecafecafecafecafecafecafecafecafecafecafecafecafecafecafecafe",
+                    node_hash=ItemHash(
+                        "cafecafecafecafecafecafecafecafecafecafecafecafecafecafecafecafe"
+                    ),
                 )
             ),
         )
@@ -285,5 +290,6 @@ async def test_create_instance_insufficient_funds_error(
                 payment=Payment(
                     chain=Chain.ETH,
                     type=PaymentType.hold,
+                    receiver=None,
                 ),
             )

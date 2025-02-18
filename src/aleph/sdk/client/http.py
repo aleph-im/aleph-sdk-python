@@ -2,6 +2,7 @@ import json
 import logging
 import os.path
 import ssl
+import time
 from io import BytesIO
 from pathlib import Path
 from typing import (
@@ -20,7 +21,15 @@ from typing import (
 import aiohttp
 from aiohttp.web import HTTPNotFound
 from aleph_message import parse_message
-from aleph_message.models import AlephMessage, ItemHash, ItemType, MessageType
+from aleph_message.models import (
+    AlephMessage,
+    Chain,
+    ExecutableContent,
+    ItemHash,
+    ItemType,
+    MessageType,
+    ProgramContent,
+)
 from aleph_message.status import MessageStatus
 from pydantic import ValidationError
 
@@ -37,6 +46,7 @@ from ..types import GenericMessage, StoredContent
 from ..utils import (
     Writable,
     check_unix_socket_valid,
+    compute_sha256,
     copy_async_readable_to_buffer,
     extended_json_encoder,
     get_message_type_value,
@@ -358,7 +368,7 @@ class AlephHttpClient(AlephClient):
             )
 
     @overload
-    async def get_message(
+    async def get_message(  # type: ignore
         self,
         item_hash: str,
         message_type: Optional[Type[GenericMessage]] = None,
@@ -383,7 +393,7 @@ class AlephHttpClient(AlephClient):
                 resp.raise_for_status()
             except aiohttp.ClientResponseError as e:
                 if e.status == 404:
-                    raise MessageNotFoundError(f"No such hash {item_hash}")
+                    raise MessageNotFoundError(f"No such hash {item_hash}") from e
                 raise e
             message_raw = await resp.json()
         if message_raw["status"] == "forgotten":
@@ -399,9 +409,9 @@ class AlephHttpClient(AlephClient):
                     f"does not match the expected type '{expected_type}'"
                 )
         if with_status:
-            return message, message_raw["status"]
+            return message, message_raw["status"]  # type: ignore
         else:
-            return message
+            return message  # type: ignore
 
     async def get_message_error(
         self,
@@ -448,6 +458,47 @@ class AlephHttpClient(AlephClient):
                 elif msg.type == aiohttp.WSMsgType.ERROR:
                     break
 
+    async def get_estimated_price(
+        self,
+        content: ExecutableContent,
+    ) -> PriceResponse:
+        cleaned_content = content.dict(exclude_none=True)
+        item_content: str = json.dumps(
+            cleaned_content,
+            separators=(",", ":"),
+            default=extended_json_encoder,
+        )
+        message = parse_message(
+            dict(
+                sender=content.address,
+                chain=Chain.ETH,
+                type=(
+                    MessageType.program
+                    if isinstance(content, ProgramContent)
+                    else MessageType.instance
+                ),
+                content=cleaned_content,
+                item_content=item_content,
+                time=time.time(),
+                channel=settings.DEFAULT_CHANNEL,
+                item_type=ItemType.inline,
+                item_hash=compute_sha256(item_content),
+            )
+        )
+
+        async with self.http_session.post(
+            "/api/v0/price/estimate", json=dict(message=message)
+        ) as resp:
+            try:
+                resp.raise_for_status()
+                response_json = await resp.json()
+                return PriceResponse(
+                    required_tokens=response_json["required_tokens"],
+                    payment_type=response_json["payment_type"],
+                )
+            except aiohttp.ClientResponseError as e:
+                raise e
+
     async def get_program_price(self, item_hash: str) -> PriceResponse:
         async with self.http_session.get(f"/api/v0/price/{item_hash}") as resp:
             try:
@@ -491,15 +542,21 @@ class AlephHttpClient(AlephClient):
                 resp = f"Invalid CID: {message.content.item_hash}"
             else:
                 filename = safe_getattr(message.content, "metadata.name")
-                hash = message.content.item_hash
+                item_hash = message.content.item_hash
                 url = (
                     f"{self.api_server}/api/v0/storage/raw/"
-                    if len(hash) == 64
+                    if len(item_hash) == 64
                     else settings.IPFS_GATEWAY
-                ) + hash
-                result = StoredContent(filename=filename, hash=hash, url=url)
+                ) + item_hash
+                result = StoredContent(
+                    filename=filename, hash=item_hash, url=url, error=None
+                )
         except MessageNotFoundError:
             resp = f"Message not found: {item_hash}"
         except ForgottenMessageError:
             resp = f"Message forgotten: {item_hash}"
-        return result if result else StoredContent(error=resp)
+        return (
+            result
+            if result
+            else StoredContent(error=resp, filename=None, hash=None, url=None)
+        )

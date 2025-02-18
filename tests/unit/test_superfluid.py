@@ -7,6 +7,7 @@ from aleph_message.models import Chain
 from eth_utils import to_checksum_address
 
 from aleph.sdk.chains.ethereum import ETHAccount
+from aleph.sdk.evm_utils import FlowUpdate
 
 
 def generate_fake_eth_address():
@@ -24,6 +25,7 @@ def mock_superfluid():
         mock_superfluid.create_flow = AsyncMock(return_value="0xTransactionHash")
         mock_superfluid.delete_flow = AsyncMock(return_value="0xTransactionHash")
         mock_superfluid.update_flow = AsyncMock(return_value="0xTransactionHash")
+        mock_superfluid.manage_flow = AsyncMock(return_value="0xTransactionHash")
 
         # Mock get_flow to return a mock Web3FlowInfo
         mock_flow_info = {"timestamp": 0, "flowRate": 0, "deposit": 0, "owedDeposit": 0}
@@ -98,3 +100,14 @@ async def test_get_flow(eth_account, mock_superfluid):
     assert flow_info["flowRate"] == 0
     assert flow_info["deposit"] == 0
     assert flow_info["owedDeposit"] == 0
+
+
+@pytest.mark.asyncio
+async def test_manage_flow(eth_account, mock_superfluid):
+    receiver = generate_fake_eth_address()
+    flow = Decimal("0.005")
+
+    tx_hash = await eth_account.manage_flow(receiver, flow, FlowUpdate.INCREASE)
+
+    assert tx_hash == "0xTransactionHash"
+    mock_superfluid.manage_flow.assert_awaited_once()

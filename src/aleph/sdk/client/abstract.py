@@ -20,9 +20,9 @@ from typing import (
 
 from aleph_message.models import (
     AlephMessage,
+    ExecutableContent,
     ItemHash,
     ItemType,
-    MessagesResponse,
     MessageType,
     Payment,
     PostMessage,
@@ -41,7 +41,7 @@ from aleph.sdk.types import Account
 from aleph.sdk.utils import extended_json_encoder
 
 from ..query.filters import MessageFilter, PostFilter
-from ..query.responses import PostsResponse, PriceResponse
+from ..query.responses import MessagesResponse, PostsResponse, PriceResponse
 from ..types import GenericMessage, StorageEnum
 from ..utils import Writable, compute_sha256
 
@@ -110,7 +110,7 @@ class AlephClient(ABC):
             )
             page += 1
             for post in resp.posts:
-                yield post
+                yield post  # type: ignore
 
     @abstractmethod
     async def download_file(self, file_hash: str) -> bytes:
@@ -243,6 +243,18 @@ class AlephClient(ABC):
         raise NotImplementedError("Did you mean to import `AlephHttpClient`?")
 
     @abstractmethod
+    def get_estimated_price(
+        self,
+        content: ExecutableContent,
+    ) -> Coroutine[Any, Any, PriceResponse]:
+        """
+        Get Instance/Program content estimated price
+
+        :param content: Instance or Program content
+        """
+        raise NotImplementedError("Did you mean to import `AlephHttpClient`?")
+
+    @abstractmethod
     def get_program_price(
         self,
         item_hash: str,
@@ -265,7 +277,7 @@ class AuthenticatedAlephClient(AlephClient):
         post_type: str,
         ref: Optional[str] = None,
         address: Optional[str] = None,
-        channel: Optional[str] = None,
+        channel: Optional[str] = settings.DEFAULT_CHANNEL,
         inline: bool = True,
         storage_engine: StorageEnum = StorageEnum.storage,
         sync: bool = False,
@@ -290,9 +302,9 @@ class AuthenticatedAlephClient(AlephClient):
     async def create_aggregate(
         self,
         key: str,
-        content: Mapping[str, Any],
+        content: dict[str, Any],
         address: Optional[str] = None,
-        channel: Optional[str] = None,
+        channel: Optional[str] = settings.DEFAULT_CHANNEL,
         inline: bool = True,
         sync: bool = False,
     ) -> Tuple[AlephMessage, MessageStatus]:
@@ -302,7 +314,7 @@ class AuthenticatedAlephClient(AlephClient):
         :param key: Key to use to store the content
         :param content: Content to store
         :param address: Address to use to sign the message
-        :param channel: Channel to use (Default: "TEST")
+        :param channel: Channel to use (Default: "ALEPH-CLOUDSOLUTIONS")
         :param inline: Whether to write content inside the message (Default: True)
         :param sync: If true, waits for the message to be processed by the API server (Default: False)
         """
@@ -321,7 +333,7 @@ class AuthenticatedAlephClient(AlephClient):
         ref: Optional[str] = None,
         storage_engine: StorageEnum = StorageEnum.storage,
         extra_fields: Optional[dict] = None,
-        channel: Optional[str] = None,
+        channel: Optional[str] = settings.DEFAULT_CHANNEL,
         sync: bool = False,
     ) -> Tuple[AlephMessage, MessageStatus]:
         """
@@ -350,22 +362,22 @@ class AuthenticatedAlephClient(AlephClient):
         program_ref: str,
         entrypoint: str,
         runtime: str,
-        environment_variables: Optional[Mapping[str, str]] = None,
-        storage_engine: StorageEnum = StorageEnum.storage,
-        channel: Optional[str] = None,
+        metadata: Optional[dict[str, Any]] = None,
         address: Optional[str] = None,
-        sync: bool = False,
-        memory: Optional[int] = None,
         vcpus: Optional[int] = None,
+        memory: Optional[int] = None,
         timeout_seconds: Optional[float] = None,
-        persistent: bool = False,
-        allow_amend: bool = False,
         internet: bool = True,
+        allow_amend: bool = False,
         aleph_api: bool = True,
         encoding: Encoding = Encoding.zip,
+        persistent: bool = False,
         volumes: Optional[List[Mapping]] = None,
-        subscriptions: Optional[List[Mapping]] = None,
-        metadata: Optional[Mapping[str, Any]] = None,
+        environment_variables: Optional[dict[str, str]] = None,
+        subscriptions: Optional[List[dict]] = None,
+        sync: bool = False,
+        channel: Optional[str] = settings.DEFAULT_CHANNEL,
+        storage_engine: StorageEnum = StorageEnum.storage,
     ) -> Tuple[AlephMessage, MessageStatus]:
         """
         Post a (create) PROGRAM message.
@@ -373,22 +385,22 @@ class AuthenticatedAlephClient(AlephClient):
         :param program_ref: Reference to the program to run
         :param entrypoint: Entrypoint to run
         :param runtime: Runtime to use
-        :param environment_variables: Environment variables to pass to the program
-        :param storage_engine: Storage engine to use (Default: "storage")
-        :param channel: Channel to use (Default: "TEST")
+        :param metadata: Metadata to attach to the message
         :param address: Address to use (Default: account.get_address())
-        :param sync: If true, waits for the message to be processed by the API server
-        :param memory: Memory in MB for the VM to be allocated (Default: 128)
         :param vcpus: Number of vCPUs to allocate (Default: 1)
+        :param memory: Memory in MB for the VM to be allocated (Default: 128)
         :param timeout_seconds: Timeout in seconds (Default: 30.0)
-        :param persistent: Whether the program should be persistent or not (Default: False)
-        :param allow_amend: Whether the deployed VM image may be changed (Default: False)
         :param internet: Whether the VM should have internet connectivity. (Default: True)
+        :param allow_amend: Whether the deployed VM image may be changed (Default: False)
         :param aleph_api: Whether the VM needs access to Aleph messages API (Default: True)
         :param encoding: Encoding to use (Default: Encoding.zip)
+        :param persistent: Whether the program should be persistent or not (Default: False)
         :param volumes: Volumes to mount
+        :param environment_variables: Environment variables to pass to the program
         :param subscriptions: Patterns of aleph.im messages to forward to the program's event receiver
-        :param metadata: Metadata to attach to the message
+        :param sync: If true, waits for the message to be processed by the API server
+        :param channel: Channel to use (Default: "ALEPH-CLOUDSOLUTIONS")
+        :param storage_engine: Storage engine to use (Default: "storage")
         """
         raise NotImplementedError(
             "Did you mean to import `AuthenticatedAlephHttpClient`?"
@@ -400,9 +412,9 @@ class AuthenticatedAlephClient(AlephClient):
         rootfs: str,
         rootfs_size: int,
         payment: Optional[Payment] = None,
-        environment_variables: Optional[Mapping[str, str]] = None,
+        environment_variables: Optional[dict[str, str]] = None,
         storage_engine: StorageEnum = StorageEnum.storage,
-        channel: Optional[str] = None,
+        channel: Optional[str] = settings.DEFAULT_CHANNEL,
         address: Optional[str] = None,
         sync: bool = False,
         memory: Optional[int] = None,
@@ -416,7 +428,7 @@ class AuthenticatedAlephClient(AlephClient):
         volumes: Optional[List[Mapping]] = None,
         volume_persistence: str = "host",
         ssh_keys: Optional[List[str]] = None,
-        metadata: Optional[Mapping[str, Any]] = None,
+        metadata: Optional[dict[str, Any]] = None,
         requirements: Optional[HostRequirements] = None,
     ) -> Tuple[AlephMessage, MessageStatus]:
         """
@@ -427,7 +439,7 @@ class AuthenticatedAlephClient(AlephClient):
         :param payment: Payment method used to pay for the instance
         :param environment_variables: Environment variables to pass to the program
         :param storage_engine: Storage engine to use (Default: "storage")
-        :param channel: Channel to use (Default: "TEST")
+        :param channel: Channel to use (Default: "ALEPH-CLOUDSOLUTIONS")
         :param address: Address to use (Default: account.get_address())
         :param sync: If true, waits for the message to be processed by the API server
         :param memory: Memory in MB for the VM to be allocated (Default: 2048)
@@ -455,7 +467,7 @@ class AuthenticatedAlephClient(AlephClient):
         hashes: List[ItemHash],
         reason: Optional[str],
         storage_engine: StorageEnum = StorageEnum.storage,
-        channel: Optional[str] = None,
+        channel: Optional[str] = settings.DEFAULT_CHANNEL,
         address: Optional[str] = None,
         sync: bool = False,
     ) -> Tuple[AlephMessage, MessageStatus]:
@@ -468,7 +480,7 @@ class AuthenticatedAlephClient(AlephClient):
         :param hashes: Hashes of the messages to forget
         :param reason: Reason for forgetting the messages
         :param storage_engine: Storage engine to use (Default: "storage")
-        :param channel: Channel to use (Default: "TEST")
+        :param channel: Channel to use (Default: "ALEPH-CLOUDSOLUTIONS")
         :param address: Address to use (Default: account.get_address())
         :param sync: If true, waits for the message to be processed by the API server (Default: False)
         """
@@ -490,7 +502,7 @@ class AuthenticatedAlephClient(AlephClient):
 
         :param message_type: Type of the message (PostMessage, ...)
         :param content: User-defined content of the message
-        :param channel: Channel to use (Default: "TEST")
+        :param channel: Channel to use (Default: "ALEPH-CLOUDSOLUTIONS")
         :param allow_inlining: Whether to allow inlining the content of the message (Default: True)
         :param storage_engine: Storage engine to use (Default: "storage")
         """
@@ -537,7 +549,7 @@ class AuthenticatedAlephClient(AlephClient):
         self,
         content: Dict[str, Any],
         message_type: MessageType,
-        channel: Optional[str] = None,
+        channel: Optional[str] = settings.DEFAULT_CHANNEL,
         storage_engine: StorageEnum = StorageEnum.storage,
         allow_inlining: bool = True,
         sync: bool = False,
@@ -549,7 +561,7 @@ class AuthenticatedAlephClient(AlephClient):
 
         :param content: Content of the message
         :param message_type: Type of the message
-        :param channel: Channel to use (Default: "TEST")
+        :param channel: Channel to use (Default: "ALEPH-CLOUDSOLUTIONS")
         :param storage_engine: Storage engine to use (Default: "storage")
         :param allow_inlining: Whether to allow inlining the content of the message (Default: True)
         :param sync: If true, waits for the message to be processed by the API server (Default: False)
