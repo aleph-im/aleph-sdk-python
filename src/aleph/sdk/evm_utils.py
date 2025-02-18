@@ -1,4 +1,5 @@
-from decimal import Decimal
+from decimal import ROUND_CEILING, Context, Decimal
+from enum import Enum
 from typing import List, Optional, Union
 
 from aleph_message.models import Chain
@@ -21,12 +22,26 @@ BALANCEOF_ABI = """[{
 }]"""
 
 
-def to_human_readable_token(amount: Decimal) -> float:
-    return float(amount / (Decimal(10) ** Decimal(settings.TOKEN_DECIMALS)))
+class FlowUpdate(str, Enum):
+    REDUCE = "reduce"
+    INCREASE = "increase"
+
+
+def ether_rounding(amount: Decimal) -> Decimal:
+    """Rounds the given value to 18 decimals."""
+    return amount.quantize(
+        Decimal(1) / Decimal(10**18), rounding=ROUND_CEILING, context=Context(prec=36)
+    )
+
+
+def from_wei_token(amount: Decimal) -> Decimal:
+    """Converts the given wei value to ether."""
+    return ether_rounding(amount / Decimal(10) ** Decimal(settings.TOKEN_DECIMALS))
 
 
 def to_wei_token(amount: Decimal) -> Decimal:
-    return amount * Decimal(10) ** Decimal(settings.TOKEN_DECIMALS)
+    """Converts the given ether value to wei."""
+    return Decimal(int(amount * Decimal(10) ** Decimal(settings.TOKEN_DECIMALS)))
 
 
 def get_chain_id(chain: Union[Chain, str, None]) -> Optional[int]:

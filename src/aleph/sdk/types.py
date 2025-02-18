@@ -83,7 +83,20 @@ class ChainInfo(BaseModel):
 
 
 class StoredContent(BaseModel):
+    """
+    A stored content.
+    """
+
     filename: Optional[str] = Field(default=None)
     hash: Optional[str] = Field(default=None)
     url: Optional[str] = Field(default=None)
     error: Optional[str] = Field(default=None)
+
+
+class TokenType(str, Enum):
+    """
+    A token type.
+    """
+
+    GAS = "GAS"
+    ALEPH = "ALEPH"

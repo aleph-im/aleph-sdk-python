@@ -5,45 +5,37 @@ import ssl
 import time
 from io import BytesIO
 from pathlib import Path
-from typing import Any, Dict, List, Mapping, NoReturn, Optional, Tuple, Union
+from typing import Any, Dict, Mapping, NoReturn, Optional, Tuple, Union
 
 import aiohttp
 from aleph_message.models import (
     AggregateContent,
     AggregateMessage,
     AlephMessage,
-    Chain,
     ForgetContent,
     ForgetMessage,
-    InstanceContent,
     InstanceMessage,
     ItemHash,
+    ItemType,
     MessageType,
     PostContent,
     PostMessage,
-    ProgramContent,
     ProgramMessage,
     StoreContent,
     StoreMessage,
 )
-from aleph_message.models.execution.base import Encoding, Payment, PaymentType
+from aleph_message.models.execution.base import Encoding, Payment
 from aleph_message.models.execution.environment import (
-    FunctionEnvironment,
     HostRequirements,
     HypervisorType,
-    InstanceEnvironment,
-    MachineResources,
     TrustedExecutionEnvironment,
 )
-from aleph_message.models.execution.instance import RootfsVolume
-from aleph_message.models.execution.program import CodeContent, FunctionRuntime
-from aleph_message.models.execution.volume import MachineVolume, ParentVolume
 from aleph_message.status import MessageStatus
 
 from ..conf import settings
 from ..exceptions import BroadcastError, InsufficientFundsError, InvalidMessageError
-from ..types import Account, StorageEnum
-from ..utils import extended_json_encoder, parse_volume
+from ..types import Account, StorageEnum, TokenType
+from ..utils import extended_json_encoder, make_instance_content, make_program_content
 from .abstract import AuthenticatedAlephClient
 from .http import AlephHttpClient
 
@@ -285,7 +277,7 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
         post_type: str,
         ref: Optional[str] = None,
         address: Optional[str] = None,
-        channel: Optional[str] = None,
+        channel: Optional[str] = settings.DEFAULT_CHANNEL,
         inline: bool = True,
         storage_engine: StorageEnum = StorageEnum.storage,
         sync: bool = False,
@@ -308,14 +300,14 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
             storage_engine=storage_engine,
             sync=sync,
         )
-        return message, status
+        return message, status  # type: ignore
 
     async def create_aggregate(
         self,
         key: str,
-        content: Mapping[str, Any],
+        content: dict[str, Any],
         address: Optional[str] = None,
-        channel: Optional[str] = None,
+        channel: Optional[str] = settings.DEFAULT_CHANNEL,
         inline: bool = True,
         sync: bool = False,
     ) -> Tuple[AggregateMessage, MessageStatus]:
@@ -335,7 +327,7 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
             allow_inlining=inline,
             sync=sync,
         )
-        return message, status
+        return message, status  # type: ignore
 
     async def create_store(
         self,
@@ -347,7 +339,7 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
         ref: Optional[str] = None,
         storage_engine: StorageEnum = StorageEnum.storage,
         extra_fields: Optional[dict] = None,
-        channel: Optional[str] = None,
+        channel: Optional[str] = settings.DEFAULT_CHANNEL,
         sync: bool = False,
     ) -> Tuple[StoreMessage, MessageStatus]:
         address = address or settings.ADDRESS_TO_USE or self.account.get_address()
@@ -400,7 +392,7 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
         if extra_fields is not None:
             values.update(extra_fields)
 
-        content = StoreContent(**values)
+        content = StoreContent.parse_obj(values)
 
         message, status, _ = await self.submit(
             content=content.model_dump(exclude_none=True),
@@ -409,91 +401,50 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
             allow_inlining=True,
             sync=sync,
         )
-        return message, status
+        return message, status  # type: ignore
 
     async def create_program(
         self,
         program_ref: str,
         entrypoint: str,
         runtime: str,
-        environment_variables: Optional[Mapping[str, str]] = None,
-        storage_engine: StorageEnum = StorageEnum.storage,
-        channel: Optional[str] = None,
+        metadata: Optional[dict[str, Any]] = None,
         address: Optional[str] = None,
-        sync: bool = False,
-        memory: Optional[int] = None,
         vcpus: Optional[int] = None,
+        memory: Optional[int] = None,
         timeout_seconds: Optional[float] = None,
-        persistent: bool = False,
-        allow_amend: bool = False,
         internet: bool = True,
+        allow_amend: bool = False,
         aleph_api: bool = True,
         encoding: Encoding = Encoding.zip,
-        volumes: Optional[List[Mapping]] = None,
-        subscriptions: Optional[List[Mapping]] = None,
-        metadata: Optional[Mapping[str, Any]] = None,
+        persistent: bool = False,
+        volumes: Optional[list[Mapping]] = None,
+        environment_variables: Optional[dict[str, str]] = None,
+        subscriptions: Optional[list[dict]] = None,
+        sync: bool = False,
+        channel: Optional[str] = settings.DEFAULT_CHANNEL,
+        storage_engine: StorageEnum = StorageEnum.storage,
     ) -> Tuple[ProgramMessage, MessageStatus]:
         address = address or settings.ADDRESS_TO_USE or self.account.get_address()
 
-        volumes = volumes if volumes is not None else []
-        memory = memory or settings.DEFAULT_VM_MEMORY
-        vcpus = vcpus or settings.DEFAULT_VM_VCPUS
-        timeout_seconds = timeout_seconds or settings.DEFAULT_VM_TIMEOUT
-
-        # TODO: Check that program_ref, runtime and data_ref exist
-
-        # Register the different ways to trigger a VM
-        if subscriptions:
-            # Trigger on HTTP calls and on aleph.im message subscriptions.
-            triggers = {
-                "http": True,
-                "persistent": persistent,
-                "message": subscriptions,
-            }
-        else:
-            # Trigger on HTTP calls.
-            triggers = {"http": True, "persistent": persistent}
-
-        volumes: List[MachineVolume] = [parse_volume(volume) for volume in volumes]
-
-        content = ProgramContent(
-            type="vm-function",
-            address=address,
-            allow_amend=allow_amend,
-            code=CodeContent(
-                encoding=encoding,
-                entrypoint=entrypoint,
-                ref=program_ref,
-                use_latest=True,
-            ),
-            on=triggers,
-            environment=FunctionEnvironment(
-                reproducible=False,
-                internet=internet,
-                aleph_api=aleph_api,
-            ),
-            variables=environment_variables,
-            resources=MachineResources(
-                vcpus=vcpus,
-                memory=memory,
-                seconds=timeout_seconds,
-            ),
-            runtime=FunctionRuntime(
-                ref=runtime,
-                use_latest=True,
-                comment=(
-                    "Official aleph.im runtime"
-                    if runtime == settings.DEFAULT_RUNTIME_ID
-                    else ""
-                ),
-            ),
-            volumes=[parse_volume(volume) for volume in volumes],
-            time=time.time(),
+        content = make_program_content(
+            program_ref=program_ref,
+            entrypoint=entrypoint,
+            runtime=runtime,
             metadata=metadata,
+            address=address,
+            vcpus=vcpus,
+            memory=memory,
+            timeout_seconds=timeout_seconds,
+            internet=internet,
+            aleph_api=aleph_api,
+            allow_amend=allow_amend,
+            encoding=encoding,
+            persistent=persistent,
+            volumes=volumes,
+            environment_variables=environment_variables,
+            subscriptions=subscriptions,
         )
-
-        # Ensure that the version of aleph-message used supports the field.
-        assert content.on.persistent == persistent
 
         message, status, _ = await self.submit(
             content=content.model_dump(exclude_none=True),
@@ -501,86 +452,10 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
             channel=channel,
             storage_engine=storage_engine,
             sync=sync,
-        )
-        return message, status
-
-    async def create_instance(
-        self,
-        rootfs: str,
-        rootfs_size: int,
-        payment: Optional[Payment] = None,
-        environment_variables: Optional[Mapping[str, str]] = None,
-        storage_engine: StorageEnum = StorageEnum.storage,
-        channel: Optional[str] = None,
-        address: Optional[str] = None,
-        sync: bool = False,
-        memory: Optional[int] = None,
-        vcpus: Optional[int] = None,
-        timeout_seconds: Optional[float] = None,
-        allow_amend: bool = False,
-        internet: bool = True,
-        aleph_api: bool = True,
-        hypervisor: Optional[HypervisorType] = None,
-        trusted_execution: Optional[TrustedExecutionEnvironment] = None,
-        volumes: Optional[List[Mapping]] = None,
-        volume_persistence: str = "host",
-        ssh_keys: Optional[List[str]] = None,
-        metadata: Optional[Mapping[str, Any]] = None,
-        requirements: Optional[HostRequirements] = None,
-    ) -> Tuple[InstanceMessage, MessageStatus]:
-        address = address or settings.ADDRESS_TO_USE or self.account.get_address()
-
-        volumes = volumes if volumes is not None else []
-        memory = memory or settings.DEFAULT_VM_MEMORY
-        vcpus = vcpus or settings.DEFAULT_VM_VCPUS
-        timeout_seconds = timeout_seconds or settings.DEFAULT_VM_TIMEOUT
-
-        payment = payment or Payment(chain=Chain.ETH, type=PaymentType.hold)
-
-        # Default to the QEMU hypervisor for instances.
-        selected_hypervisor: HypervisorType = hypervisor or HypervisorType.qemu
-
-        content = InstanceContent(
-            address=address,
-            allow_amend=allow_amend,
-            environment=InstanceEnvironment(
-                internet=internet,
-                aleph_api=aleph_api,
-                hypervisor=selected_hypervisor,
-                trusted_execution=trusted_execution,
-            ),
-            variables=environment_variables,
-            resources=MachineResources(
-                vcpus=vcpus,
-                memory=memory,
-                seconds=timeout_seconds,
-            ),
-            rootfs=RootfsVolume(
-                parent=ParentVolume(
-                    ref=rootfs,
-                    use_latest=True,
-                ),
-                size_mib=rootfs_size,
-                persistence="host",
-                use_latest=True,
-            ),
-            volumes=[parse_volume(volume) for volume in volumes],
-            requirements=requirements,
-            time=time.time(),
-            authorized_keys=ssh_keys,
-            metadata=metadata,
-            payment=payment,
-        )
-        message, status, response = await self.submit(
-            content=content.model_dump(exclude_none=True),
-            message_type=MessageType.instance,
-            channel=channel,
-            storage_engine=storage_engine,
-            sync=sync,
             raise_on_rejected=False,
         )
         if status in (MessageStatus.PROCESSED, MessageStatus.PENDING):
-            return message, status
+            return message, status  # type: ignore
 
         # get the reason for rejection
         rejected_message = await self.get_message_error(message.item_hash)
@@ -594,17 +469,95 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
             account_balance = float(error["account_balance"])
             required_balance = float(error["required_balance"])
             raise InsufficientFundsError(
-                required_funds=required_balance, available_funds=account_balance
+                token_type=TokenType.ALEPH,
+                required_funds=required_balance,
+                available_funds=account_balance,
+            )
+        else:
+            raise ValueError(f"Unknown error code {error_code}: {rejected_message}")
+
+    async def create_instance(
+        self,
+        rootfs: str,
+        rootfs_size: int,
+        payment: Optional[Payment] = None,
+        environment_variables: Optional[dict[str, str]] = None,
+        storage_engine: StorageEnum = StorageEnum.storage,
+        channel: Optional[str] = settings.DEFAULT_CHANNEL,
+        address: Optional[str] = None,
+        sync: bool = False,
+        memory: Optional[int] = None,
+        vcpus: Optional[int] = None,
+        timeout_seconds: Optional[float] = None,
+        allow_amend: bool = False,
+        internet: bool = True,
+        aleph_api: bool = True,
+        hypervisor: Optional[HypervisorType] = None,
+        trusted_execution: Optional[TrustedExecutionEnvironment] = None,
+        volumes: Optional[list[Mapping]] = None,
+        volume_persistence: str = "host",
+        ssh_keys: Optional[list[str]] = None,
+        metadata: Optional[dict[str, Any]] = None,
+        requirements: Optional[HostRequirements] = None,
+    ) -> Tuple[InstanceMessage, MessageStatus]:
+        address = address or settings.ADDRESS_TO_USE or self.account.get_address()
+
+        content = make_instance_content(
+            rootfs=rootfs,
+            rootfs_size=rootfs_size,
+            payment=payment,
+            environment_variables=environment_variables,
+            address=address,
+            memory=memory,
+            vcpus=vcpus,
+            timeout_seconds=timeout_seconds,
+            allow_amend=allow_amend,
+            internet=internet,
+            aleph_api=aleph_api,
+            hypervisor=hypervisor,
+            trusted_execution=trusted_execution,
+            volumes=volumes,
+            ssh_keys=ssh_keys,
+            metadata=metadata,
+            requirements=requirements,
+        )
+
+        message, status, response = await self.submit(
+            content=content.dict(exclude_none=True),
+            message_type=MessageType.instance,
+            channel=channel,
+            storage_engine=storage_engine,
+            sync=sync,
+            raise_on_rejected=False,
+        )
+        if status in (MessageStatus.PROCESSED, MessageStatus.PENDING):
+            return message, status  # type: ignore
+
+        # get the reason for rejection
+        rejected_message = await self.get_message_error(message.item_hash)
+        assert rejected_message, "No rejected message found"
+        error_code = rejected_message["error_code"]
+        if error_code == 5:
+            # not enough balance
+            details = rejected_message["details"]
+            errors = details["errors"]
+            error = errors[0]
+            account_balance = float(error["account_balance"])
+            required_balance = float(error["required_balance"])
+            raise InsufficientFundsError(
+                token_type=TokenType.ALEPH,
+                required_funds=required_balance,
+                available_funds=account_balance,
             )
         else:
             raise ValueError(f"Unknown error code {error_code}: {rejected_message}")
 
     async def forget(
         self,
-        hashes: List[ItemHash],
+        hashes: list[ItemHash],
         reason: Optional[str],
         storage_engine: StorageEnum = StorageEnum.storage,
-        channel: Optional[str] = None,
+        channel: Optional[str] = settings.DEFAULT_CHANNEL,
         address: Optional[str] = None,
         sync: bool = False,
     ) -> Tuple[ForgetMessage, MessageStatus]:
@@ -625,13 +578,13 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
             allow_inlining=True,
             sync=sync,
         )
-        return message, status
+        return message, status  # type: ignore
 
     async def submit(
         self,
         content: Dict[str, Any],
         message_type: MessageType,
-        channel: Optional[str] = None,
+        channel: Optional[str] = settings.DEFAULT_CHANNEL,
         storage_engine: StorageEnum = StorageEnum.storage,
         allow_inlining: bool = True,
         sync: bool = False,
@@ -653,7 +606,7 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
         self,
         file_content: bytes,
         store_content: StoreContent,
-        channel: Optional[str] = None,
+        channel: Optional[str] = settings.DEFAULT_CHANNEL,
         sync: bool = False,
     ) -> Tuple[StoreMessage, MessageStatus]:
         """Push a file to the storage service."""
@@ -685,7 +638,7 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
             message_status = (
                 MessageStatus.PENDING if resp.status == 202 else MessageStatus.PROCESSED
             )
-            return message, message_status
+            return message, message_status  # type: ignore
 
     async def _upload_file_native(
         self,
@@ -694,7 +647,7 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
         guess_mime_type: bool = False,
         ref: Optional[str] = None,
         extra_fields: Optional[dict] = None,
-        channel: Optional[str] = None,
+        channel: Optional[str] = settings.DEFAULT_CHANNEL,
         sync: bool = False,
     ) -> Tuple[StoreMessage, MessageStatus]:
         file_hash = hashlib.sha256(file_content).hexdigest()
@@ -706,9 +659,9 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
         store_content = StoreContent(
             address=address,
             ref=ref,
-            item_type=StorageEnum.storage,
-            item_hash=file_hash,
-            mime_type=mime_type,
+            item_type=ItemType.storage,
+            item_hash=ItemHash(file_hash),
+            mime_type=mime_type,  # type: ignore
             time=time.time(),
             **(extra_fields or {}),
         )

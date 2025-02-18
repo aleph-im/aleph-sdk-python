@@ -8,6 +8,7 @@ import logging
 import os
 import subprocess
 from datetime import date, datetime, time
+from decimal import Context, Decimal, InvalidOperation
 from enum import Enum
 from pathlib import Path
 from shutil import make_archive
@@ -15,7 +16,6 @@ from typing import (
     Any,
     Dict,
     Iterable,
-    List,
     Mapping,
     Optional,
     Protocol,
@@ -28,10 +28,38 @@ from typing import (
 from uuid import UUID
 from zipfile import BadZipFile, ZipFile
 
-import pydantic_core
-from aleph_message.models import ItemHash, MessageType
-from aleph_message.models.execution.program import Encoding
-from aleph_message.models.execution.volume import MachineVolume
+from aleph_message.models import (
+    Chain,
+    InstanceContent,
+    ItemHash,
+    MachineType,
+    MessageType,
+    ProgramContent,
+)
+from aleph_message.models.execution.base import Payment, PaymentType
+from aleph_message.models.execution.environment import (
+    FunctionEnvironment,
+    FunctionTriggers,
+    HostRequirements,
+    HypervisorType,
+    InstanceEnvironment,
+    MachineResources,
+    Subscription,
+    TrustedExecutionEnvironment,
+)
+from aleph_message.models.execution.instance import RootfsVolume
+from aleph_message.models.execution.program import (
+    CodeContent,
+    Encoding,
+    FunctionRuntime,
+)
+from aleph_message.models.execution.volume import (
+    MachineVolume,
+    ParentVolume,
+    PersistentVolumeSizeMib,
+    VolumePersistence,
+)
+from aleph_message.utils import Mebibytes
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from jwcrypto.jwa import JWA
@@ -179,13 +207,17 @@ def extended_json_encoder(obj: Any) -> Any:
 def parse_volume(volume_dict: Union[Mapping, MachineVolume]) -> MachineVolume:
     # Python 3.9 does not support `isinstance(volume_dict, MachineVolume)`,
     # so we need to iterate over all types.
+    if any(
+        isinstance(volume_dict, volume_type) for volume_type in get_args(MachineVolume)
+    ):
+        return volume_dict  # type: ignore
+
     for volume_type in get_args(MachineVolume):
         try:
             return volume_type.model_validate(volume_dict)
         except ValueError:
-            continue
-    else:
-        raise ValueError(f"Could not parse volume: {volume_dict}")
+            pass
+    raise ValueError(f"Could not parse volume: {volume_dict}")
 
 
 def compute_sha256(s: str) -> str:
@@ -230,7 +262,7 @@ def sign_vm_control_payload(payload: Dict[str, str], ephemeral_key) -> str:
 
 
 async def run_in_subprocess(
-    command: List[str], check: bool = True, stdin_input: Optional[bytes] = None
+    command: list[str], check: bool = True, stdin_input: Optional[bytes] = None
 ) -> bytes:
     """Run the specified command in a subprocess, returns the stdout of the process."""
     logger.debug(f"command: {' '.join(command)}")
@@ -397,3 +429,166 @@ def safe_getattr(obj, attr, default=None):
         if obj is default:
             break
     return obj
+
+
+def displayable_amount(
+    amount: Union[str, int, float, Decimal], decimals: int = 18
+) -> str:
+    """Returns the amount as a string without unnecessary decimals."""
+
+    str_amount = ""
+    try:
+        dec_amount = Decimal(amount)
+        if decimals:
+            dec_amount = dec_amount.quantize(
+                Decimal(1) / Decimal(10**decimals), context=Context(prec=36)
+            )
+        str_amount = str(format(dec_amount.normalize(), "f"))
+    except ValueError:
+        logger.error(f"Invalid amount to display: {amount}")
+        exit(1)
+    except InvalidOperation:
+        logger.error(f"Invalid operation on amount to display: {amount}")
+        exit(1)
+    return str_amount
+
+
+def make_instance_content(
+    rootfs: str,
+    rootfs_size: int,
+    payment: Optional[Payment] = None,
+    environment_variables: Optional[dict[str, str]] = None,
+    address: Optional[str] = None,
+    memory: Optional[int] = None,
+    vcpus: Optional[int] = None,
+    timeout_seconds: Optional[float] = None,
+    allow_amend: bool = False,
+    internet: bool = True,
+    aleph_api: bool = True,
+    hypervisor: Optional[HypervisorType] = None,
+    trusted_execution: Optional[TrustedExecutionEnvironment] = None,
+    volumes: Optional[list[Mapping]] = None,
+    ssh_keys: Optional[list[str]] = None,
+    metadata: Optional[dict[str, Any]] = None,
+    requirements: Optional[HostRequirements] = None,
+) -> InstanceContent:
+    """
+    Create InstanceContent object given the provided fields.
+    """
+
+    address = address or "0x0000000000000000000000000000000000000000"
+    payment = payment or Payment(chain=Chain.ETH, type=PaymentType.hold, receiver=None)
+    selected_hypervisor: HypervisorType = hypervisor or HypervisorType.qemu
+    vcpus = vcpus or settings.DEFAULT_VM_VCPUS
+    memory = memory or settings.DEFAULT_VM_MEMORY
+    timeout_seconds = timeout_seconds or settings.DEFAULT_VM_TIMEOUT
+    volumes = volumes if volumes is not None else []
+
+    return InstanceContent(
+        address=address,
+        allow_amend=allow_amend,
+        environment=InstanceEnvironment(
+            internet=internet,
+            aleph_api=aleph_api,
+            hypervisor=selected_hypervisor,
+            trusted_execution=trusted_execution,
+        ),
+        variables=environment_variables,
+        resources=MachineResources(
+            vcpus=vcpus,
+            memory=Mebibytes(memory),
+            seconds=int(timeout_seconds),
+        ),
+        rootfs=RootfsVolume(
+            parent=ParentVolume(
+                ref=ItemHash(rootfs),
+                use_latest=True,
+            ),
+            size_mib=PersistentVolumeSizeMib(rootfs_size),
+            persistence=VolumePersistence.host,
+        ),
+        volumes=[parse_volume(volume) for volume in volumes],
+        requirements=requirements,
+        time=datetime.now().timestamp(),
+        authorized_keys=ssh_keys,
+        metadata=metadata,
+        payment=payment,
+    )
+
+
+def make_program_content(
+    program_ref: str,
+    entrypoint: str,
+    runtime: str,
+    metadata: Optional[dict[str, Any]] = None,
+    address: Optional[str] = None,
+    vcpus: Optional[int] = None,
+    memory: Optional[int] = None,
+    timeout_seconds: Optional[float] = None,
+    internet: bool = False,
+    aleph_api: bool = True,
+    allow_amend: bool = False,
+    encoding: Encoding = Encoding.zip,
+    persistent: bool = False,
+    volumes: Optional[list[Mapping]] = None,
+    environment_variables: Optional[dict[str, str]] = None,
+    subscriptions: Optional[list[dict]] = None,
+    payment: Optional[Payment] = None,
+) -> ProgramContent:
+    """
+    Create ProgramContent object given the provided fields.
+    """
+
+    address = address or "0x0000000000000000000000000000000000000000"
+    payment = payment or Payment(chain=Chain.ETH, type=PaymentType.hold, receiver=None)
+    vcpus = vcpus or settings.DEFAULT_VM_VCPUS
+    memory = memory or settings.DEFAULT_VM_MEMORY
+    timeout_seconds = timeout_seconds or settings.DEFAULT_VM_TIMEOUT
+    volumes = volumes if volumes is not None else []
+    subscriptions = (
+        [Subscription(**sub) for sub in subscriptions]
+        if subscriptions is not None
+        else None
+    )
+
+    return ProgramContent(
+        type=MachineType.vm_function,
+        address=address,
+        allow_amend=allow_amend,
+        code=CodeContent(
+            encoding=encoding,
+            entrypoint=entrypoint,
+            ref=ItemHash(program_ref),
+            use_latest=True,
+        ),
+        on=FunctionTriggers(
+            http=True,
+            persistent=persistent,
+            message=subscriptions,
+        ),
+        environment=FunctionEnvironment(
+            reproducible=False,
+            internet=internet,
+            aleph_api=aleph_api,
+        ),
+        variables=environment_variables,
+        resources=MachineResources(
+            vcpus=vcpus,
+            memory=Mebibytes(memory),
+            seconds=int(timeout_seconds),
+        ),
+        runtime=FunctionRuntime(
+            ref=ItemHash(runtime),
+            use_latest=True,
+            comment=(
+                "Official aleph.im runtime"
+                if runtime == settings.DEFAULT_RUNTIME_ID
+                else ""
+            ),
+        ),
+        volumes=[parse_volume(volume) for volume in volumes],
+        time=datetime.now().timestamp(),
+        metadata=metadata,
+        authorized_keys=[],
+        payment=payment,
+    )

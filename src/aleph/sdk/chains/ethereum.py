@@ -15,6 +15,7 @@ from web3.middleware import geth_poa_middleware
 from web3.types import TxParams, TxReceipt
 
 from aleph.sdk.exceptions import InsufficientFundsError
+from aleph.sdk.types import TokenType
 
 from ..conf import settings
 from ..connectors.superfluid import Superfluid
@@ -22,12 +23,13 @@ from ..evm_utils import (
     BALANCEOF_ABI,
     MIN_ETH_BALANCE,
     MIN_ETH_BALANCE_WEI,
+    FlowUpdate,
+    from_wei_token,
     get_chain_id,
     get_chains_with_super_token,
     get_rpc,
     get_super_token_address,
     get_token_address,
-    to_human_readable_token,
 )
 from ..exceptions import BadSignatureError
 from ..utils import bytes_from_hex
@@ -106,8 +108,9 @@ class ETHAccount(BaseAccount):
         valid = balance > MIN_ETH_BALANCE_WEI if self.chain else False
         if not valid and block:
             raise InsufficientFundsError(
+                token_type=TokenType.GAS,
                 required_funds=MIN_ETH_BALANCE,
-                available_funds=to_human_readable_token(balance),
+                available_funds=float(from_wei_token(balance)),
             )
         return valid
 
@@ -162,6 +165,12 @@ class ETHAccount(BaseAccount):
                 return Decimal(contract.functions.balanceOf(self.get_address()).call())
         return Decimal(0)
 
+    def can_start_flow(self, flow: Decimal) -> bool:
+        """Check if the account has enough funds to start a Superfluid flow of the given size."""
+        if not self.superfluid_connector:
+            raise ValueError("Superfluid connector is required to check a flow")
+        return self.superfluid_connector.can_start_flow(flow)
+
     def create_flow(self, receiver: str, flow: Decimal) -> Awaitable[str]:
         """Creat a Superfluid flow between this account and the receiver address."""
         if not self.superfluid_connector:
@@ -187,6 +196,19 @@ class ETHAccount(BaseAccount):
         if not self.superfluid_connector:
             raise ValueError("Superfluid connector is required to delete a flow")
         return self.superfluid_connector.delete_flow(receiver=receiver)
+
+    def manage_flow(
+        self,
+        receiver: str,
+        flow: Decimal,
+        update_type: FlowUpdate,
+    ) -> Awaitable[Optional[str]]:
+        """Manage the Superfluid flow between this account and the receiver address."""
+        if not self.superfluid_connector:
+            raise ValueError("Superfluid connector is required to manage a flow")
+        return self.superfluid_connector.manage_flow(
+            receiver=receiver, flow=flow, update_type=update_type
+        )
 
 
 def get_fallback_account(

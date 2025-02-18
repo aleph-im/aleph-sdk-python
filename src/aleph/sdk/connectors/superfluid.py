@@ -1,14 +1,19 @@
 from __future__ import annotations
 
 from decimal import Decimal
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 from eth_utils import to_normalized_address
 from superfluid import CFA_V1, Operation, Web3FlowInfo
 
+from aleph.sdk.evm_utils import (
+    FlowUpdate,
+    from_wei_token,
+    get_super_token_address,
+    to_wei_token,
+)
 from aleph.sdk.exceptions import InsufficientFundsError
-
-from ..evm_utils import get_super_token_address, to_human_readable_token, to_wei_token
+from aleph.sdk.types import TokenType
 
 if TYPE_CHECKING:
     from aleph.sdk.chains.ethereum import ETHAccount
@@ -44,6 +49,7 @@ class Superfluid:
         return await self.account._sign_and_send_transaction(populated_transaction)
 
     def can_start_flow(self, flow: Decimal, block=True) -> bool:
+        """Check if the account has enough funds to start a Superfluid flow of the given size."""
         valid = False
         if self.account.can_transact(block=block):
             balance = self.account.get_super_token_balance()
@@ -51,8 +57,9 @@ class Superfluid:
             valid = balance > MIN_FLOW_4H
             if not valid and block:
                 raise InsufficientFundsError(
-                    required_funds=float(MIN_FLOW_4H),
-                    available_funds=to_human_readable_token(balance),
+                    token_type=TokenType.ALEPH,
+                    required_funds=float(from_wei_token(MIN_FLOW_4H)),
+                    available_funds=float(from_wei_token(balance)),
                 )
         return valid
 
@@ -96,3 +103,51 @@ class Superfluid:
                 flow_rate=int(to_wei_token(flow)),
             ),
         )
+
+    async def manage_flow(
+        self,
+        receiver: str,
+        flow: Decimal,
+        update_type: FlowUpdate,
+    ) -> Optional[str]:
+        """
+        Update the flow of a Superfluid stream between a sender and receiver.
+        This function either increases or decreases the flow rate between the sender and receiver,
+        based on the update_type. If no flow exists and the update type is augmentation, it creates a new flow
+        with the specified rate. If the update type is reduction and the reduction amount brings the flow to zero
+        or below, the flow is deleted.
+
+        :param receiver: Address of the receiver in hexadecimal format.
+        :param flow: The flow rate to be added or removed (in ether).
+        :param update_type: The type of update to perform (augmentation or reduction).
+        :return: The transaction hash of the executed operation (create, update, or delete flow).
+        """
+
+        # Retrieve current flow info
+        flow_info: Web3FlowInfo = await self.account.get_flow(receiver)
+
+        current_flow_rate_wei: Decimal = Decimal(flow_info["flowRate"] or 0)
+        flow_rate_wei: int = int(to_wei_token(flow))
+
+        if update_type == FlowUpdate.INCREASE:
+            if current_flow_rate_wei > 0:
+                # Update existing flow by increasing the rate
+                new_flow_rate_wei = current_flow_rate_wei + flow_rate_wei
+                new_flow_rate_ether = from_wei_token(new_flow_rate_wei)
+                return await self.account.update_flow(receiver, new_flow_rate_ether)
+            else:
+                # Create a new flow if none exists
+                return await self.account.create_flow(receiver, flow)
+        else:
+            if current_flow_rate_wei > 0:
+                # Reduce the existing flow
+                new_flow_rate_wei = current_flow_rate_wei - flow_rate_wei
+                # Ensure to not leave infinitesimal flows
+                # Often, there were 1-10 wei remaining in the flow rate, which prevented the flow from being deleted
+                if new_flow_rate_wei > 99:
+                    new_flow_rate_ether = from_wei_token(new_flow_rate_wei)
+                    return await self.account.update_flow(receiver, new_flow_rate_ether)
+                else:
+                    # Delete the flow if the new flow rate is zero or negative
+                    return await self.account.delete_flow(receiver)
+        return None

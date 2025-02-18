@@ -1,5 +1,8 @@
 from abc import ABC
 
+from .types import TokenType
+from .utils import displayable_amount
+
 
 class QueryError(ABC, ValueError):
     """The result of an API query is inconsistent."""
@@ -69,14 +72,18 @@ class ForgottenMessageError(QueryError):
 class InsufficientFundsError(Exception):
     """Raised when the account does not have enough funds to perform an action"""
 
+    token_type: TokenType
     required_funds: float
     available_funds: float
 
-    def __init__(self, required_funds: float, available_funds: float):
+    def __init__(
+        self, token_type: TokenType, required_funds: float, available_funds: float
+    ):
+        self.token_type = token_type
         self.required_funds = required_funds
         self.available_funds = available_funds
         super().__init__(
-            f"Insufficient funds: required {required_funds}, available {available_funds}"
+            f"Insufficient funds ({self.token_type.value}): required {displayable_amount(self.required_funds, decimals=8)}, available {displayable_amount(self.available_funds, decimals=8)}"
         )
 
 
