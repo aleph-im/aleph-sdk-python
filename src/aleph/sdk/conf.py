@@ -44,26 +44,21 @@ class Settings(BaseSettings):
     HTTP_REQUEST_TIMEOUT = 15.0
 
     DEFAULT_CHANNEL: str = "ALEPH-CLOUDSOLUTIONS"
+
+    # Firecracker runtime for programs
     DEFAULT_RUNTIME_ID: str = (
         "63f07193e6ee9d207b7d1fcf8286f9aee34e6f12f101d2ec77c1229f92964696"
     )
-    DEBIAN_11_ROOTFS_ID: str = (
-        "887957042bb0e360da3485ed33175882ce72a70d79f1ba599400ff4802b7cee7"
-    )
-    DEBIAN_12_ROOTFS_ID: str = (
-        "6e30de68c6cedfa6b45240c2b51e52495ac6fb1bd4b36457b3d5ca307594d595"
-    )
-    UBUNTU_22_ROOTFS_ID: str = (
-        "77fef271aa6ff9825efa3186ca2e715d19e7108279b817201c69c34cedc74c27"
-    )
-    DEBIAN_11_QEMU_ROOTFS_ID: str = (
-        "f7e68c568906b4ebcd3cd3c4bfdff96c489cd2a9ef73ba2d7503f244dfd578de"
-    )
+
+    # Qemu rootfs for instances
     DEBIAN_12_QEMU_ROOTFS_ID: str = (
         "b6ff5c3a8205d1ca4c7c3369300eeafff498b558f71b851aa2114afd0a532717"
     )
     UBUNTU_22_QEMU_ROOTFS_ID: str = (
         "4a0f62da42f4478544616519e6f5d58adb1096e069b392b151d47c3609492d0c"
+    )
+    UBUNTU_24_QEMU_ROOTFS_ID: str = (
+        "5330dcefe1857bcd97b7b7f24d1420a7d46232d53f27be280c8a7071d88bd84e"
     )
 
     DEFAULT_CONFIDENTIAL_FIRMWARE: str = (
