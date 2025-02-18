@@ -462,8 +462,11 @@ class AlephHttpClient(AlephClient):
         self,
         content: ExecutableContent,
     ) -> PriceResponse:
+        cleaned_content = content.dict(exclude_none=True)
         item_content: str = json.dumps(
-            content, separators=(",", ":"), default=extended_json_encoder
+            cleaned_content,
+            separators=(",", ":"),
+            default=extended_json_encoder,
         )
         message = parse_message(
             dict(
@@ -474,7 +477,7 @@ class AlephHttpClient(AlephClient):
                     if isinstance(content, ProgramContent)
                     else MessageType.instance
                 ),
-                content=content.dict(exclude_none=True),
+                content=cleaned_content,
                 item_content=item_content,
                 time=time.time(),
                 channel=settings.DEFAULT_CHANNEL,
