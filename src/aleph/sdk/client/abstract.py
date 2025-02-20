@@ -364,6 +364,7 @@ class AuthenticatedAlephClient(AlephClient):
         runtime: str,
         metadata: Optional[dict[str, Any]] = None,
         address: Optional[str] = None,
+        payment: Optional[Payment] = None,
         vcpus: Optional[int] = None,
         memory: Optional[int] = None,
         timeout_seconds: Optional[float] = None,
@@ -387,6 +388,7 @@ class AuthenticatedAlephClient(AlephClient):
         :param runtime: Runtime to use
         :param metadata: Metadata to attach to the message
         :param address: Address to use (Default: account.get_address())
+        :param payment: Payment method used to pay for the program (Default: None)
         :param vcpus: Number of vCPUs to allocate (Default: 1)
         :param memory: Memory in MB for the VM to be allocated (Default: 128)
         :param timeout_seconds: Timeout in seconds (Default: 30.0)
