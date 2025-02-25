@@ -11,14 +11,14 @@ async def test_get_program_price_valid():
     Test that the get_program_price method returns the correct PriceResponse
     when given a valid item hash.
     """
-    expected_response = {
-        "required_tokens": 3.0555555555555556e-06,
-        "payment_type": "superfluid",
-    }
-    mock_session = make_mock_get_session(expected_response)
+    expected = PriceResponse(
+        required_tokens=3.0555555555555556e-06,
+        payment_type="superfluid",
+    )
+    mock_session = make_mock_get_session(expected.dict())
     async with mock_session:
         response = await mock_session.get_program_price("cacacacacacaca")
-        assert response == PriceResponse(**expected_response)  # type: ignore
+        assert response == expected
 
 
 @pytest.mark.asyncio
