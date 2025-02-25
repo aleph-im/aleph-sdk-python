@@ -27,8 +27,8 @@ from typing import (
 )
 from uuid import UUID
 from zipfile import BadZipFile, ZipFile
-import pydantic_core
 
+import pydantic_core
 from aleph_message.models import (
     Chain,
     InstanceContent,
