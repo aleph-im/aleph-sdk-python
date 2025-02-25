@@ -28,6 +28,7 @@ from typing import (
 from uuid import UUID
 from zipfile import BadZipFile, ZipFile
 
+import pydantic_core
 from aleph_message.models import (
     Chain,
     InstanceContent,
@@ -504,7 +505,9 @@ def make_instance_content(
                 ref=ItemHash(rootfs),
                 use_latest=True,
             ),
-            size_mib=PersistentVolumeSizeMib(rootfs_size),
+            size_mib=PersistentVolumeSizeMib.model_validate(
+                {"size_mib": rootfs_size}
+            ).size_mib,
             persistence=VolumePersistence.host,
         ),
         volumes=[parse_volume(volume) for volume in volumes],
