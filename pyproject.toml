@@ -34,15 +34,16 @@ dependencies = [
   "aleph-superfluid>=0.2.1",
   "base58==2.1.1",                                                                                                # Needed now as default with _load_account changement
   "coincurve; python_version<'3.11'",
-  "coincurve>=19.0.0; python_version>='3.11'",
-  "eth-abi>=4.0.0; python_version>='3.11'",
+  "coincurve>=19; python_version>='3.11'",
+  "eth-abi>=4; python_version>='3.11'",
   "eth-typing==4.3.1",
   "jwcrypto==1.5.6",
+  "pydantic-core>=2",
   "pydantic-settings>=2",
   "pynacl==1.5",                                                                                                  # Needed now as default with _load_account changement
   "python-magic",
   "typing-extensions",
-  "web3==6.3.0",
+  "web3==6.3",
 ]
 
 optional-dependencies.all = [
@@ -81,7 +82,7 @@ optional-dependencies.substrate = [
   "substrate-interface",
 ]
 optional-dependencies.tezos = [
-  "aleph-pytezos==0.1.1",
+  "aleph-pytezos==3.13.4",
   "pynacl",
 ]
 urls.Documentation = "https://aleph.im/"
@@ -155,6 +156,7 @@ dependencies = [
   "ruff==0.4.8",
   "isort==5.13.2",
   "pyproject-fmt==2.2.1",
+  "pydantic-core>=2",
   "pydantic-settings>=2",
 ]
 [tool.hatch.envs.linting.scripts]
