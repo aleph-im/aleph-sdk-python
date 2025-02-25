@@ -22,7 +22,7 @@ async def test_remote_storage():
                 curve="secp256k1",
                 address=local_account.get_address(),
                 public_key=local_account.get_public_key(),
-            ).dict()
+            ).model_dump()
         )
 
         remote_account = await RemoteAccount.from_crypto_host(
