@@ -83,6 +83,8 @@ optional-dependencies.tezos = [
   # "aleph-pytezos==3.13.4",
   "aleph-pytezos @ git+https://github.com/aleph-im/aleph-pytezos@59e8fa971f0287846fb8a7e7d148753b2d80aafe",
   "pynacl",
+  "coincurve",
+  "fastecdsa",
 ]
 urls.Documentation = "https://aleph.im/"
 urls.Homepage = "https://github.com/aleph-im/aleph-sdk-python"

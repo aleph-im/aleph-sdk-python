@@ -23,7 +23,8 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      - run: |
+      - name: "apt-get install"
+        run: |
           sudo apt-get update
           sudo apt-get install -y python3-pip libsodium-dev libgmp-dev
         if: runner.os == 'Linux'
@@ -32,11 +33,13 @@ jobs:
           brew install libsodium
         if: runner.os == 'macOS'
 
-      - run: |
+      - name: "Install Hatch"
+        run: |
           python3 -m venv /tmp/venv
           /tmp/venv/bin/python -m pip install --upgrade pip hatch coverage
 
-      - run: |
+      - name: "Run Tests"
+        run: |
           /tmp/venv/bin/pip freeze
           /tmp/venv/bin/hatch run testing:pip freeze
           /tmp/venv/bin/hatch run testing:test
