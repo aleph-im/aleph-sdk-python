@@ -36,7 +36,7 @@ dependencies = [
   "coincurve; python_version<'3.11'",
   "coincurve>=19; python_version>='3.11'",
   "eth-abi>=4; python_version>='3.11'",
-  "eth-typing==4.3.1",
+  "eth-typing==5.2.0",
   "jwcrypto==1.5.6",
   "pynacl==1.5",                           # Needed now as default with _load_account changement
   "python-magic",
