@@ -1,5 +1,5 @@
+---
 name: Test/Coverage with Python
-
 on:
   push:
   pull_request:
@@ -10,37 +10,31 @@ on:
     # in order to catch when unfrozen dependency updates
     # break the use of the library.
     - cron: '4 0 * * *'
-
 jobs:
   tests:
     strategy:
       fail-fast: false
       matrix:
-        python-version: [ "3.9", "3.10", "3.11", "3.12" ]
+        python-version: ["3.9", "3.10", "3.11", "3.12"]
         os: [ubuntu-22.04, ubuntu-24.04]
     runs-on: ${{ matrix.os }}
-
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
-
       - run: |
           sudo apt-get update
           sudo apt-get install -y python3-pip libsodium-dev
-
       - run: |
           python3 -m venv /tmp/venv
           /tmp/venv/bin/python -m pip install --upgrade pip hatch coverage
-
       - run: |
           /tmp/venv/bin/pip freeze
           /tmp/venv/bin/hatch run testing:pip freeze
           /tmp/venv/bin/hatch run testing:test
-
       - run: /tmp/venv/bin/hatch run testing:cov
-
+        if: matrix.python-version == '3.11'
       - uses: codecov/codecov-action@v4.0.1
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
