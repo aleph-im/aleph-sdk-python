@@ -40,6 +40,20 @@ jobs:
 
       - run: choco install pkgconfiglite
         if: runner.os == 'Windows'
+
+      - name: Set up vcpkg
+        uses: lukka/get-vcpkg@v12
+        with:
+          vcpkgGitCommitId: 'latest'
+        if: runner.os == 'Windows'
+
+      - name: Install GMP
+        run: vcpkg install gmp
+        if: runner.os == 'Windows'
+
+      - name: Build project
+        run: cmake -B build -S . -DCMAKE_TOOLCHAIN_FILE=${{ env.VCPKG_ROOT }}/scripts/buildsystems/vcpkg.cmake
+        if: runner.os == 'Windows'
       
       - run: |
           /tmp/venv/bin/pip freeze
