@@ -29,6 +29,7 @@ jobs:
       - run: |
           sudo apt-get update
           sudo apt-get install -y python3-pip libsodium-dev
+        if: runner.os == 'Linux'
 
       - run: |
           python3 -m venv /tmp/venv
