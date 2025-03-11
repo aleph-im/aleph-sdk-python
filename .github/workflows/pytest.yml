@@ -37,6 +37,9 @@ jobs:
           python -m venv /tmp/venv
           /tmp/venv/Scripts/python -m pip install --upgrade pip hatch coverage
         if: runner.os == 'Windows'
+
+      - run: choco install pkgconfiglite
+        if: runner.os == 'Windows'
       
       - run: |
           /tmp/venv/bin/pip freeze
