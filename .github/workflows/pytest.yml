@@ -6,9 +6,6 @@ on:
     branches:
       - main
   schedule:
-    # Run every night at 04:00 (GitHub Actions timezone)
-    # in order to catch when unfrozen dependency updates
-    # break the use of the library.
     - cron: '4 0 * * *'
 
 jobs:
@@ -34,13 +31,30 @@ jobs:
       - run: |
           python3 -m venv /tmp/venv
           /tmp/venv/bin/python -m pip install --upgrade pip hatch coverage
-
+        if: runner.os == 'Linux'
+      
+      - run: |
+          python -m venv /tmp/venv
+          /tmp/venv/Scripts/python -m pip install --upgrade pip hatch coverage
+        if: runner.os == 'Windows'
+      
       - run: |
           /tmp/venv/bin/pip freeze
           /tmp/venv/bin/hatch run testing:pip freeze
           /tmp/venv/bin/hatch run testing:test
+        if: runner.os == 'Linux'
+      
+      - run: |
+          /tmp/venv/Scripts/pip freeze
+          /tmp/venv/Scripts/hatch run testing:pip freeze
+          /tmp/venv/Scripts/hatch run testing:test
+        if: runner.os == 'Windows'
 
       - run: /tmp/venv/bin/hatch run testing:cov
+        if: runner.os == 'Linux'
+
+      - run: /tmp/venv/Scripts/hatch run testing:cov
+        if: runner.os == 'Windows'
 
       - uses: codecov/codecov-action@v4.0.1
         with:
