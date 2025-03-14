@@ -52,11 +52,11 @@ class DNSRule(BaseModel):
 def hostname_from_url(url: Union[HttpUrl, str]) -> Hostname:
     """Extract FQDN from url"""
 
-    parsed = urlparse(url)
+    parsed = urlparse(str(url))
     if all([parsed.scheme, parsed.netloc]) is True:
         url = parsed.netloc
 
-    return Hostname(url)
+    return Hostname(str(url))
 
 
 async def get_target_type(fqdn: Hostname) -> Optional[TargetType]:

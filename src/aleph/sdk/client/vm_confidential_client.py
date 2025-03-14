@@ -105,7 +105,7 @@ class VmConfidentialClient(VmClient):
         status, text = await self.perform_operation(
             vm_id, "confidential/measurement", method="GET"
         )
-        sev_measurement = SEVMeasurement.parse_raw(text)
+        sev_measurement = SEVMeasurement.model_validate_json(text)
         return sev_measurement
 
     async def validate_measure(
