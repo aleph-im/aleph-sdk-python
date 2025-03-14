@@ -57,7 +57,7 @@ from aleph_message.models.execution.program import (
 from aleph_message.models.execution.volume import (
     MachineVolume,
     ParentVolume,
-    PersistentVolumeSizeMib,
+    PersistentVolume,
     VolumePersistence,
 )
 from aleph_message.utils import Mebibytes
@@ -503,7 +503,7 @@ def make_instance_content(
                 ref=ItemHash(rootfs),
                 use_latest=True,
             ),
-            size_mib=PersistentVolumeSizeMib.model_validate(
+            size_mib=PersistentVolume.model_validate(
                 {"size_mib": rootfs_size}
             ).size_mib,
             persistence=VolumePersistence.host,
