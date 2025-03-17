@@ -41,7 +41,7 @@ dependencies = [
   "pynacl==1.5",                           # Needed now as default with _load_account changement
   "python-magic",
   "typing-extensions",
-  "web3==6.3",
+  "web3==7.9.0",
 ]
 
 optional-dependencies.all = [
