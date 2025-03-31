@@ -61,6 +61,8 @@ class Superfluid:
         populated_transaction = operation._get_populated_transaction_request(
             self.account.rpc, self.account._account.key
         )
+        self.account.can_transact(tx=populated_transaction)
+
         return await self.account._sign_and_send_transaction(populated_transaction)
 
     def can_start_flow(self, flow: Decimal, block=True) -> bool:
