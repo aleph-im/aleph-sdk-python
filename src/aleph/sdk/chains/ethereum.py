@@ -119,13 +119,20 @@ class ETHAccount(BaseAccount):
     def switch_chain(self, chain: Optional[Chain] = None):
         self.connect_chain(chain=chain)
 
-    def can_transact(self, block=True) -> bool:
+    def can_transact(self, tx: TxParams, block=True) -> bool:
         balance = self.get_eth_balance()
-        valid = balance > MIN_ETH_BALANCE_WEI if self.chain else False
+        try:
+            estimated_gas = self._provider.eth.estimate_gas(tx)
+        except Exception:
+            estimated_gas = (
+                MIN_ETH_BALANCE  # Fallback to MIN_ETH_BALANCE if estimation fails
+            )
+
+        valid = balance > estimated_gas if self.chain else False
         if not valid and block:
             raise InsufficientFundsError(
                 token_type=TokenType.GAS,
-                required_funds=MIN_ETH_BALANCE,
+                required_funds=estimated_gas,
                 available_funds=float(from_wei_token(balance)),
             )
         return valid
@@ -136,7 +143,6 @@ class ETHAccount(BaseAccount):
         @param tx_params - Transaction parameters
         @returns - str - Transaction hash
         """
-        self.can_transact()
 
         def sign_and_send() -> TxReceipt:
             if self._provider is None:
@@ -144,6 +150,7 @@ class ETHAccount(BaseAccount):
             signed_tx = self._provider.eth.account.sign_transaction(
                 tx_params, self._account.key
             )
+
             tx_hash = self._provider.eth.send_raw_transaction(signed_tx.raw_transaction)
             tx_receipt = self._provider.eth.wait_for_transaction_receipt(
                 tx_hash, settings.TX_TIMEOUT
