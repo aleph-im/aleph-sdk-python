@@ -82,7 +82,6 @@ class Superfluid:
 
     async def create_flow(self, receiver: str, flow: Decimal) -> str:
         """Create a Superfluid flow between two addresses."""
-        self.can_start_flow(flow)
         return await self._execute_operation_with_account(
             operation=self.cfaV1Instance.create_flow(
                 sender=self.normalized_address,
