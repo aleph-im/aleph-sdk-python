@@ -121,6 +121,8 @@ class ETHAccount(BaseAccount):
     def can_transact(self, tx: TxParams, block=True) -> bool:
         balance = self.get_eth_balance()
         try:
+            assert self._provider is not None
+
             estimated_gas = self._provider.eth.estimate_gas(tx)
         except Exception:
             estimated_gas = (
