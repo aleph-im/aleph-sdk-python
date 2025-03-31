@@ -37,6 +37,21 @@ class Superfluid:
             self.super_token = str(get_super_token_address(account.chain))
             self.cfaV1Instance = CFA_V1(account.rpc, account.chain_id)
 
+    def _simulate_create_tx_flow(self, flow: Decimal, block=True) -> bool:
+        operation = self.cfaV1Instance.create_flow(
+            sender=self.normalized_address,
+            receiver=to_normalized_address(
+                "0x0000000000000000000000000000000000000001"
+            ),  # Fake Address we do not sign/send this transactions
+            super_token=self.super_token,
+            flow_rate=int(to_wei_token(flow)),
+        )
+
+        populated_transaction = operation._get_populated_transaction_request(
+            self.account.rpc, self.account._account.key
+        )
+        return self.account.can_transact(tx=populated_transaction, block=block)
+
     async def _execute_operation_with_account(self, operation: Operation) -> str:
         """
         Execute an operation using the provided ETHAccount
@@ -51,7 +66,7 @@ class Superfluid:
     def can_start_flow(self, flow: Decimal, block=True) -> bool:
         """Check if the account has enough funds to start a Superfluid flow of the given size."""
         valid = False
-        if self.account.can_transact(block=block):
+        if self._simulate_create_tx_flow(flow=flow, block=block):
             balance = self.account.get_super_token_balance()
             MIN_FLOW_4H = to_wei_token(flow) * Decimal(self.MIN_4_HOURS)
             valid = balance > MIN_FLOW_4H
