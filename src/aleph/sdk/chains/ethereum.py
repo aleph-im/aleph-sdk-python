@@ -21,7 +21,6 @@ from ..conf import settings
 from ..connectors.superfluid import Superfluid
 from ..evm_utils import (
     BALANCEOF_ABI,
-    MIN_ETH_BALANCE,
     MIN_ETH_BALANCE_WEI,
     FlowUpdate,
     from_wei_token,
@@ -125,7 +124,7 @@ class ETHAccount(BaseAccount):
             estimated_gas = self._provider.eth.estimate_gas(tx)
         except Exception:
             estimated_gas = (
-                MIN_ETH_BALANCE  # Fallback to MIN_ETH_BALANCE if estimation fails
+                MIN_ETH_BALANCE_WEI  # Fallback to MIN_ETH_BALANCE if estimation fails
             )
 
         valid = balance > estimated_gas if self.chain else False
