@@ -81,7 +81,6 @@ class Superfluid:
         """Check if the account has enough funds to start a Superfluid flow of the given size."""
         return self._simulate_create_tx_flow(flow=flow, block=block)
 
-
     async def create_flow(self, receiver: str, flow: Decimal) -> str:
         """Create a Superfluid flow between two addresses."""
         return await self._execute_operation_with_account(
