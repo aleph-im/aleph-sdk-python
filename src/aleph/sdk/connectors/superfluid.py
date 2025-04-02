@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Optional
 
 from eth_utils import to_normalized_address
 from superfluid import CFA_V1, Operation, Web3FlowInfo
+from web3.exceptions import ContractCustomError
 
 from aleph.sdk.evm_utils import (
     FlowUpdate,
@@ -52,7 +53,15 @@ class Superfluid:
                 self.account.rpc, self.account._account.key
             )
             return self.account.can_transact(tx=populated_transaction, block=block)
-        except Exception:
+        except ContractCustomError as e:
+            if getattr(e, "data", None) == "0xea76c9b3":
+                balance = self.account.get_super_token_balance()
+                MIN_FLOW_4H = to_wei_token(flow) * Decimal(self.MIN_4_HOURS)
+                raise InsufficientFundsError(
+                    token_type=TokenType.ALEPH,
+                    required_funds=float(from_wei_token(MIN_FLOW_4H)),
+                    available_funds=float(from_wei_token(balance)),
+                )
             return False
 
     async def _execute_operation_with_account(self, operation: Operation) -> str:
@@ -70,18 +79,8 @@ class Superfluid:
 
     def can_start_flow(self, flow: Decimal, block=True) -> bool:
         """Check if the account has enough funds to start a Superfluid flow of the given size."""
-        valid = False
-        if self._simulate_create_tx_flow(flow=flow, block=block):
-            balance = self.account.get_super_token_balance()
-            MIN_FLOW_4H = to_wei_token(flow) * Decimal(self.MIN_4_HOURS)
-            valid = balance > MIN_FLOW_4H
-            if not valid and block:
-                raise InsufficientFundsError(
-                    token_type=TokenType.ALEPH,
-                    required_funds=float(from_wei_token(MIN_FLOW_4H)),
-                    available_funds=float(from_wei_token(balance)),
-                )
-        return valid
+        return self._simulate_create_tx_flow(flow=flow, block=block)
+
 
     async def create_flow(self, receiver: str, flow: Decimal) -> str:
         """Create a Superfluid flow between two addresses."""
