@@ -11,6 +11,7 @@ from eth_account.signers.local import LocalAccount
 from eth_keys.exceptions import BadSignature as EthBadSignatureError
 from superfluid import Web3FlowInfo
 from web3 import Web3
+from web3.exceptions import ContractCustomError
 from web3.middleware import ExtraDataToPOAMiddleware
 from web3.types import TxParams, TxReceipt
 
@@ -119,22 +120,33 @@ class ETHAccount(BaseAccount):
         self.connect_chain(chain=chain)
 
     def can_transact(self, tx: TxParams, block=True) -> bool:
-        balance = self.get_eth_balance()
+        balance_wei = self.get_eth_balance()
         try:
             assert self._provider is not None
 
             estimated_gas = self._provider.eth.estimate_gas(tx)
-        except Exception:
-            estimated_gas = (
-                MIN_ETH_BALANCE_WEI  # Fallback to MIN_ETH_BALANCE if estimation fails
-            )
 
-        valid = balance > estimated_gas if self.chain else False
+            gas_price = tx.get("gasPrice", self._provider.eth.gas_price)
+
+            if "maxFeePerGas" in tx:
+                max_fee = tx["maxFeePerGas"]
+                total_fee_wei = estimated_gas * max_fee
+            else:
+                total_fee_wei = estimated_gas * gas_price
+
+            total_fee_wei = int(total_fee_wei * 1.2)
+
+        except ContractCustomError:
+            total_fee_wei = MIN_ETH_BALANCE_WEI  # Fallback if estimation fails
+
+        required_fee_wei = total_fee_wei + (tx.get("value", 0))
+
+        valid = balance_wei > required_fee_wei if self.chain else False
         if not valid and block:
             raise InsufficientFundsError(
                 token_type=TokenType.GAS,
-                required_funds=estimated_gas,
-                available_funds=float(from_wei_token(balance)),
+                required_funds=float(from_wei_token(required_fee_wei)),
+                available_funds=float(from_wei_token(balance_wei)),
             )
         return valid
 
