@@ -36,6 +36,7 @@ chain_account_map: Dict[Chain, Type[T]] = {  # type: ignore
     Chain.OPTIMISM: EVMAccount,
     Chain.POL: EVMAccount,
     Chain.SOL: SOLAccount,
+    Chain.SONIC: EVMAccount,
     Chain.WORLDCHAIN: EVMAccount,
     Chain.ZORA: EVMAccount,
 }
