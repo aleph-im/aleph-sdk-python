@@ -30,17 +30,17 @@ dynamic = [ "version" ]
 dependencies = [
   "aiohttp>=3.8.3",
   "aioresponses>=0.7.6",
-  "aleph-message>=1.0.0",
+  "aleph-message>=1",
   "aleph-superfluid>=0.2.1",
-  "base58==2.1.1",                                                                                               # Needed now as default with _load_account changement
+  "base58==2.1.1",                         # Needed now as default with _load_account changement
   "coincurve; python_version<'3.11'",
   "coincurve>=19; python_version>='3.11'",
   "eth-abi>=4; python_version>='3.11'",
   "eth-typing==4.3.1",
   "jwcrypto==1.5.6",
-  "pydantic>=2,<3.0",
+  "pydantic>=2,<3",
   "pydantic-settings>=2",
-  "pynacl==1.5",                                                                                                  # Needed now as default with _load_account changement
+  "pynacl==1.5",                           # Needed now as default with _load_account changement
   "python-magic",
   "typing-extensions",
   "web3==6.3",
@@ -63,7 +63,7 @@ optional-dependencies.encryption = [
   "eciespy>=0.3.13; python_version>='3.11'",
 ]
 optional-dependencies.ledger = [
-  "ledgereth==0.9.1",
+  "ledgereth==0.10",
 ]
 optional-dependencies.mqtt = [
   "aiomqtt<=0.1.3",
