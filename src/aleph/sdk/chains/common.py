@@ -73,6 +73,10 @@ class BaseAccount(ABC):
         message = self._setup_sender(message)
         signature = await self.sign_raw(get_verification_buffer(message))
         message["signature"] = signature.hex()
+
+        if not str(message["signature"]).startswith("0x"):
+            message["signature"] = "0x" + message["signature"]
+
         return message
 
     @abstractmethod
