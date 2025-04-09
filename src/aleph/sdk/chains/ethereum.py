@@ -2,7 +2,7 @@ import asyncio
 import base64
 from decimal import Decimal
 from pathlib import Path
-from typing import Awaitable, Optional, Union
+from typing import Awaitable, Dict, Optional, Union
 
 from aleph_message.models import Chain
 from eth_account import Account  # type: ignore
@@ -79,6 +79,22 @@ class ETHAccount(BaseAccount):
         msghash = encode_defunct(text=buffer.decode("utf-8"))
         sig = self._account.sign_message(msghash)
         return sig["signature"]
+
+    async def sign_message(self, message: Dict) -> Dict:
+        """
+        Returns a signed message from an aleph.im message.
+        Args:
+            message: Message to sign
+        Returns:
+            Dict: Signed message
+        """
+        signed_message = await super().sign_message(message)
+
+        # Apply that fix as seems that sometimes the .hex() method doesn't add the 0x str at the beginning
+        if not str(signed_message["signature"]).startswith("0x"):
+            signed_message["signature"] = "0x" + signed_message["signature"]
+
+        return signed_message
 
     def connect_chain(self, chain: Optional[Chain] = None):
         self.chain = chain
