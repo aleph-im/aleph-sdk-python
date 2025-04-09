@@ -72,7 +72,7 @@ class BaseAccount(ABC):
         """
         message = self._setup_sender(message)
         signature = await self.sign_raw(get_verification_buffer(message))
-        message["signature"] = "0x" + signature.hex()
+        message["signature"] = signature.hex()
         return message
 
     @abstractmethod
