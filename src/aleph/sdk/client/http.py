@@ -468,23 +468,24 @@ class AlephHttpClient(AlephClient):
             separators=(",", ":"),
             default=extended_json_encoder,
         )
-        message = parse_message(
-            dict(
-                sender=content.address,
-                chain=Chain.ETH,
-                type=(
-                    MessageType.program
-                    if isinstance(content, ProgramContent)
-                    else MessageType.instance
-                ),
-                content=cleaned_content,
-                item_content=item_content,
-                time=time.time(),
-                channel=settings.DEFAULT_CHANNEL,
-                item_type=ItemType.inline,
-                item_hash=compute_sha256(item_content),
-            )
+        message_dict = dict(
+            sender=content.address,
+            chain=Chain.ETH,
+            type=(
+                MessageType.program
+                if isinstance(content, ProgramContent)
+                else MessageType.instance
+            ),
+            content=cleaned_content,
+            item_content=item_content,
+            time=time.time(),
+            channel=settings.DEFAULT_CHANNEL,
+            item_type=ItemType.inline,
+            item_hash=compute_sha256(item_content),
+            signature="0x" + "0" * 130,  # Add a dummy signature to pass validation
         )
+
+        message = parse_message(message_dict)
 
         async with self.http_session.post(
             "/api/v0/price/estimate", json=dict(message=message)
