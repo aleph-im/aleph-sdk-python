@@ -462,7 +462,7 @@ class AlephHttpClient(AlephClient):
         self,
         content: ExecutableContent,
     ) -> PriceResponse:
-        cleaned_content = content.dict(exclude_none=True)
+        cleaned_content = content.model_dump(exclude_none=True)
         item_content: str = json.dumps(
             cleaned_content,
             separators=(",", ":"),

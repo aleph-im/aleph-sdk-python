@@ -15,7 +15,7 @@ async def test_get_program_price_valid():
         required_tokens=3.0555555555555556e-06,
         payment_type="superfluid",
     )
-    mock_session = make_mock_get_session(expected.dict())
+    mock_session = make_mock_get_session(expected.model_dump())
     async with mock_session:
         response = await mock_session.get_program_price("cacacacacacaca")
         assert response == expected

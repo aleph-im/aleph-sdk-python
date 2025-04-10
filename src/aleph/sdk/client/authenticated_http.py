@@ -525,7 +525,7 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
         )
 
         message, status, response = await self.submit(
-            content=content.dict(exclude_none=True),
+            content=content.model_dump(exclude_none=True),
             message_type=MessageType.instance,
             channel=channel,
             storage_engine=storage_engine,
