@@ -70,7 +70,7 @@ class VmCache(BaseVmCache):
             )
 
         self.cache = {}
-        self.api_host = connector_url if connector_url else settings.API_HOST
+        self.api_host = str(connector_url) if connector_url else settings.API_HOST
 
     async def get(self, key: str) -> Optional[bytes]:
         sanitized_key = sanitize_cache_key(key)

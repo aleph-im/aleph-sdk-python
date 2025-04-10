@@ -3,11 +3,12 @@ import logging
 import os
 from pathlib import Path
 from shutil import which
-from typing import Dict, Optional, Union
+from typing import ClassVar, Dict, List, Optional, Union
 
 from aleph_message.models import Chain
 from aleph_message.models.execution.environment import HypervisorType
-from pydantic import BaseModel, BaseSettings, Field
+from pydantic import BaseModel, Field
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from aleph.sdk.types import ChainInfo
 
@@ -41,7 +42,7 @@ class Settings(BaseSettings):
     REMOTE_CRYPTO_HOST: Optional[str] = None
     REMOTE_CRYPTO_UNIX_SOCKET: Optional[str] = None
     ADDRESS_TO_USE: Optional[str] = None
-    HTTP_REQUEST_TIMEOUT = 15.0
+    HTTP_REQUEST_TIMEOUT: ClassVar[float] = 15.0
 
     DEFAULT_CHANNEL: str = "ALEPH-CLOUDSOLUTIONS"
 
@@ -78,14 +79,14 @@ class Settings(BaseSettings):
 
     CODE_USES_SQUASHFS: bool = which("mksquashfs") is not None  # True if command exists
 
-    VM_URL_PATH = "https://aleph.sh/vm/{hash}"
-    VM_URL_HOST = "https://{hash_base32}.aleph.sh"
-    IPFS_GATEWAY = "https://ipfs.aleph.cloud/ipfs/"
-    CRN_URL_FOR_PROGRAMS = "https://dchq.staging.aleph.sh/"
+    VM_URL_PATH: ClassVar[str] = "https://aleph.sh/vm/{hash}"
+    VM_URL_HOST: ClassVar[str] = "https://{hash_base32}.aleph.sh"
+    IPFS_GATEWAY: ClassVar[str] = "https://ipfs.aleph.cloud/ipfs/"
+    CRN_URL_FOR_PROGRAMS: ClassVar[str] = "https://dchq.staging.aleph.sh/"
 
     # Web3Provider settings
-    TOKEN_DECIMALS = 18
-    TX_TIMEOUT = 60 * 3
+    TOKEN_DECIMALS: ClassVar[int] = 18
+    TX_TIMEOUT: ClassVar[int] = 60 * 3
     CHAINS: Dict[Union[Chain, str], ChainInfo] = {
         # TESTNETS
         "SEPOLIA": ChainInfo(
@@ -220,16 +221,15 @@ class Settings(BaseSettings):
     DEFAULT_CHAIN: Chain = Chain.ETH
 
     # Dns resolver
-    DNS_IPFS_DOMAIN = "ipfs.public.aleph.sh"
-    DNS_PROGRAM_DOMAIN = "program.public.aleph.sh"
-    DNS_INSTANCE_DOMAIN = "instance.public.aleph.sh"
-    DNS_STATIC_DOMAIN = "static.public.aleph.sh"
-    DNS_RESOLVERS = ["9.9.9.9", "1.1.1.1"]
+    DNS_IPFS_DOMAIN: ClassVar[str] = "ipfs.public.aleph.sh"
+    DNS_PROGRAM_DOMAIN: ClassVar[str] = "program.public.aleph.sh"
+    DNS_INSTANCE_DOMAIN: ClassVar[str] = "instance.public.aleph.sh"
+    DNS_STATIC_DOMAIN: ClassVar[str] = "static.public.aleph.sh"
+    DNS_RESOLVERS: ClassVar[List[str]] = ["9.9.9.9", "1.1.1.1"]
 
-    class Config:
-        env_prefix = "ALEPH_"
-        case_sensitive = False
-        env_file = ".env"
+    model_config = SettingsConfigDict(
+        env_prefix="ALEPH_", case_sensitive=False, env_file=".env"
+    )
 
 
 class MainConfiguration(BaseModel):
@@ -240,8 +240,7 @@ class MainConfiguration(BaseModel):
     path: Path
     chain: Chain
 
-    class Config:
-        use_enum_values = True
+    model_config = SettingsConfigDict(use_enum_values=True)
 
 
 # Settings singleton
@@ -297,7 +296,7 @@ def save_main_configuration(file_path: Path, data: MainConfiguration):
     Synchronously save a single ChainAccount object as JSON to a file.
     """
     with file_path.open("w") as file:
-        data_serializable = data.dict()
+        data_serializable = data.model_dump()
         data_serializable["path"] = str(data_serializable["path"])
         json.dump(data_serializable, file, indent=4)
 

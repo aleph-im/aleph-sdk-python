@@ -290,8 +290,8 @@ async def test_vm_client_generate_correct_authentication_headers():
     )
 
     path, headers = await vm_client._generate_header(vm_id, "reboot", method="post")
-    signed_pubkey = SignedPubKeyHeader.parse_raw(headers["X-SignedPubKey"])
-    signed_operation = SignedOperation.parse_raw(headers["X-SignedOperation"])
+    signed_pubkey = SignedPubKeyHeader.model_validate_json(headers["X-SignedPubKey"])
+    signed_operation = SignedOperation.model_validate_json(headers["X-SignedOperation"])
     address = verify_signed_operation(signed_operation, signed_pubkey)
 
     assert vm_client.account.get_address() == address

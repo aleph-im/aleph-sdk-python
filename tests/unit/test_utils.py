@@ -13,7 +13,6 @@ from aleph_message.models import (
     ProgramMessage,
     StoreMessage,
 )
-from aleph_message.models.execution.environment import MachineResources
 from aleph_message.models.execution.volume import (
     EphemeralVolume,
     ImmutableVolume,
@@ -116,15 +115,16 @@ def test_enum_as_str():
         (
             MessageType.aggregate,
             {
+                "address": "0x1",
                 "content": {
-                    "Hello": MachineResources(
-                        vcpus=1,
-                        memory=1024,
-                        seconds=1,
-                    )
+                    "Hello": {
+                        "vcpus": 1,
+                        "memory": 1024,
+                        "seconds": 1,
+                        "published_ports": None,
+                    },
                 },
                 "key": "test",
-                "address": "0x1",
                 "time": 1.0,
             },
         ),
@@ -141,7 +141,7 @@ async def test_prepare_aleph_message(
             channel="TEST",
         )
 
-    assert message.content.dict() == content
+    assert message.content.model_dump() == content
 
 
 def test_parse_immutable_volume():
@@ -219,7 +219,7 @@ def test_compute_confidential_measure():
     assert base64.b64encode(tik) == b"npOTEc4mtRGfXfB+G6EBdw=="
     expected_hash = "d06471f485c0a61aba5a431ec136b947be56907acf6ed96afb11788ae4525aeb"
     nonce = base64.b64decode("URQNqJAqh/2ep4drjx/XvA==")
-    sev_info = SEVInfo.parse_obj(
+    sev_info = SEVInfo.model_validate(
         {
             "enabled": True,
             "api_major": 1,
