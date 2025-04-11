@@ -28,6 +28,7 @@ chain_account_map: Dict[Chain, Type[T]] = {  # type: ignore
     Chain.BOB: EVMAccount,
     Chain.CYBER: EVMAccount,
     Chain.DOT: DOTAccount,
+    Chain.ECLIPSE: SOLAccount,
     Chain.ETH: ETHAccount,
     Chain.FRAXTAL: EVMAccount,
     Chain.LINEA: EVMAccount,
