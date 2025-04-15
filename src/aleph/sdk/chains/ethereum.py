@@ -144,7 +144,7 @@ class ETHAccount(BaseAccount):
             signed_tx = self._provider.eth.account.sign_transaction(
                 tx_params, self._account.key
             )
-            tx_hash = self._provider.eth.send_raw_transaction(signed_tx.rawTransaction)
+            tx_hash = self._provider.eth.send_raw_transaction(signed_tx.raw_transaction)
             tx_receipt = self._provider.eth.wait_for_transaction_receipt(
                 tx_hash, settings.TX_TIMEOUT
             )
