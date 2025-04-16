@@ -516,7 +516,9 @@ class AlephHttpClient(AlephClient):
 
     async def get_message_status(self, item_hash: str) -> MessageStatus:
         """return Status of a message"""
-        async with self.http_session.get(f"/api/v0/messages/{item_hash}") as resp:
+        async with self.http_session.get(
+            f"/api/v0/messages/{item_hash}/status"
+        ) as resp:
             if resp.status == HTTPNotFound.status_code:
                 raise MessageNotFoundError(f"No such hash {item_hash}")
             resp.raise_for_status()
