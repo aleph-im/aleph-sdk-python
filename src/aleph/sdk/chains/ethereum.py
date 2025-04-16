@@ -11,7 +11,7 @@ from eth_account.signers.local import LocalAccount
 from eth_keys.exceptions import BadSignature as EthBadSignatureError
 from superfluid import Web3FlowInfo
 from web3 import Web3
-from web3.middleware import geth_poa_middleware
+from web3.middleware import ExtraDataToPOAMiddleware
 from web3.types import TxParams, TxReceipt
 
 from aleph.sdk.exceptions import InsufficientFundsError
@@ -104,7 +104,7 @@ class ETHAccount(BaseAccount):
             self._provider = Web3(Web3.HTTPProvider(self.rpc))
             if chain == Chain.BSC:
                 self._provider.middleware_onion.inject(
-                    geth_poa_middleware, "geth_poa", layer=0
+                    ExtraDataToPOAMiddleware, "geth_poa", layer=0
                 )
         else:
             self.chain_id = None
@@ -144,7 +144,7 @@ class ETHAccount(BaseAccount):
             signed_tx = self._provider.eth.account.sign_transaction(
                 tx_params, self._account.key
             )
-            tx_hash = self._provider.eth.send_raw_transaction(signed_tx.rawTransaction)
+            tx_hash = self._provider.eth.send_raw_transaction(signed_tx.raw_transaction)
             tx_receipt = self._provider.eth.wait_for_transaction_receipt(
                 tx_hash, settings.TX_TIMEOUT
             )
