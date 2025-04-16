@@ -11,6 +11,7 @@ from aleph.sdk.chains.evm import EVMAccount
 from aleph.sdk.chains.remote import RemoteAccount
 from aleph.sdk.chains.solana import SOLAccount
 from aleph.sdk.chains.substrate import DOTAccount
+from aleph.sdk.chains.svm import SVMAccount
 from aleph.sdk.conf import load_main_configuration, settings
 from aleph.sdk.evm_utils import get_chains_with_super_token
 from aleph.sdk.types import AccountFromPrivateKey
@@ -39,6 +40,7 @@ chain_account_map: Dict[Chain, Type[T]] = {  # type: ignore
     Chain.SONIC: EVMAccount,
     Chain.WORLDCHAIN: EVMAccount,
     Chain.ZORA: EVMAccount,
+    Chain.ECLIPSE: SVMAccount,
 }
 
 
