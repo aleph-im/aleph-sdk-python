@@ -31,16 +31,16 @@ dependencies = [
   "aiohttp>=3.8.3",
   "aioresponses>=0.7.6",
   "aleph-message>=1",
-  "aleph-superfluid @ git+https://github.com/aleph-im/superfluid.py@andres-feature-update_dependencies",
-  "base58==2.1.1",                                                                                       # Needed now as default with _load_account changement
-  "coincurve; python_version>='3.11'",
-  "coincurve>=19; python_version>='3.11'",
-  "eth-abi>=5.0.1; python_version>='3.11'",
+  "aleph-superfluid @ git+https://github.com/aleph-im/superfluid.py",
+  "base58==2.1.1",                                                    # Needed now as default with _load_account changement
+  "coincurve; python_version>='3.9'",
+  "coincurve>=19; python_version>='3.9'",
+  "eth-abi>=5.0.1; python_version>='3.9'",
   "eth-typing>=5.0.1",
   "jwcrypto==1.5.6",
   "pydantic>=2,<3",
   "pydantic-settings>=2",
-  "pynacl==1.5",                                                                                         # Needed now as default with _load_account changement
+  "pynacl==1.5",                                                      # Needed now as default with _load_account changement
   "python-magic",
   "typing-extensions",
   "web3>=7.10",
