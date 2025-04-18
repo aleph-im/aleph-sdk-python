@@ -228,7 +228,7 @@ class Settings(BaseSettings):
     DNS_RESOLVERS: ClassVar[List[str]] = ["9.9.9.9", "1.1.1.1"]
 
     model_config = SettingsConfigDict(
-        env_prefix="ALEPH_", case_sensitive=False, env_file=".env"
+        env_prefix="ALEPH_", case_sensitive=False, env_file=".env", extra="ignore"
     )
 
 
