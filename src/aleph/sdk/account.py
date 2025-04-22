@@ -37,7 +37,7 @@ chain_account_map: Dict[Chain, Type[T]] = {  # type: ignore
     Chain.LISK: EVMAccount,
     Chain.METIS: EVMAccount,
     Chain.MODE: EVMAccount,
-    Chain.NEO = EVMAccount,
+    Chain.NEO: EVMAccount,
     Chain.OPTIMISM: EVMAccount,
     Chain.POL: EVMAccount,
     Chain.SOL: SOLAccount,
