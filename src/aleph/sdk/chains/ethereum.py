@@ -11,6 +11,7 @@ from eth_account.signers.local import LocalAccount
 from eth_keys.exceptions import BadSignature as EthBadSignatureError
 from superfluid import Web3FlowInfo
 from web3 import Web3
+from web3.exceptions import ContractCustomError
 from web3.middleware import ExtraDataToPOAMiddleware
 from web3.types import TxParams, TxReceipt
 
@@ -21,7 +22,6 @@ from ..conf import settings
 from ..connectors.superfluid import Superfluid
 from ..evm_utils import (
     BALANCEOF_ABI,
-    MIN_ETH_BALANCE,
     MIN_ETH_BALANCE_WEI,
     FlowUpdate,
     from_wei_token,
@@ -119,14 +119,34 @@ class ETHAccount(BaseAccount):
     def switch_chain(self, chain: Optional[Chain] = None):
         self.connect_chain(chain=chain)
 
-    def can_transact(self, block=True) -> bool:
-        balance = self.get_eth_balance()
-        valid = balance > MIN_ETH_BALANCE_WEI if self.chain else False
+    def can_transact(self, tx: TxParams, block=True) -> bool:
+        balance_wei = self.get_eth_balance()
+        try:
+            assert self._provider is not None
+
+            estimated_gas = self._provider.eth.estimate_gas(tx)
+
+            gas_price = tx.get("gasPrice", self._provider.eth.gas_price)
+
+            if "maxFeePerGas" in tx:
+                max_fee = tx["maxFeePerGas"]
+                total_fee_wei = estimated_gas * max_fee
+            else:
+                total_fee_wei = estimated_gas * gas_price
+
+            total_fee_wei = int(total_fee_wei * 1.2)
+
+        except ContractCustomError:
+            total_fee_wei = MIN_ETH_BALANCE_WEI  # Fallback if estimation fails
+
+        required_fee_wei = total_fee_wei + (tx.get("value", 0))
+
+        valid = balance_wei > required_fee_wei if self.chain else False
         if not valid and block:
             raise InsufficientFundsError(
                 token_type=TokenType.GAS,
-                required_funds=MIN_ETH_BALANCE,
-                available_funds=float(from_wei_token(balance)),
+                required_funds=float(from_wei_token(required_fee_wei)),
+                available_funds=float(from_wei_token(balance_wei)),
             )
         return valid
 
@@ -136,7 +156,6 @@ class ETHAccount(BaseAccount):
         @param tx_params - Transaction parameters
         @returns - str - Transaction hash
         """
-        self.can_transact()
 
         def sign_and_send() -> TxReceipt:
             if self._provider is None:
@@ -144,6 +163,7 @@ class ETHAccount(BaseAccount):
             signed_tx = self._provider.eth.account.sign_transaction(
                 tx_params, self._account.key
             )
+
             tx_hash = self._provider.eth.send_raw_transaction(signed_tx.raw_transaction)
             tx_receipt = self._provider.eth.wait_for_transaction_receipt(
                 tx_hash, settings.TX_TIMEOUT
