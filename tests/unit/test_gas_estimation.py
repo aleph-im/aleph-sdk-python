@@ -27,9 +27,8 @@ def mock_eth_account():
     )  # 100k gas units
 
     # Mock get_eth_balance to return a specific balance
-    account.get_eth_balance = MagicMock(return_value=10**18)  # 1 ETH
-
-    return account
+    with patch.object(account, "get_eth_balance", return_value=10**18):  # 1 ETH
+        yield account
 
 
 @pytest.fixture
@@ -61,11 +60,10 @@ class TestGasEstimation:
         tx = TxParams({"to": "0xreceiver", "value": 0})
 
         # Set balance to almost zero
-        mock_eth_account.get_eth_balance = MagicMock(return_value=1000)
-
-        # Should raise InsufficientFundsError
-        with pytest.raises(InsufficientFundsError) as exc_info:
-            mock_eth_account.can_transact(tx=tx, block=True)
+        with patch.object(mock_eth_account, "get_eth_balance", return_value=1000):
+            # Should raise InsufficientFundsError
+            with pytest.raises(InsufficientFundsError) as exc_info:
+                mock_eth_account.can_transact(tx=tx, block=True)
 
         assert exc_info.value.token_type == TokenType.GAS
 
