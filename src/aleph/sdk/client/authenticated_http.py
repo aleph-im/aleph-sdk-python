@@ -5,7 +5,7 @@ import ssl
 import time
 from io import BytesIO
 from pathlib import Path
-from typing import Any, Dict, Mapping, NoReturn, Optional, Tuple, Union
+from typing import Any, Dict, Mapping, NoReturn, Optional, Tuple, Union, overload
 
 import aiohttp
 from aleph_message.models import (
@@ -38,6 +38,12 @@ from ..types import Account, StorageEnum, TokenType
 from ..utils import extended_json_encoder, make_instance_content, make_program_content
 from .abstract import AuthenticatedAlephClient
 from .http import AlephHttpClient
+
+try:
+    from typing import override  # type: ignore
+except ImportError:
+    from typing_extensions import override  # type: ignore
+
 
 logger = logging.getLogger(__name__)
 
@@ -679,3 +685,45 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
         # nodes.
         _, status = await self._broadcast(message=message, sync=sync)
         return message, status
+
+    @overload
+    def _resolve_address(self, address: str) -> str: ...
+
+    @overload
+    def _resolve_address(self, address: None) -> str: ...
+
+    @override
+    def _resolve_address(self, address: Optional[str] = None) -> str:
+        """
+        Resolve the address to use. Prefer the provided address, fallback to account.
+        """
+        if address:
+            return address
+        if self.account:
+            return self.account.get_address()
+
+        raise ValueError("No address provided and no account configured")
+
+    @override
+    async def get_vouchers(self, address: Optional[str] = None) -> list:
+        """
+        Retrieve all vouchers for the account / specific address, across EVM and Solana chains.
+        """
+        address = address or self.account.get_address()
+        return await super().get_vouchers(address=address)
+
+    @override
+    async def get_evm_vouchers(self, address: Optional[str] = None) -> list:
+        """
+        Retrieve vouchers specific to EVM chains for a specific address.
+        """
+        address = address or self.account.get_address()
+        return await super().get_evm_vouchers(address=address)
+
+    @override
+    async def get_solana_vouchers(self, address: Optional[str] = None) -> list:
+        """
+        Fetch Solana vouchers for a specific address.
+        """
+        address = address or self.account.get_address()
+        return await super().get_solana_vouchers(address=address)
