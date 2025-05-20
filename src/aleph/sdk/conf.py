@@ -230,6 +230,12 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_prefix="ALEPH_", case_sensitive=False, env_file=".env", extra="ignore"
     )
+    # Voucher Config
+    VOUCHER_METDATA_TEMPLATE_URL: str = (
+        "https://claim.twentysix.cloud/sbt/metadata/{}.json"
+    )
+    VOUCHER_SOL_REGISTRY: str = "https://api.claim.twentysix.cloud/v1/registry/sol"
+    VOUCHER_SENDER: str = "0xB34f25f2c935bCA437C061547eA12851d719dEFb"
 
 
 class MainConfiguration(BaseModel):
