@@ -1,6 +1,7 @@
 from abc import abstractmethod
+from decimal import Decimal
 from enum import Enum
-from typing import Dict, Optional, Protocol, TypeVar
+from typing import Dict, Optional, Protocol, TypeVar, Union
 
 from pydantic import BaseModel, Field
 
@@ -100,3 +101,29 @@ class TokenType(str, Enum):
 
     GAS = "GAS"
     ALEPH = "ALEPH"
+
+
+class VoucherAttribute(BaseModel):
+    value: Union[str, Decimal]
+    trait_type: str = Field(..., alias="trait_type")
+    display_type: Optional[str] = Field(None, alias="display_type")
+
+
+class VoucherMetadata(BaseModel):
+    name: str
+    description: str
+    external_url: str = Field(..., alias="external_url")
+    image: str
+    icon: str
+    attributes: list[VoucherAttribute]
+
+
+class Voucher(BaseModel):
+    id: str
+    metadata_id: str = Field(..., alias="metadata_id")
+    name: str
+    description: str
+    external_url: str = Field(..., alias="external_url")
+    image: str
+    icon: str
+    attributes: list[VoucherAttribute]
