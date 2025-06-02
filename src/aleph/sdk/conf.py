@@ -168,6 +168,10 @@ class Settings(BaseSettings):
             chain_id=146,
             rpc="https://rpc.soniclabs.com",
         ),
+        Chain.UNICHAIN: ChainInfo(
+            chain_id=130,
+            rpc="https://mainnet.unichain.org",
+        ),
         Chain.WORLDCHAIN: ChainInfo(
             chain_id=480,
             rpc="https://worldchain-mainnet.gateway.tenderly.co",
@@ -195,6 +199,7 @@ class Settings(BaseSettings):
     CHAINS_OPTIMISM_ACTIVE: Optional[bool] = None
     CHAINS_POL_ACTIVE: Optional[bool] = None
     CHAINS_SONIC_ACTIVE: Optional[bool] = None
+    CHAINS_UNICHAIN_ACTIVE: Optional[bool] = None
     CHAINS_WORLDCHAIN_ACTIVE: Optional[bool] = None
     CHAINS_ZORA_ACTIVE: Optional[bool] = None
 
@@ -215,6 +220,7 @@ class Settings(BaseSettings):
     CHAINS_OPTIMISM_RPC: Optional[str] = None
     CHAINS_POL_RPC: Optional[str] = None
     CHAINS_SONIC_RPC: Optional[str] = None
+    CHAINS_UNICHAIN_RPC: Optional[str] = None
     CHAINS_WORLDCHAIN_RPC: Optional[str] = None
     CHAINS_ZORA_RPC: Optional[str] = None
 
