@@ -30,7 +30,7 @@ dynamic = [ "version" ]
 dependencies = [
   "aiohttp>=3.8.3",
   "aioresponses>=0.7.6",
-  "aleph-message>=1",
+  "aleph-message>=1.0.1",
   "aleph-superfluid>=0.3",
   "base58==2.1.1",                         # Needed now as default with _load_account changement
   "coincurve; python_version>='3.9'",
