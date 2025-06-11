@@ -136,9 +136,25 @@ class Settings(BaseSettings):
             rpc="https://eth-mainnet.public.blastapi.io",
             token="0x27702a26126e0B3702af63Ee09aC4d1A084EF628",
         ),
+        Chain.ETHERLINK: ChainInfo(
+            chain_id=42793,
+            rpc="https://node.mainnet.etherlink.com",
+        ),
         Chain.FRAXTAL: ChainInfo(
             chain_id=252,
             rpc="https://rpc.frax.com",
+        ),
+        Chain.HYPE: ChainInfo(
+            chain_id=999,
+            rpc="https://rpc.hyperliquid.xyz/evm",
+        ),
+        Chain.INK: ChainInfo(
+            chain_id=57073,
+            rpc="https://rpc-gel.inkonchain.com",
+        ),
+        Chain.LENS: ChainInfo(
+            chain_id=232,
+            rpc="https://rpc.lens.xyz",
         ),
         Chain.LINEA: ChainInfo(
             chain_id=59144,

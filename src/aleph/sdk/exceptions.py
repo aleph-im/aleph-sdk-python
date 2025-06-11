@@ -69,6 +69,18 @@ class ForgottenMessageError(QueryError):
     pass
 
 
+class RemovedMessageError(QueryError):
+    """The requested message was removed"""
+
+    pass
+
+
+class ResourceNotFoundError(QueryError):
+    """A message resource was expected but could not be found."""
+
+    pass
+
+
 class InsufficientFundsError(Exception):
     """Raised when the account does not have enough funds to perform an action"""
 

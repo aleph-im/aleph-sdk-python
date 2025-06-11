@@ -39,6 +39,8 @@ from ..exceptions import (
     ForgottenMessageError,
     InvalidHashError,
     MessageNotFoundError,
+    RemovedMessageError,
+    ResourceNotFoundError,
 )
 from ..query.filters import MessageFilter, PostFilter
 from ..query.responses import MessagesResponse, Post, PostsResponse, PriceResponse
@@ -231,6 +233,9 @@ class AlephHttpClient(AlephClient):
                     )
                 else:
                     raise FileTooLarge(f"The file from {file_hash} is too large")
+            if response.status == 404:
+                raise ResourceNotFoundError()
+            return None
 
     async def download_file_ipfs_to_buffer(
         self,
@@ -400,6 +405,10 @@ class AlephHttpClient(AlephClient):
             raise ForgottenMessageError(
                 f"The requested message {message_raw['item_hash']} has been forgotten by {', '.join(message_raw['forgotten_by'])}"
             )
+        if message_raw["status"] == "removed":
+            raise RemovedMessageError(
+                f"The requested message {message_raw['item_hash']} has been removed by {', '.join(message_raw['reason'])}"
+            )
         message = parse_message(message_raw["message"])
         if message_type:
             expected_type = get_message_type_value(message_type)
@@ -428,6 +437,10 @@ class AlephHttpClient(AlephClient):
         if message_raw["status"] == "forgotten":
             raise ForgottenMessageError(
                 f"The requested message {message_raw['item_hash']} has been forgotten by {', '.join(message_raw['forgotten_by'])}"
+            )
+        if message_raw["status"] == "removed":
+            raise RemovedMessageError(
+                f"The requested message {message_raw['item_hash']} has been removed by {', '.join(message_raw['reason'])}"
             )
         if message_raw["status"] != "rejected":
             return None
@@ -558,6 +571,8 @@ class AlephHttpClient(AlephClient):
             resp = f"Message not found: {item_hash}"
         except ForgottenMessageError:
             resp = f"Message forgotten: {item_hash}"
+        except RemovedMessageError as e:
+            resp = f"Message resources not available {item_hash}: {str(e)}"
         return (
             result
             if result
