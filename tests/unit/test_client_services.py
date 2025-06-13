@@ -37,7 +37,6 @@ async def test_aleph_http_client_services_loading():
         async def mocked_aenter():
             client._http_session = mock_session_instance
             client.dns = DNSService(client)
-            client.domain = DomainService(client)
             client.port_forwarder = PortForwarder(client)
             client.crn = CrnService(client)
             client.scheduler = SchedulerService(client)
@@ -49,7 +48,6 @@ async def test_aleph_http_client_services_loading():
         ):
             async with client:
                 assert isinstance(client.dns, DNSService)
-                assert isinstance(client.domain, DomainService)
                 assert isinstance(client.port_forwarder, PortForwarder)
                 assert isinstance(client.crn, CrnService)
                 assert isinstance(client.scheduler, SchedulerService)
