@@ -17,9 +17,7 @@ class PortForwarder(BaseService[AllForwarders]):
     aggregate_key = "port-forwarding"
     model_cls = AllForwarders
 
-    def __init__(
-        self, client
-    ):
+    def __init__(self, client):
         super().__init__(client=client)
 
     async def get_ports(self, address: str) -> AggregateConfig[AllForwarders]:
