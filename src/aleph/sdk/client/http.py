@@ -57,7 +57,6 @@ from ..utils import (
 from .abstract import AlephClient
 from .service.crn.http_crn import CrnService
 from .service.dns.http_dns import DNSService
-from .service.domain.http_domain import DomainService
 from .service.port_forwarder.http_port_forwarder import PortForwarder
 from .service.scheduler.http_scheduler import SchedulerService
 from .service.utils.http_utils import UtilsService
@@ -143,7 +142,6 @@ class AlephHttpClient(AlephClient):
 
         # Initialize default services
         self.dns = DNSService(self)
-        self.domain = DomainService(self)
         self.port_forwarder = PortForwarder(self)
         self.crn = CrnService(self)
         self.scheduler = SchedulerService(self)
@@ -172,7 +170,8 @@ class AlephHttpClient(AlephClient):
             resp.raise_for_status()
             result = await resp.json()
             data = result.get("data", dict())
-            return data.get(key)
+            final_result = data.get(key)
+            return final_result
 
     async def fetch_aggregates(
         self, address: str, keys: Optional[Iterable[str]] = None
