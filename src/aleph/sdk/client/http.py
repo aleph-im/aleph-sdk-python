@@ -55,6 +55,12 @@ from ..utils import (
     safe_getattr,
 )
 from .abstract import AlephClient
+from .service.crn.http_crn import CrnService
+from .service.dns.http_dns import DNSService
+from .service.domain.http_domain import DomainService
+from .service.port_forwarder.http_port_forwarder import PortForwarder
+from .service.scheduler.http_scheduler import SchedulerService
+from .service.utils.http_utils import UtilsService
 
 logger = logging.getLogger(__name__)
 
@@ -62,6 +68,18 @@ logger = logging.getLogger(__name__)
 class AlephHttpClient(AlephClient):
     api_server: str
     _http_session: Optional[aiohttp.ClientSession]
+    _registered_services: Dict[str, Tuple[Type, Dict[str, Any]]] = {}
+
+    @classmethod
+    def register_service(cls, name: str, service_class: Type, **kwargs) -> None:
+        """
+        Register a service to be instantiated when the client is entered.
+
+        :param name: The attribute name to use for the service
+        :param service_class: The class to instantiate
+        :param kwargs: Additional kwargs to pass to the service constructor
+        """
+        cls._registered_services[name] = (service_class, kwargs)
 
     def __init__(
         self,
@@ -122,6 +140,21 @@ class AlephHttpClient(AlephClient):
                     ),
                 )
             )
+
+        # Initialize default services
+        self.dns = DNSService(self)
+        self.domain = DomainService(self)
+        self.port_forwarder = PortForwarder(self)
+        self.crn = CrnService(self)
+        self.scheduler = SchedulerService(self)
+        self.utils = UtilsService(self)
+
+        # Initialize registered services
+        for name, (
+            service_class,
+            kwargs,
+        ) in self.__class__._registered_services.items():
+            setattr(self, name, service_class(self, **kwargs))
 
         return self
 
