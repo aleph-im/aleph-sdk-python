@@ -392,7 +392,7 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
         if extra_fields is not None:
             values.update(extra_fields)
 
-        content = StoreContent.parse_obj(values)
+        content = StoreContent.model_validate(values)
 
         message, status, _ = await self.submit(
             content=content.model_dump(exclude_none=True),
