@@ -25,6 +25,7 @@ from typing import (
     Union,
     get_args,
 )
+from urllib.parse import urlparse
 from uuid import UUID
 from zipfile import BadZipFile, ZipFile
 
@@ -591,3 +592,24 @@ def make_program_content(
         authorized_keys=[],
         payment=payment,
     )
+
+
+def sanitize_url(url: str) -> str:
+    """
+    Sanitize a URL by removing the trailing slash and ensuring it's properly formatted.
+
+    Args:
+        url: The URL to sanitize
+
+    Returns:
+        The sanitized URL
+    """
+    # Remove trailing slash if present
+    url = url.rstrip("/")
+
+    # Ensure URL has a proper scheme
+    parsed = urlparse(url)
+    if not parsed.scheme:
+        url = f"https://{url}"
+
+    return url
