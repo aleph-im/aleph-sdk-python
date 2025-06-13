@@ -6,7 +6,6 @@ import pytest
 from aleph.sdk import AlephHttpClient, AuthenticatedAlephHttpClient
 from aleph.sdk.client.service.crn.http_crn import CrnService
 from aleph.sdk.client.service.dns.http_dns import DNSService
-from aleph.sdk.client.service.domain.http_domain import DomainService
 from aleph.sdk.client.service.port_forwarder.authenticated_port_forwarder import (
     AuthenticatedPortForwarder,
     PortForwarder,
