@@ -54,7 +54,6 @@ async def test_aleph_http_client_services_loading():
                 assert isinstance(client.utils, UtilsService)
 
                 assert client.dns._client == client
-                assert client.domain._client == client
                 assert client.port_forwarder._client == client
                 assert client.crn._client == client
                 assert client.scheduler._client == client
@@ -75,7 +74,6 @@ async def test_authenticated_http_client_services_loading(ethereum_account):
         async def mocked_aenter():
             client._http_session = mock_session_instance
             client.dns = DNSService(client)
-            # client.domain = AuthenticatedDomainService(client)  # Temporarily removed
             client.port_forwarder = AuthenticatedPortForwarder(client)
             client.crn = CrnService(client)
             client.scheduler = SchedulerService(client)
@@ -87,14 +85,12 @@ async def test_authenticated_http_client_services_loading(ethereum_account):
         ):
             async with client:
                 assert isinstance(client.dns, DNSService)
-                # assert isinstance(client.domain, AuthenticatedDomainService)  # Temporarily removed
                 assert isinstance(client.port_forwarder, AuthenticatedPortForwarder)
                 assert isinstance(client.crn, CrnService)
                 assert isinstance(client.scheduler, SchedulerService)
                 assert isinstance(client.utils, UtilsService)
 
                 assert client.dns._client == client
-                # assert client.domain._client == client  # Temporarily removed
                 assert client.port_forwarder._client == client
                 assert client.crn._client == client
                 assert client.scheduler._client == client
