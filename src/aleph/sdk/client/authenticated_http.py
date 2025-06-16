@@ -5,7 +5,7 @@ import ssl
 import time
 from io import BytesIO
 from pathlib import Path
-from typing import Any, Dict, Mapping, NoReturn, Optional, Tuple, Type, Union
+from typing import Any, Dict, Mapping, NoReturn, Optional, Tuple, Union
 
 import aiohttp
 from aleph_message.models import (
