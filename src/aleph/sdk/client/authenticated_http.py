@@ -38,7 +38,7 @@ from ..types import Account, StorageEnum, TokenType
 from ..utils import extended_json_encoder, make_instance_content, make_program_content
 from .abstract import AuthenticatedAlephClient
 from .http import AlephHttpClient
-from .service.port_forwarder import AuthenticatedPortForwarder
+from .services.authenticated_port_forwarder import AuthenticatedPortForwarder
 
 logger = logging.getLogger(__name__)
 
