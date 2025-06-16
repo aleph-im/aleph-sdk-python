@@ -13,9 +13,9 @@ if TYPE_CHECKING:
     from aleph.sdk.client.http import AlephHttpClient
 
 
-class CrnService:
+class Crn:
     """
-    This service allow interact with CRNS API
+    This services allow interact with CRNS API
     TODO: ADD
         /about/executions/details
         /about/executions/records

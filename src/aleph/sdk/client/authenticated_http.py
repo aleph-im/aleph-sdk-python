@@ -51,21 +51,6 @@ except ImportError:
 
 class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
     account: Account
-    _registered_authenticated_services: Dict[str, Tuple[Type, Dict[str, Any]]] = {}
-
-    @classmethod
-    def register_authenticated_service(
-        cls, name: str, service_class: Type, **kwargs
-    ) -> None:
-        """
-        Register an authenticated service to be instantiated when the authenticated client is entered.
-        This is used for services that require an account.
-
-        :param name: The attribute name to use for the service
-        :param service_class: The class to instantiate
-        :param kwargs: Additional kwargs to pass to the service constructor
-        """
-        cls._registered_authenticated_services[name] = (service_class, kwargs)
 
     BROADCAST_MESSAGE_FIELDS = {
         "sender",
@@ -101,13 +86,6 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
         await super().__aenter__()
         # Override services with authenticated versions
         self.port_forwarder = AuthenticatedPortForwarder(self)
-
-        # Initialize registered authenticated services
-        for name, (
-            service_class,
-            kwargs,
-        ) in self.__class__._registered_authenticated_services.items():
-            setattr(self, name, service_class(self, **kwargs))
 
         return self
 
