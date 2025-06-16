@@ -21,7 +21,7 @@ from aleph.sdk.types import (
 from aleph.sdk.utils import safe_getattr, sanitize_url
 
 
-class UtilsService:
+class Instance:
     """
     This is utils functions that used multiple Service
     exemple getting info about Allocations / exeuction of any instances (hold or not)

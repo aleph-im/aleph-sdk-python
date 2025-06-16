@@ -2,7 +2,7 @@ from typing import TYPE_CHECKING, Optional
 
 from aleph_message.models import ItemHash
 
-from aleph.sdk.client.service.base import AggregateConfig, BaseService
+from aleph.sdk.client.services.base import AggregateConfig, BaseService
 from aleph.sdk.types import AllForwarders, Ports
 
 if TYPE_CHECKING:
@@ -24,7 +24,7 @@ class PortForwarder(BaseService[AllForwarders]):
         result = await self.get_config(address=address)
         return result
 
-    async def get_port(self, address: str, item_hash: ItemHash) -> Optional[Ports]:
+    async def get_port(self, item_hash: ItemHash, address: str) -> Optional[Ports]:
         """
         Get Ports Forwarder of Instance / Program / IPFS  website from aggregate
         """

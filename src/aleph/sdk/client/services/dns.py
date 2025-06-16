@@ -11,7 +11,7 @@ if TYPE_CHECKING:
     from aleph.sdk.client.http import AlephHttpClient
 
 
-class DNSService:
+class DNS:
     """
     This Service mostly made to get active dns for instance:
         `https://api.dns.public.aleph.sh/instances/list`

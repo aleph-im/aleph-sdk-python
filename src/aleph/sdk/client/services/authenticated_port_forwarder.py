@@ -3,12 +3,11 @@ from typing import TYPE_CHECKING, Optional, Tuple
 from aleph_message.models import AggregateMessage, ItemHash
 from aleph_message.status import MessageStatus
 
-from aleph.sdk.client.service.base import AggregateConfig
+from aleph.sdk.client.services.base import AggregateConfig
+from aleph.sdk.client.services.port_forwarder import PortForwarder
 from aleph.sdk.exceptions import MessageNotProcessed, NotAuthorize
 from aleph.sdk.types import AllForwarders, Ports
 from aleph.sdk.utils import safe_getattr
-
-from .http_port_forwarder import PortForwarder
 
 if TYPE_CHECKING:
     from aleph.sdk.client.abstract import AuthenticatedAlephClient
@@ -16,7 +15,7 @@ if TYPE_CHECKING:
 
 class AuthenticatedPortForwarder(PortForwarder):
     """
-    Authenticated Port Forwarder service with create and update capabilities
+    Authenticated Port Forwarder services with create and update capabilities
     """
 
     def __init__(self, client: "AuthenticatedAlephClient"):
@@ -80,7 +79,7 @@ class AuthenticatedPortForwarder(PortForwarder):
         return await super().get_ports(address=address)
 
     async def get_port(
-        self, address: Optional[str] = None, item_hash: ItemHash = None
+        self, item_hash: ItemHash = None, address: Optional[str] = None
     ) -> Optional[Ports]:
         """
         Get port forwarding configuration for a specific item hash
@@ -120,7 +119,7 @@ class AuthenticatedPortForwarder(PortForwarder):
             raise ValueError("An account is required for this operation")
 
         # Pre Check
-        _, _ = await self._verify_status_processed_and_ownership(item_hash=item_hash)
+        # _, _ = await self._verify_status_processed_and_ownership(item_hash=item_hash)
 
         content = {str(item_hash): ports.model_dump()}
 
@@ -146,7 +145,7 @@ class AuthenticatedPortForwarder(PortForwarder):
             raise ValueError("An account is required for this operation")
 
         # Pre Check
-        _, _ = await self._verify_status_processed_and_ownership(item_hash=item_hash)
+        # _, _ = await self._verify_status_processed_and_ownership(item_hash=item_hash)
 
         content = {}
 
@@ -174,7 +173,7 @@ class AuthenticatedPortForwarder(PortForwarder):
             raise ValueError("An account is required for this operation")
 
         # Pre Check
-        _, _ = await self._verify_status_processed_and_ownership(item_hash=item_hash)
+        # _, _ = await self._verify_status_processed_and_ownership(item_hash=item_hash)
 
         # Get the Port Config of the item_hash
         port: Optional[Ports] = await self.get_port(item_hash=item_hash)

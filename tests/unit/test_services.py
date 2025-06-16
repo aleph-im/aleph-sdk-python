@@ -4,14 +4,14 @@ import aiohttp
 import pytest
 
 from aleph.sdk import AlephHttpClient, AuthenticatedAlephHttpClient
-from aleph.sdk.client.service.crn.http_crn import CrnService
-from aleph.sdk.client.service.dns.http_dns import DNSService
-from aleph.sdk.client.service.port_forwarder.authenticated_port_forwarder import (
+from aleph.sdk.client.services.authenticated_port_forwarder import (
     AuthenticatedPortForwarder,
     PortForwarder,
 )
-from aleph.sdk.client.service.scheduler.http_scheduler import SchedulerService
-from aleph.sdk.client.service.utils.http_utils import UtilsService
+from aleph.sdk.client.services.crn import Crn
+from aleph.sdk.client.services.dns import DNS
+from aleph.sdk.client.services.instance import Instance
+from aleph.sdk.client.services.scheduler import Scheduler
 from aleph.sdk.types import (
     IPV4,
     AllocationItem,
@@ -36,28 +36,28 @@ async def test_aleph_http_client_services_loading():
 
         async def mocked_aenter():
             client._http_session = mock_session_instance
-            client.dns = DNSService(client)
+            client.dns = DNS(client)
             client.port_forwarder = PortForwarder(client)
-            client.crn = CrnService(client)
-            client.scheduler = SchedulerService(client)
-            client.utils = UtilsService(client)
+            client.crn = Crn(client)
+            client.scheduler = Scheduler(client)
+            client.instance = Instance(client)
             return client
 
         with patch.object(client, "__aenter__", mocked_aenter), patch.object(
             client, "__aexit__", AsyncMock()
         ):
             async with client:
-                assert isinstance(client.dns, DNSService)
+                assert isinstance(client.dns, DNS)
                 assert isinstance(client.port_forwarder, PortForwarder)
-                assert isinstance(client.crn, CrnService)
-                assert isinstance(client.scheduler, SchedulerService)
-                assert isinstance(client.utils, UtilsService)
+                assert isinstance(client.crn, Crn)
+                assert isinstance(client.scheduler, Scheduler)
+                assert isinstance(client.instance, Instance)
 
                 assert client.dns._client == client
                 assert client.port_forwarder._client == client
                 assert client.crn._client == client
                 assert client.scheduler._client == client
-                assert client.utils._client == client
+                assert client.instance._client == client
 
 
 @pytest.mark.asyncio
@@ -73,28 +73,28 @@ async def test_authenticated_http_client_services_loading(ethereum_account):
 
         async def mocked_aenter():
             client._http_session = mock_session_instance
-            client.dns = DNSService(client)
+            client.dns = DNS(client)
             client.port_forwarder = AuthenticatedPortForwarder(client)
-            client.crn = CrnService(client)
-            client.scheduler = SchedulerService(client)
-            client.utils = UtilsService(client)
+            client.crn = Crn(client)
+            client.scheduler = Scheduler(client)
+            client.instance = Instance(client)
             return client
 
         with patch.object(client, "__aenter__", mocked_aenter), patch.object(
             client, "__aexit__", AsyncMock()
         ):
             async with client:
-                assert isinstance(client.dns, DNSService)
+                assert isinstance(client.dns, DNS)
                 assert isinstance(client.port_forwarder, AuthenticatedPortForwarder)
-                assert isinstance(client.crn, CrnService)
-                assert isinstance(client.scheduler, SchedulerService)
-                assert isinstance(client.utils, UtilsService)
+                assert isinstance(client.crn, Crn)
+                assert isinstance(client.scheduler, Scheduler)
+                assert isinstance(client.instance, Instance)
 
                 assert client.dns._client == client
                 assert client.port_forwarder._client == client
                 assert client.crn._client == client
                 assert client.scheduler._client == client
-                assert client.utils._client == client
+                assert client.instance._client == client
 
 
 def mock_aiohttp_session(response_data, raise_error=False, error_status=404):
@@ -336,7 +336,7 @@ async def test_authenticated_port_forwarder_delete_ports(ethereum_account):
 async def test_dns_service_get_public_dns():
     """Test the DNSService get_public_dns method"""
     mock_client = MagicMock()
-    dns_service = DNSService(mock_client)
+    dns_service = DNS(mock_client)
 
     # Mock the DnsListAdapter with a valid 64-character hash for ItemHash
     mock_dns_list = [
@@ -375,7 +375,7 @@ async def test_dns_service_get_public_dns():
 async def test_dns_service_get_dns_for_instance():
     """Test the DNSService get_dns_for_instance method"""
     mock_client = MagicMock()
-    dns_service = DNSService(mock_client)
+    dns_service = DNS(mock_client)
 
     # Use a valid format for ItemHash (64-character hex string for storage hash)
     dns1 = Dns(
@@ -414,7 +414,7 @@ async def test_dns_service_get_dns_for_instance():
 async def test_crn_service_get_last_crn_version():
     """Test the CrnService get_last_crn_version method"""
     mock_client = MagicMock()
-    crn_service = CrnService(mock_client)
+    crn_service = Crn(mock_client)
 
     # Set up mock for aiohttp.ClientSession
     patch_target, mock_session_context, _, _ = mock_aiohttp_session(
@@ -432,7 +432,7 @@ async def test_crn_service_get_crns_list():
     """Test the CrnService get_crns_list method"""
     mock_client = MagicMock()
     mock_client.base_url = "https://api.aleph.im"
-    crn_service = CrnService(mock_client)
+    crn_service = Crn(mock_client)
 
     crns_data = {
         "crns": [
@@ -467,7 +467,7 @@ async def test_crn_service_get_crns_list():
 async def test_crn_service_get_active_vms_v2():
     """Test the CrnService get_active_vms_v2 method"""
     mock_client = MagicMock()
-    crn_service = CrnService(mock_client)
+    crn_service = Crn(mock_client)
 
     # Use a valid 64-character hash as the key for the VM data
     mock_vm_data = {
@@ -514,7 +514,7 @@ async def test_crn_service_get_active_vms_v2():
 async def test_crn_service_get_active_vms_v1():
     """Test the CrnService get_active_vms_v1 method"""
     mock_client = MagicMock()
-    crn_service = CrnService(mock_client)
+    crn_service = Crn(mock_client)
 
     # Use a valid 64-character hash as the key
     mock_vm_data = {
@@ -545,7 +545,7 @@ async def test_crn_service_get_active_vms_v1():
 async def test_crn_service_get_active_vms():
     """Test the CrnService get_active_vms method"""
     mock_client = MagicMock()
-    crn_service = CrnService(mock_client)
+    crn_service = Crn(mock_client)
 
     # Create test data with valid 64-character hash keys
     vm_data_v2 = {
@@ -613,7 +613,7 @@ async def test_crn_service_get_active_vms():
 async def test_scheduler_service_get_plan():
     """Test the SchedulerService get_plan method"""
     mock_client = MagicMock()
-    scheduler_service = SchedulerService(mock_client)
+    scheduler_service = Scheduler(mock_client)
 
     mock_plan_data = {
         "period": {"start_timestamp": "2023-01-01T00:00:00Z", "duration_seconds": 3600},
@@ -648,7 +648,7 @@ async def test_scheduler_service_get_plan():
 async def test_scheduler_service_get_scheduler_node():
     """Test the SchedulerService get_scheduler_node method"""
     mock_client = MagicMock()
-    scheduler_service = SchedulerService(mock_client)
+    scheduler_service = Scheduler(mock_client)
 
     mock_nodes_data = {
         "nodes": [
@@ -683,7 +683,7 @@ async def test_scheduler_service_get_scheduler_node():
 async def test_scheduler_service_get_allocation():
     """Test the SchedulerService get_allocation method"""
     mock_client = MagicMock()
-    scheduler_service = SchedulerService(mock_client)
+    scheduler_service = Scheduler(mock_client)
 
     mock_allocation_data = {
         "vm_hash": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
@@ -720,7 +720,7 @@ async def test_scheduler_service_get_allocation():
 async def test_utils_service_get_name_of_executable():
     """Test the UtilsService get_name_of_executable method"""
     mock_client = MagicMock()
-    utils_service = UtilsService(mock_client)
+    utils_service = Instance(mock_client)
 
     # Mock a message with metadata.name
     mock_message = MagicMock()
@@ -752,7 +752,7 @@ async def test_utils_service_get_name_of_executable():
 async def test_utils_service_get_instances():
     """Test the UtilsService get_instances method"""
     mock_client = MagicMock()
-    utils_service = UtilsService(mock_client)
+    utils_service = Instance(mock_client)
 
     # Mock messages response
     mock_messages = [MagicMock(), MagicMock()]

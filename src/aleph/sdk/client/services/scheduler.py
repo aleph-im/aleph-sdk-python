@@ -11,7 +11,7 @@ if TYPE_CHECKING:
     from aleph.sdk.client.http import AlephHttpClient
 
 
-class SchedulerService:
+class Scheduler:
     """
     This Service is made to interact with scheduler API:
         `https://scheduler.api.aleph.cloud/`
