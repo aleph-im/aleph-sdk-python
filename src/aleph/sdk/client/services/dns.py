@@ -31,6 +31,17 @@ class DNS:
 
         return DnsListAdapter.validate_json(raw)
 
+    async def get_public_dns_by_host(self, crn_hostname):
+        """
+        Get all the public dns with filter on crn_url
+        """
+        async with aiohttp.ClientSession() as session:
+            async with session.get(sanitize_url(settings.DNS_API), params={"crn_url": crn_hostname}) as resp:
+                resp.raise_for_status()
+                raw = await resp.json()
+
+        return DnsListAdapter.validate_json(raw)
+
     async def get_dns_for_instance(self, vm_hash: ItemHash) -> Optional[Dns]:
         dns_list: List[Dns] = await self.get_public_dns()
         for dns in dns_list:
