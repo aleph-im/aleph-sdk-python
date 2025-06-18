@@ -29,9 +29,6 @@ class BaseService(ABC, Generic[T]):
         self._client = client
         self.model_cls: Type[T]
 
-    def _build_crn_update_url(self, crn: str, vm_hash: str) -> str:
-        return settings.CRN_URL_UPDATE.format(crn_url=crn, vm_hash=vm_hash)
-
     async def get_config(self, address: str):
 
         aggregate_data = await self._client.fetch_aggregate(
