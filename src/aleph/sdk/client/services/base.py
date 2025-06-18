@@ -3,8 +3,6 @@ from typing import TYPE_CHECKING, Generic, List, Optional, Type, TypeVar
 
 from pydantic import BaseModel
 
-from aleph.sdk.conf import settings
-
 if TYPE_CHECKING:
     from aleph.sdk.client.http import AlephHttpClient
 

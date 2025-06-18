@@ -36,7 +36,9 @@ class DNS:
         Get all the public dns with filter on crn_url
         """
         async with aiohttp.ClientSession() as session:
-            async with session.get(sanitize_url(settings.DNS_API), params={"crn_url": crn_hostname}) as resp:
+            async with session.get(
+                sanitize_url(settings.DNS_API), params={"crn_url": crn_hostname}
+            ) as resp:
                 resp.raise_for_status()
                 raw = await resp.json()
 
