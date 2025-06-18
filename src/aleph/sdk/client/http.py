@@ -33,6 +33,12 @@ from aleph_message.models import (
 from aleph_message.status import MessageStatus
 from pydantic import ValidationError
 
+from aleph.sdk.client.services.crn import Crn
+from aleph.sdk.client.services.dns import DNS
+from aleph.sdk.client.services.instance import Instance
+from aleph.sdk.client.services.port_forwarder import PortForwarder
+from aleph.sdk.client.services.scheduler import Scheduler
+
 from ..conf import settings
 from ..exceptions import (
     FileTooLarge,
@@ -123,6 +129,13 @@ class AlephHttpClient(AlephClient):
                 )
             )
 
+        # Initialize default services
+        self.dns = DNS(self)
+        self.port_forwarder = PortForwarder(self)
+        self.crn = Crn(self)
+        self.scheduler = Scheduler(self)
+        self.instance = Instance(self)
+
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
@@ -139,7 +152,8 @@ class AlephHttpClient(AlephClient):
             resp.raise_for_status()
             result = await resp.json()
             data = result.get("data", dict())
-            return data.get(key)
+            final_result = data.get(key)
+            return final_result
 
     async def fetch_aggregates(
         self, address: str, keys: Optional[Iterable[str]] = None

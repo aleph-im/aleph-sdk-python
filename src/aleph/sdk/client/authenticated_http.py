@@ -38,6 +38,7 @@ from ..types import Account, StorageEnum, TokenType
 from ..utils import extended_json_encoder, make_instance_content, make_program_content
 from .abstract import AuthenticatedAlephClient
 from .http import AlephHttpClient
+from .services.authenticated_port_forwarder import AuthenticatedPortForwarder
 
 logger = logging.getLogger(__name__)
 
@@ -80,6 +81,13 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
             ssl_context=ssl_context,
         )
         self.account = account
+
+    async def __aenter__(self):
+        await super().__aenter__()
+        # Override services with authenticated versions
+        self.port_forwarder = AuthenticatedPortForwarder(self)
+
+        return self
 
     async def ipfs_push(self, content: Mapping) -> str:
         """
@@ -392,7 +400,7 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
         if extra_fields is not None:
             values.update(extra_fields)
 
-        content = StoreContent.parse_obj(values)
+        content = StoreContent.model_validate(values)
 
         message, status, _ = await self.submit(
             content=content.model_dump(exclude_none=True),

@@ -52,7 +52,7 @@ class RemoteAccount(BaseAccount):
             session = aiohttp.ClientSession(connector=connector)
 
         async with session.get(f"{host}/properties") as response:
-            await response.raise_for_status()
+            response.raise_for_status()
             data = await response.json()
             properties = AccountProperties(**data)
 
@@ -75,7 +75,7 @@ class RemoteAccount(BaseAccount):
     async def sign_message(self, message: Dict) -> Dict:
         """Sign a message inplace."""
         async with self._session.post(f"{self._host}/sign", json=message) as response:
-            await response.raise_for_status()
+            response.raise_for_status()
             return await response.json()
 
     async def sign_raw(self, buffer: bytes) -> bytes:
