@@ -22,6 +22,7 @@ T = TypeVar("T", bound=AccountFromPrivateKey)
 
 chain_account_map: Dict[Chain, Type[T]] = {  # type: ignore
     Chain.ARBITRUM: EVMAccount,
+    Chain.AURORA: EVMAccount,
     Chain.AVAX: ETHAccount,
     Chain.BASE: ETHAccount,
     Chain.BLAST: EVMAccount,
@@ -41,6 +42,7 @@ chain_account_map: Dict[Chain, Type[T]] = {  # type: ignore
     Chain.OPTIMISM: EVMAccount,
     Chain.POL: EVMAccount,
     Chain.SOL: SOLAccount,
+    Chain.SOMNIA: EVMAccount,
     Chain.SONIC: EVMAccount,
     Chain.UNICHAIN: EVMAccount,
     Chain.WORLDCHAIN: EVMAccount,
