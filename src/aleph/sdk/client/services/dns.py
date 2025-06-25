@@ -44,9 +44,11 @@ class DNS:
 
         return DnsListAdapter.validate_json(raw)
 
-    async def get_dns_for_instance(self, vm_hash: ItemHash) -> Optional[Dns]:
-        dns_list: List[Dns] = await self.get_public_dns()
-        for dns in dns_list:
-            if dns.item_hash == vm_hash:
-                return dns
-        return None
+    async def get_dns_for_instance(self, vm_hash: ItemHash) -> Optional[List[Dns]]:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(
+                sanitize_url(settings.DNS_API), params={"item_hash": vm_hash}
+            ) as resp:
+                resp.raise_for_status()
+                raw = await resp.json()
+                return DnsListAdapter.validate_json(raw)

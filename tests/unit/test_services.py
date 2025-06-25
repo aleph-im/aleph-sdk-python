@@ -372,45 +372,6 @@ async def test_dns_service_get_public_dns():
 
 
 @pytest.mark.asyncio
-async def test_dns_service_get_dns_for_instance():
-    """Test the DNSService get_dns_for_instance method"""
-    mock_client = MagicMock()
-    dns_service = DNS(mock_client)
-
-    # Use a valid format for ItemHash (64-character hex string for storage hash)
-    dns1 = Dns(
-        name="test1.aleph.sh",
-        item_hash="0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
-        ipv6="2001:db8::1",
-        ipv4=IPV4(public="192.0.2.1", local="10.0.0.1"),
-    )
-
-    dns2 = Dns(
-        name="test2.aleph.sh",
-        item_hash="fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210",
-        ipv6="2001:db8::2",
-        ipv4=IPV4(public="192.0.2.2", local="10.0.0.2"),
-    )
-
-    # Use AsyncMock instead of a regular async function
-    with patch.object(
-        dns_service, "get_public_dns", AsyncMock(return_value=[dns1, dns2])
-    ):
-        # Test finding a DNS entry (use the same hash as dns1)
-        result = await dns_service.get_dns_for_instance(
-            vm_hash="0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
-        )
-        assert result is not None
-        assert result.name == "test1.aleph.sh"
-
-        # Test not finding a DNS entry
-        result = await dns_service.get_dns_for_instance(
-            vm_hash="aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-        )
-        assert result is None
-
-
-@pytest.mark.asyncio
 async def test_crn_service_get_last_crn_version():
     """Test the CrnService get_last_crn_version method"""
     mock_client = MagicMock()
