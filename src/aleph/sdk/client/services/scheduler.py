@@ -30,7 +30,7 @@ class Scheduler:
 
                 return SchedulerPlan.model_validate(raw)
 
-    async def get_scheduler_node(self) -> SchedulerNodes:
+    async def get_nodes(self) -> SchedulerNodes:
         url = f"{sanitize_url(settings.SCHEDULER_URL)}/api/v0/nodes"
 
         async with aiohttp.ClientSession() as session:
