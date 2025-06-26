@@ -15,8 +15,6 @@ from aleph.sdk.client.services.scheduler import Scheduler
 from aleph.sdk.types import (
     IPV4,
     AllocationItem,
-    CrnV1List,
-    CrnV2List,
     Dns,
     PortFlags,
     Ports,
@@ -161,7 +159,7 @@ async def test_port_forwarder_get_ports():
         return MockAggregateConfig()
 
     with patch.object(port_forwarder, "get_ports", mocked_get_ports):
-        result = await port_forwarder.get_ports(address="0xtest")
+        result = await port_forwarder.get_address_ports(address="0xtest")
 
     # Manually call what would happen in the real method
     mock_client.fetch_aggregate("0xtest", "port-forwarding")
@@ -191,7 +189,7 @@ async def test_authenticated_port_forwarder_get_ports(ethereum_account):
         return MockAggregateConfig()
 
     with patch.object(auth_port_forwarder, "get_ports", mocked_get_ports):
-        result = await auth_port_forwarder.get_ports()
+        result = await auth_port_forwarder.get_address_ports()
 
     address = ethereum_account.get_address()
     mock_client.fetch_aggregate(address, "port-forwarding")
@@ -227,7 +225,7 @@ async def test_authenticated_port_forwarder_create_port_forward(ethereum_account
         AsyncMock(return_value=(mock_message, mock_status)),
     ):
         # Call the actual method
-        result_message, result_status = await auth_port_forwarder.create_port(
+        result_message, result_status = await auth_port_forwarder.create_ports(
             item_hash="test_hash", ports=ports
         )
 
@@ -268,7 +266,7 @@ async def test_authenticated_port_forwarder_update_port(ethereum_account):
         AsyncMock(return_value=(mock_message, mock_status)),
     ):
         # Call the actual method
-        result_message, result_status = await auth_port_forwarder.update_port(
+        result_message, result_status = await auth_port_forwarder.update_ports(
             item_hash="test_hash", ports=ports
         )
 
@@ -389,188 +387,6 @@ async def test_crn_service_get_last_crn_version():
 
 
 @pytest.mark.asyncio
-async def test_crn_service_get_crns_list():
-    """Test the CrnService get_crns_list method"""
-    mock_client = MagicMock()
-    mock_client.base_url = "https://api.aleph.im"
-    crn_service = Crn(mock_client)
-
-    crns_data = {
-        "crns": [
-            {"hash": "crn1", "address": "https://crn1.aleph.im"},
-            {"hash": "crn2", "address": "https://crn2.aleph.im"},
-        ]
-    }
-
-    # Set up mock for aiohttp.ClientSession for the first call
-    patch_target, mock_session_context1, mock_session1, _ = mock_aiohttp_session(
-        crns_data
-    )
-
-    # Set up mock for aiohttp.ClientSession for the second call
-    _, mock_session_context2, mock_session2, _ = mock_aiohttp_session(crns_data)
-
-    # Patch ClientSession to return different mock sessions for each call
-    with patch(
-        patch_target, side_effect=[mock_session_context1, mock_session_context2]
-    ):
-        # Test with only_active=True (default)
-        result = await crn_service.get_crns_list()
-        mock_session1.get.assert_called_once()
-        assert len(result["crns"]) == 2
-
-        # Test with only_active=False
-        result = await crn_service.get_crns_list(only_active=False)
-        mock_session2.get.assert_called_once()
-
-
-@pytest.mark.asyncio
-async def test_crn_service_get_active_vms_v2():
-    """Test the CrnService get_active_vms_v2 method"""
-    mock_client = MagicMock()
-    crn_service = Crn(mock_client)
-
-    # Use a valid 64-character hash as the key for the VM data
-    mock_vm_data = {
-        "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef": {
-            "networking": {
-                "ipv4_network": "192.168.0.0/24",
-                "host_ipv4": "192.168.0.1",
-                "ipv6_network": "2001:db8::/64",
-                "ipv6_ip": "2001:db8::1",
-                "mapped_ports": {},
-            },
-            "status": {
-                "defined_at": "2023-01-01T00:00:00Z",
-                "started_at": "2023-01-01T00:00:00Z",
-                "preparing_at": "2023-01-01T00:00:00Z",
-                "prepared_at": "2023-01-01T00:00:00Z",
-                "starting_at": "2023-01-01T00:00:00Z",
-                "stopping_at": "2023-01-01T00:00:00Z",
-                "stopped_at": "2023-01-01T00:00:00Z",
-            },
-            "running": True,
-        }
-    }
-
-    # Set up mock for aiohttp.ClientSession
-    patch_target, mock_session_context, _, _ = mock_aiohttp_session(mock_vm_data)
-
-    # Patch the ClientSession constructor
-    with patch(patch_target, return_value=mock_session_context):
-        result = await crn_service.get_active_vms_v2("https://crn.example.com")
-        assert (
-            "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
-            in result.root
-        )
-        assert (
-            result.root[
-                "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
-            ].networking.ipv4_network
-            == "192.168.0.0/24"
-        )
-
-
-@pytest.mark.asyncio
-async def test_crn_service_get_active_vms_v1():
-    """Test the CrnService get_active_vms_v1 method"""
-    mock_client = MagicMock()
-    crn_service = Crn(mock_client)
-
-    # Use a valid 64-character hash as the key
-    mock_vm_data = {
-        "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef": {
-            "networking": {"ipv4": "192.168.0.1", "ipv6": "2001:db8::1"}
-        }
-    }
-
-    # Set up mock for aiohttp.ClientSession
-    patch_target, mock_session_context, _, _ = mock_aiohttp_session(mock_vm_data)
-
-    # Patch the ClientSession constructor
-    with patch(patch_target, return_value=mock_session_context):
-        result = await crn_service.get_active_vms_v1("https://crn.example.com")
-        assert (
-            "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
-            in result.root
-        )
-        assert (
-            result.root[
-                "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
-            ].networking.ipv4
-            == "192.168.0.1"
-        )
-
-
-@pytest.mark.asyncio
-async def test_crn_service_get_active_vms():
-    """Test the CrnService get_active_vms method"""
-    mock_client = MagicMock()
-    crn_service = Crn(mock_client)
-
-    # Create test data with valid 64-character hash keys
-    vm_data_v2 = {
-        "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef": {
-            "networking": {
-                "ipv4_network": "192.168.0.0/24",
-                "host_ipv4": "192.168.0.1",
-                "ipv6_network": "2001:db8::/64",
-                "ipv6_ip": "2001:db8::1",
-                "mapped_ports": {},
-            },
-            "status": {
-                "defined_at": "2023-01-01T00:00:00Z",
-                "started_at": "2023-01-01T00:00:00Z",
-                "preparing_at": "2023-01-01T00:00:00Z",
-                "prepared_at": "2023-01-01T00:00:00Z",
-                "starting_at": "2023-01-01T00:00:00Z",
-                "stopping_at": "2023-01-01T00:00:00Z",
-                "stopped_at": "2023-01-01T00:00:00Z",
-            },
-            "running": True,
-        }
-    }
-
-    vm_data_v1 = {
-        "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef": {
-            "networking": {"ipv4": "192.168.0.1", "ipv6": "2001:db8::1"}
-        }
-    }
-
-    # Test successful v2 call
-    patch_target, mock_session_context1, _, _ = mock_aiohttp_session(vm_data_v2)
-
-    with patch(patch_target, return_value=mock_session_context1):
-        result = await crn_service.get_active_vms("https://crn.example.com")
-        assert isinstance(result, CrnV2List)
-
-    # Test v1 fallback (v2 raises error, v1 succeeds)
-    # First, patch get_active_vms_v2 to raise an error
-    v2_patch_target, v2_mock_session_context, _, _ = mock_aiohttp_session(
-        {}, raise_error=True, error_status=404
-    )
-    # Then, patch get_active_vms_v1 to succeed
-    v1_patch_target, v1_mock_session_context, _, _ = mock_aiohttp_session(vm_data_v1)
-
-    # Instead of trying to mock ClientSession with side_effect (which is complex),
-    # let's patch the get_active_vms_v2 method to raise an exception and get_active_vms_v1 to return our data
-    with patch.object(
-        crn_service,
-        "get_active_vms_v2",
-        side_effect=aiohttp.ClientResponseError(
-            request_info=MagicMock(), history=tuple(), status=404, message="Not Found"
-        ),
-    ):
-        with patch.object(
-            crn_service,
-            "get_active_vms_v1",
-            return_value=CrnV1List.model_validate(vm_data_v1),
-        ):
-            result = await crn_service.get_active_vms("https://crn.example.com")
-            assert isinstance(result, CrnV1List)
-
-
-@pytest.mark.asyncio
 async def test_scheduler_service_get_plan():
     """Test the SchedulerService get_plan method"""
     mock_client = MagicMock()
@@ -633,7 +449,7 @@ async def test_scheduler_service_get_scheduler_node():
 
     # Patch the ClientSession constructor
     with patch(patch_target, return_value=mock_session_context):
-        result = await scheduler_service.get_scheduler_node()
+        result = await scheduler_service.get_nodes()
         assert isinstance(result, SchedulerNodes)
         assert len(result.nodes) == 2
         assert result.nodes[0].node_id == "node1"

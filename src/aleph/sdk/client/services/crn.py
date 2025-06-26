@@ -40,7 +40,7 @@ class Crn:
         """
         # Create a new session for external domain requests
         async with aiohttp.ClientSession() as session:
-            async with session.get(settings.CRN_VERSION) as resp:
+            async with session.get(settings.CRN_VERSION_URL) as resp:
                 resp.raise_for_status()
                 data = await resp.json()
                 return data.get("tag_name")
@@ -133,6 +133,6 @@ class Crn:
         full_url = sanitize_url(crn_address + f"/control/{item_hash}/update")
 
         async with aiohttp.ClientSession() as session:
-            async with session.get(full_url) as resp:
+            async with session.post(full_url) as resp:
                 resp.raise_for_status()
                 return await resp.json()

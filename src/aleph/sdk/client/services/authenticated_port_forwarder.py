@@ -58,7 +58,7 @@ class AuthenticatedPortForwarder(PortForwarder):
             )
         return message, status
 
-    async def get_ports(
+    async def get_address_ports(
         self, address: Optional[str] = None
     ) -> AggregateConfig[AllForwarders]:
         """
@@ -76,9 +76,9 @@ class AuthenticatedPortForwarder(PortForwarder):
                 raise ValueError("No account provided and client is not authenticated")
             address = self._client.account.get_address()
 
-        return await super().get_ports(address=address)
+        return await super().get_address_ports(address=address)
 
-    async def get_port(
+    async def get_ports(
         self, item_hash: ItemHash = None, address: Optional[str] = None
     ) -> Optional[Ports]:
         """
@@ -100,9 +100,9 @@ class AuthenticatedPortForwarder(PortForwarder):
         if item_hash is None:
             raise ValueError("item_hash must be provided")
 
-        return await super().get_port(address=address, item_hash=item_hash)
+        return await super().get_ports(address=address, item_hash=item_hash)
 
-    async def create_port(
+    async def create_ports(
         self, item_hash: ItemHash, ports: Ports
     ) -> Tuple[AggregateMessage, MessageStatus]:
         """
@@ -128,7 +128,7 @@ class AuthenticatedPortForwarder(PortForwarder):
             key=self.aggregate_key, content=content
         )
 
-    async def update_port(
+    async def update_ports(
         self, item_hash: ItemHash, ports: Ports
     ) -> Tuple[AggregateMessage, MessageStatus]:
         """
@@ -176,7 +176,7 @@ class AuthenticatedPortForwarder(PortForwarder):
         # _, _ = await self._verify_status_processed_and_ownership(item_hash=item_hash)
 
         # Get the Port Config of the item_hash
-        port: Optional[Ports] = await self.get_port(item_hash=item_hash)
+        port: Optional[Ports] = await self.get_ports(item_hash=item_hash)
         if not port:
             raise
 
