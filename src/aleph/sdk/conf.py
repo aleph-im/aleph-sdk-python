@@ -101,6 +101,10 @@ class Settings(BaseSettings):
             chain_id=42161,
             rpc="https://arbitrum-one.publicnode.com",
         ),
+        Chain.AURORA: ChainInfo(
+            chain_id=1313161554,
+            rpc="https://mainnet.aurora.dev",
+        ),
         Chain.AVAX: ChainInfo(
             chain_id=43114,
             rpc="https://api.avax.network/ext/bc/C/rpc",
@@ -180,6 +184,10 @@ class Settings(BaseSettings):
             chain_id=137,
             rpc="https://polygon.gateway.tenderly.co",
         ),
+        Chain.SOMNIA: ChainInfo(
+            chain_id=50312,
+            rpc="https://dream-rpc.somnia.network",
+        ),
         Chain.SONIC: ChainInfo(
             chain_id=146,
             rpc="https://rpc.soniclabs.com",
@@ -204,16 +212,21 @@ class Settings(BaseSettings):
     CHAINS_BASE_ACTIVE: Optional[bool] = None
     CHAINS_BSC_ACTIVE: Optional[bool] = None
     CHAINS_ARBITRUM_ACTIVE: Optional[bool] = None
+    CHAINS_AURORA_ACTIVE: Optional[bool] = None
     CHAINS_BLAST_ACTIVE: Optional[bool] = None
     CHAINS_BOB_ACTIVE: Optional[bool] = None
     CHAINS_CYBER_ACTIVE: Optional[bool] = None
+    CHAINS_ETHERLINK_ACTIVE: Optional[bool] = None
     CHAINS_FRAXTAL_ACTIVE: Optional[bool] = None
+    CHAINS_HYPE_ACTIVE: Optional[bool] = None
+    CHAINS_LENS_ACTIVE: Optional[bool] = None
     CHAINS_LINEA_ACTIVE: Optional[bool] = None
     CHAINS_LISK_ACTIVE: Optional[bool] = None
     CHAINS_METIS_ACTIVE: Optional[bool] = None
     CHAINS_MODE_ACTIVE: Optional[bool] = None
     CHAINS_OPTIMISM_ACTIVE: Optional[bool] = None
     CHAINS_POL_ACTIVE: Optional[bool] = None
+    CHAINS_SOMNIA_ACTIVE: Optional[bool] = None
     CHAINS_SONIC_ACTIVE: Optional[bool] = None
     CHAINS_UNICHAIN_ACTIVE: Optional[bool] = None
     CHAINS_WORLDCHAIN_ACTIVE: Optional[bool] = None
@@ -225,16 +238,21 @@ class Settings(BaseSettings):
     CHAINS_BASE_RPC: Optional[str] = None
     CHAINS_BSC_RPC: Optional[str] = None
     CHAINS_ARBITRUM_RPC: Optional[str] = None
+    CHAINS_AURORA_RPC: Optional[str] = None
     CHAINS_BLAST_RPC: Optional[str] = None
     CHAINS_BOB_RPC: Optional[str] = None
     CHAINS_CYBER_RPC: Optional[str] = None
+    CHAINS_ETHERLINK_RPC: Optional[str] = None
     CHAINS_FRAXTAL_RPC: Optional[str] = None
+    CHAINS_HYPE_RPC: Optional[str] = None
+    CHAINS_LENS_RPC: Optional[str] = None
     CHAINS_LINEA_RPC: Optional[str] = None
     CHAINS_LISK_RPC: Optional[str] = None
     CHAINS_METIS_RPC: Optional[str] = None
     CHAINS_MODE_RPC: Optional[str] = None
     CHAINS_OPTIMISM_RPC: Optional[str] = None
     CHAINS_POL_RPC: Optional[str] = None
+    CHAINS_SOMNIA_RPC: Optional[str] = None
     CHAINS_SONIC_RPC: Optional[str] = None
     CHAINS_UNICHAIN_RPC: Optional[str] = None
     CHAINS_WORLDCHAIN_RPC: Optional[str] = None
