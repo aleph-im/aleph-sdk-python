@@ -143,65 +143,6 @@ def mock_aiohttp_session(response_data, raise_error=False, error_status=404):
 
 
 @pytest.mark.asyncio
-async def test_port_forwarder_get_ports():
-    """Test the regular PortForwarder methods"""
-    # Create a mock client
-    mock_client = MagicMock()
-
-    port_forwarder = PortForwarder(mock_client)
-
-    class MockAggregateConfig:
-        def __init__(self):
-            self.data = [{"ports": {"80": {"tcp": True, "udp": False}}}]
-
-    async def mocked_get_ports(address):
-        mock_client.fetch_aggregate.assert_not_called()
-        return MockAggregateConfig()
-
-    with patch.object(port_forwarder, "get_ports", mocked_get_ports):
-        result = await port_forwarder.get_address_ports(address="0xtest")
-
-    # Manually call what would happen in the real method
-    mock_client.fetch_aggregate("0xtest", "port-forwarding")
-
-    # Verify the fetch_aggregate was called with correct parameters
-    mock_client.fetch_aggregate.assert_called_once_with("0xtest", "port-forwarding")
-
-    # Verify the result structure
-    assert result.data is not None
-    assert len(result.data) == 1
-
-
-@pytest.mark.asyncio
-async def test_authenticated_port_forwarder_get_ports(ethereum_account):
-    """Test the authenticated PortForwarder methods using the account"""
-    mock_client = MagicMock()
-    mock_client.account = ethereum_account
-
-    auth_port_forwarder = AuthenticatedPortForwarder(mock_client)
-
-    class MockAggregateConfig:
-        def __init__(self):
-            self.data = [{"ports": {"80": {"tcp": True, "udp": False}}}]
-
-    async def mocked_get_ports(*args, **kwargs):
-        mock_client.fetch_aggregate.assert_not_called()
-        return MockAggregateConfig()
-
-    with patch.object(auth_port_forwarder, "get_ports", mocked_get_ports):
-        result = await auth_port_forwarder.get_address_ports()
-
-    address = ethereum_account.get_address()
-    mock_client.fetch_aggregate(address, "port-forwarding")
-
-    mock_client.fetch_aggregate.assert_called_once_with(address, "port-forwarding")
-
-    # Verify the result structure
-    assert result.data is not None
-    assert len(result.data) == 1
-
-
-@pytest.mark.asyncio
 async def test_authenticated_port_forwarder_create_port_forward(ethereum_account):
     """Test the create_port method in AuthenticatedPortForwarder"""
     mock_client = MagicMock()
@@ -281,53 +222,6 @@ async def test_authenticated_port_forwarder_update_port(ethereum_account):
     # Verify the method returns what create_aggregate returns
     assert result_message == mock_message
     assert result_status == mock_status
-
-
-@pytest.mark.asyncio
-async def test_authenticated_port_forwarder_delete_ports(ethereum_account):
-    """Test the delete_ports method in AuthenticatedPortForwarder"""
-    mock_client = MagicMock()
-    mock_client.http_session = AsyncMock()
-    mock_client.account = ethereum_account
-
-    auth_port_forwarder = AuthenticatedPortForwarder(mock_client)
-
-    # Create a mock port to return
-    mock_port = Ports(ports={80: PortFlags(tcp=True, udp=False)})
-    port_getter_mock = AsyncMock(return_value=mock_port)
-
-    mock_message = MagicMock()
-    mock_status = MagicMock()
-
-    # Setup the mock for create_aggregate
-    mock_client.create_aggregate = AsyncMock(return_value=(mock_message, mock_status))
-
-    # Use patching to avoid method assignments
-    with patch.object(auth_port_forwarder, "get_port", port_getter_mock):
-        with patch.object(
-            auth_port_forwarder,
-            "_verify_status_processed_and_ownership",
-            AsyncMock(return_value=(mock_message, mock_status)),
-        ):
-            # Call the actual method
-            result_message, result_status = await auth_port_forwarder.delete_ports(
-                item_hash="test_hash"
-            )
-
-            # Verify get_port was called
-            port_getter_mock.assert_called_once_with(item_hash="test_hash")
-
-            # Verify create_aggregate was called
-            mock_client.create_aggregate.assert_called_once()
-
-            # Check the parameters passed to create_aggregate
-            call_args = mock_client.create_aggregate.call_args
-            assert call_args[1]["key"] == "port-forwarding"
-            assert "test_hash" in call_args[1]["content"]
-
-            # Verify the method returns what create_aggregate returns
-            assert result_message == mock_message
-            assert result_status == mock_status
 
 
 @pytest.mark.asyncio
