@@ -90,7 +90,10 @@ class Instance:
         for msg in messages_list:
             if only_processed:
                 status = await self._client.get_message_status(msg.item_hash)
-                if status != MessageStatus.PROCESSED:
+                if (
+                    status != MessageStatus.PROCESSED
+                    and status != MessageStatus.REMOVING
+                ):
                     continue
             tasks.append(self.get_instance_allocation_info(msg, crn_list))
 
