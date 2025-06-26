@@ -20,15 +20,15 @@ class PortForwarder(BaseService[AllForwarders]):
     def __init__(self, client):
         super().__init__(client=client)
 
-    async def get_ports(self, address: str) -> AggregateConfig[AllForwarders]:
+    async def get_address_ports(self, address: str) -> AggregateConfig[AllForwarders]:
         result = await self.get_config(address=address)
         return result
 
-    async def get_port(self, item_hash: ItemHash, address: str) -> Optional[Ports]:
+    async def get_ports(self, item_hash: ItemHash, address: str) -> Optional[Ports]:
         """
         Get Ports Forwarder of Instance / Program / IPFS  website from aggregate
         """
-        ports_config: AggregateConfig[AllForwarders] = await self.get_ports(
+        ports_config: AggregateConfig[AllForwarders] = await self.get_address_ports(
             address=address
         )
 
