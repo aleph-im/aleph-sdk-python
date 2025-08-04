@@ -1,6 +1,7 @@
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 import aiohttp
+from aiohttp import ClientResponseError
 from aleph_message.models import ItemHash
 
 from aleph.sdk.conf import settings
@@ -40,15 +41,18 @@ class Scheduler:
 
                 return SchedulerNodes.model_validate(raw)
 
-    async def get_allocation(self, vm_hash: ItemHash) -> AllocationItem:
+    async def get_allocation(self, vm_hash: ItemHash) -> Optional[AllocationItem]:
         """
         Fetch allocation information for a given VM hash.
         """
         url = f"{sanitize_url(settings.SCHEDULER_URL)}/api/v0/allocation/{vm_hash}"
-
-        async with aiohttp.ClientSession() as session:
-            async with session.get(url) as resp:
-                resp.raise_for_status()
-                payload = await resp.json()
-
-        return AllocationItem.model_validate(payload)
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.get(url) as resp:
+                    resp.raise_for_status()
+                    payload = await resp.json()
+            return AllocationItem.model_validate(payload)
+        except ClientResponseError as e:
+            if e.status == 404:  # Allocation can't be find on scheduler
+                return None
+            raise e
