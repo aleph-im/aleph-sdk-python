@@ -114,6 +114,8 @@ class Instance:
             if isinstance(alloc, InstanceManual):
                 crn_url = sanitize_url(alloc.crn_url)
             else:
+                if not alloc.allocations:
+                    return str(item_hash), None
                 crn_url = sanitize_url(alloc.allocations.node.url)
 
             if not crn_url:
