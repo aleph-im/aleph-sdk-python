@@ -1,5 +1,6 @@
 from abc import abstractmethod
 from datetime import datetime
+from decimal import Decimal
 from enum import Enum
 from typing import (
     Any,
@@ -341,3 +342,28 @@ class DictLikeModel(BaseModel):
 
     def get(self, key: str, default=None):
         return getattr(self, key, default)
+
+class VoucherAttribute(BaseModel):
+    value: Union[str, Decimal]
+    trait_type: str = Field(..., alias="trait_type")
+    display_type: Optional[str] = Field(None, alias="display_type")
+
+
+class VoucherMetadata(BaseModel):
+    name: str
+    description: str
+    external_url: str
+    image: str
+    icon: str
+    attributes: list[VoucherAttribute]
+
+
+class Voucher(BaseModel):
+    id: str
+    metadata_id: str
+    name: str
+    description: str
+    external_url: str
+    image: str
+    icon: str
+    attributes: list[VoucherAttribute]
