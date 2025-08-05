@@ -4,7 +4,7 @@ import pytest
 
 from aleph.sdk.client.services.authenticated_voucher import AuthenticatedVoucher
 
-from .test_voucher import (
+from ..conftest import (
     MOCK_ADDRESS,
     MOCK_METADATA,
     MOCK_SOLANA_ADDRESS,
