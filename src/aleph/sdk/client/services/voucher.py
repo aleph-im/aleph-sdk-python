@@ -33,15 +33,11 @@ class Vouchers:
         vouchers_post: PostsResponse = await self._client.get_posts(
             post_filter=post_filter, page_size=1
         )
-        print(vouchers_post.model_dump_json())
 
         if not vouchers_post.posts:
             return []
 
-        message_post: Post = vouchers_post.posts[
-            0
-        ]  # Not sure about that need to re c heck
-        print(message_post.model_dump_json())
+        message_post: Post = vouchers_post.posts[0]
 
         nft_vouchers = message_post.content.get("nft_vouchers", {})
         return list(nft_vouchers.items())  # [(voucher_id, voucher_data)]
