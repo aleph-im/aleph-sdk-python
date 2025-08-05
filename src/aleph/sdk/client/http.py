@@ -62,6 +62,7 @@ from ..utils import (
     safe_getattr,
 )
 from .abstract import AlephClient
+from .services.voucher import Vouchers
 
 logger = logging.getLogger(__name__)
 
@@ -137,6 +138,8 @@ class AlephHttpClient(AlephClient):
         self.scheduler = Scheduler(self)
         self.instance = Instance(self)
         self.pricing = Pricing(self)
+        self.voucher = Vouchers(self)
+
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
@@ -565,7 +568,7 @@ class AlephHttpClient(AlephClient):
             message, status = await self.get_message(
                 item_hash=ItemHash(item_hash), with_status=True
             )
-            if status not in [MessageStatus.PROCESSED, MessageStatus.REMOVING]:
+            if status != MessageStatus.PROCESSED:
                 resp = f"Invalid message status: {status}"
             elif message.type != MessageType.store:
                 resp = f"Invalid message type: {message.type}"
