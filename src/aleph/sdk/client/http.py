@@ -33,12 +33,20 @@ from aleph_message.models import (
 from aleph_message.status import MessageStatus
 from pydantic import ValidationError
 
+from aleph.sdk.client.services.crn import Crn
+from aleph.sdk.client.services.dns import DNS
+from aleph.sdk.client.services.instance import Instance
+from aleph.sdk.client.services.port_forwarder import PortForwarder
+from aleph.sdk.client.services.scheduler import Scheduler
+
 from ..conf import settings
 from ..exceptions import (
     FileTooLarge,
     ForgottenMessageError,
     InvalidHashError,
     MessageNotFoundError,
+    RemovedMessageError,
+    ResourceNotFoundError,
 )
 from ..query.filters import MessageFilter, PostFilter
 from ..query.responses import MessagesResponse, Post, PostsResponse, PriceResponse
@@ -121,6 +129,13 @@ class AlephHttpClient(AlephClient):
                 )
             )
 
+        # Initialize default services
+        self.dns = DNS(self)
+        self.port_forwarder = PortForwarder(self)
+        self.crn = Crn(self)
+        self.scheduler = Scheduler(self)
+        self.instance = Instance(self)
+
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
@@ -137,7 +152,8 @@ class AlephHttpClient(AlephClient):
             resp.raise_for_status()
             result = await resp.json()
             data = result.get("data", dict())
-            return data.get(key)
+            final_result = data.get(key)
+            return final_result
 
     async def fetch_aggregates(
         self, address: str, keys: Optional[Iterable[str]] = None
@@ -231,6 +247,9 @@ class AlephHttpClient(AlephClient):
                     )
                 else:
                     raise FileTooLarge(f"The file from {file_hash} is too large")
+            if response.status == 404:
+                raise ResourceNotFoundError()
+            return None
 
     async def download_file_ipfs_to_buffer(
         self,
@@ -400,6 +419,10 @@ class AlephHttpClient(AlephClient):
             raise ForgottenMessageError(
                 f"The requested message {message_raw['item_hash']} has been forgotten by {', '.join(message_raw['forgotten_by'])}"
             )
+        if message_raw["status"] == "removed":
+            raise RemovedMessageError(
+                f"The requested message {message_raw['item_hash']} has been removed by {', '.join(message_raw['reason'])}"
+            )
         message = parse_message(message_raw["message"])
         if message_type:
             expected_type = get_message_type_value(message_type)
@@ -428,6 +451,10 @@ class AlephHttpClient(AlephClient):
         if message_raw["status"] == "forgotten":
             raise ForgottenMessageError(
                 f"The requested message {message_raw['item_hash']} has been forgotten by {', '.join(message_raw['forgotten_by'])}"
+            )
+        if message_raw["status"] == "removed":
+            raise RemovedMessageError(
+                f"The requested message {message_raw['item_hash']} has been removed by {', '.join(message_raw['reason'])}"
             )
         if message_raw["status"] != "rejected":
             return None
@@ -558,6 +585,8 @@ class AlephHttpClient(AlephClient):
             resp = f"Message not found: {item_hash}"
         except ForgottenMessageError:
             resp = f"Message forgotten: {item_hash}"
+        except RemovedMessageError as e:
+            resp = f"Message resources not available {item_hash}: {str(e)}"
         return (
             result
             if result

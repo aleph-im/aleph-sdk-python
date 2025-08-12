@@ -84,6 +84,14 @@ class Settings(BaseSettings):
     IPFS_GATEWAY: ClassVar[str] = "https://ipfs.aleph.cloud/ipfs/"
     CRN_URL_FOR_PROGRAMS: ClassVar[str] = "https://dchq.staging.aleph.sh/"
 
+    DNS_API: ClassVar[str] = "https://api.dns.public.aleph.sh/instances/list"
+    CRN_URL_UPDATE: ClassVar[str] = "{crn_url}/control/machine/{vm_hash}/update"
+    CRN_LIST_URL: ClassVar[str] = "https://crns-list.aleph.sh/crns.json"
+    CRN_VERSION_URL: ClassVar[str] = (
+        "https://api.github.com/repos/aleph-im/aleph-vm/releases/latest"
+    )
+    SCHEDULER_URL: ClassVar[str] = "https://scheduler.api.aleph.cloud/"
+
     # Web3Provider settings
     TOKEN_DECIMALS: ClassVar[int] = 18
     TX_TIMEOUT: ClassVar[int] = 60 * 3
@@ -100,6 +108,10 @@ class Settings(BaseSettings):
         Chain.ARBITRUM: ChainInfo(
             chain_id=42161,
             rpc="https://arbitrum-one.publicnode.com",
+        ),
+        Chain.AURORA: ChainInfo(
+            chain_id=1313161554,
+            rpc="https://mainnet.aurora.dev",
         ),
         Chain.AVAX: ChainInfo(
             chain_id=43114,
@@ -136,9 +148,25 @@ class Settings(BaseSettings):
             rpc="https://eth-mainnet.public.blastapi.io",
             token="0x27702a26126e0B3702af63Ee09aC4d1A084EF628",
         ),
+        Chain.ETHERLINK: ChainInfo(
+            chain_id=42793,
+            rpc="https://node.mainnet.etherlink.com",
+        ),
         Chain.FRAXTAL: ChainInfo(
             chain_id=252,
             rpc="https://rpc.frax.com",
+        ),
+        Chain.HYPE: ChainInfo(
+            chain_id=999,
+            rpc="https://rpc.hyperliquid.xyz/evm",
+        ),
+        Chain.INK: ChainInfo(
+            chain_id=57073,
+            rpc="https://rpc-gel.inkonchain.com",
+        ),
+        Chain.LENS: ChainInfo(
+            chain_id=232,
+            rpc="https://rpc.lens.xyz",
         ),
         Chain.LINEA: ChainInfo(
             chain_id=59144,
@@ -164,6 +192,10 @@ class Settings(BaseSettings):
             chain_id=137,
             rpc="https://polygon.gateway.tenderly.co",
         ),
+        Chain.SOMNIA: ChainInfo(
+            chain_id=50312,
+            rpc="https://dream-rpc.somnia.network",
+        ),
         Chain.SONIC: ChainInfo(
             chain_id=146,
             rpc="https://rpc.soniclabs.com",
@@ -188,16 +220,21 @@ class Settings(BaseSettings):
     CHAINS_BASE_ACTIVE: Optional[bool] = None
     CHAINS_BSC_ACTIVE: Optional[bool] = None
     CHAINS_ARBITRUM_ACTIVE: Optional[bool] = None
+    CHAINS_AURORA_ACTIVE: Optional[bool] = None
     CHAINS_BLAST_ACTIVE: Optional[bool] = None
     CHAINS_BOB_ACTIVE: Optional[bool] = None
     CHAINS_CYBER_ACTIVE: Optional[bool] = None
+    CHAINS_ETHERLINK_ACTIVE: Optional[bool] = None
     CHAINS_FRAXTAL_ACTIVE: Optional[bool] = None
+    CHAINS_HYPE_ACTIVE: Optional[bool] = None
+    CHAINS_LENS_ACTIVE: Optional[bool] = None
     CHAINS_LINEA_ACTIVE: Optional[bool] = None
     CHAINS_LISK_ACTIVE: Optional[bool] = None
     CHAINS_METIS_ACTIVE: Optional[bool] = None
     CHAINS_MODE_ACTIVE: Optional[bool] = None
     CHAINS_OPTIMISM_ACTIVE: Optional[bool] = None
     CHAINS_POL_ACTIVE: Optional[bool] = None
+    CHAINS_SOMNIA_ACTIVE: Optional[bool] = None
     CHAINS_SONIC_ACTIVE: Optional[bool] = None
     CHAINS_UNICHAIN_ACTIVE: Optional[bool] = None
     CHAINS_WORLDCHAIN_ACTIVE: Optional[bool] = None
@@ -209,16 +246,21 @@ class Settings(BaseSettings):
     CHAINS_BASE_RPC: Optional[str] = None
     CHAINS_BSC_RPC: Optional[str] = None
     CHAINS_ARBITRUM_RPC: Optional[str] = None
+    CHAINS_AURORA_RPC: Optional[str] = None
     CHAINS_BLAST_RPC: Optional[str] = None
     CHAINS_BOB_RPC: Optional[str] = None
     CHAINS_CYBER_RPC: Optional[str] = None
+    CHAINS_ETHERLINK_RPC: Optional[str] = None
     CHAINS_FRAXTAL_RPC: Optional[str] = None
+    CHAINS_HYPE_RPC: Optional[str] = None
+    CHAINS_LENS_RPC: Optional[str] = None
     CHAINS_LINEA_RPC: Optional[str] = None
     CHAINS_LISK_RPC: Optional[str] = None
     CHAINS_METIS_RPC: Optional[str] = None
     CHAINS_MODE_RPC: Optional[str] = None
     CHAINS_OPTIMISM_RPC: Optional[str] = None
     CHAINS_POL_RPC: Optional[str] = None
+    CHAINS_SOMNIA_RPC: Optional[str] = None
     CHAINS_SONIC_RPC: Optional[str] = None
     CHAINS_UNICHAIN_RPC: Optional[str] = None
     CHAINS_WORLDCHAIN_RPC: Optional[str] = None
