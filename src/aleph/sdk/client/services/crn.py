@@ -1,8 +1,9 @@
-from typing import TYPE_CHECKING, Dict, Optional, Union
+from typing import TYPE_CHECKING, Dict, List, Optional, Union
 
 import aiohttp
 from aiohttp.client_exceptions import ClientResponseError
 from aleph_message.models import ItemHash
+from pydantic import BaseModel
 
 from aleph.sdk.conf import settings
 from aleph.sdk.exceptions import MethodNotAvailableOnCRN, VmNotFoundOnHost
@@ -11,6 +12,22 @@ from aleph.sdk.utils import sanitize_url
 
 if TYPE_CHECKING:
     from aleph.sdk.client.http import AlephHttpClient
+
+
+class GPU(BaseModel):
+    vendor: str
+    model: str
+    device_name: str
+    device_class: str
+    pci_host: str
+    compatible: bool
+
+
+class NetworkGPUS(BaseModel):
+    total_gpu_count: int
+    available_gpu_count: int
+    available_gpu_list: dict[str, List[GPU]]  # str = node_url
+    used_gpu_list: dict[str, List[GPU]]  # str = node_url
 
 
 class Crn:
@@ -136,3 +153,48 @@ class Crn:
             async with session.post(full_url) as resp:
                 resp.raise_for_status()
                 return await resp.json()
+
+    # Gpu Functions Helper
+    async def fetch_gpu_on_network(
+        self,
+        crn_list: Optional[List[dict]] = None,
+    ) -> NetworkGPUS:
+        if not crn_list:
+            crn_list = (await self._client.crn.get_crns_list()).get("crns", [])
+
+        gpu_count: int = 0
+        available_gpu_count: int = 0
+
+        compatible_gpu: Dict[str, List[GPU]] = {}
+        available_compatible_gpu: Dict[str, List[GPU]] = {}
+
+        # Ensure crn_list is a list before iterating
+        if not isinstance(crn_list, list):
+            crn_list = []
+
+        for crn_ in crn_list:
+            if not crn_.get("gpu_support", False):
+                continue
+
+            # Only process CRNs with GPU support
+            crn_address = crn_["address"]
+
+            # Extracts used GPU
+            for gpu in crn_.get("compatible_gpus", []):
+                compatible_gpu[crn_address] = []
+                compatible_gpu[crn_address].append(GPU.model_validate(gpu))
+                gpu_count += 1
+
+            # Extracts available GPU
+            for gpu in crn_.get("compatible_available_gpus", []):
+                available_compatible_gpu[crn_address] = []
+                available_compatible_gpu[crn_address].append(GPU.model_validate(gpu))
+                gpu_count += 1
+                available_gpu_count += 1
+
+        return NetworkGPUS(
+            total_gpu_count=gpu_count,
+            available_gpu_count=available_gpu_count,
+            used_gpu_list=compatible_gpu,
+            available_gpu_list=available_compatible_gpu,
+        )
