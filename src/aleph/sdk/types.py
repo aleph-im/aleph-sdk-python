@@ -174,7 +174,9 @@ class AllocationItem(BaseModel):
 
 class InstanceWithScheduler(BaseModel):
     source: Literal["scheduler"]
-    allocations: AllocationItem  # Case Scheduler
+    allocations: Optional[
+        AllocationItem
+    ]  # Case Scheduler (None == allocation can't be find on scheduler)
 
 
 class InstanceManual(BaseModel):
