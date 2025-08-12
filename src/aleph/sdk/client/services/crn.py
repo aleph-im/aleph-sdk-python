@@ -214,7 +214,7 @@ class Crn:
                 data = await resp.json()
                 return data.get("tag_name")
 
-    async def get_crns_list(self, only_active: bool = True) -> CrnList:
+    async def get_crns_list(self, only_active: bool = True) -> dict:
         """
         Query a persistent VM running on aleph.im to retrieve list of CRNs:
         https://crns-list.aleph.sh/crns.json
@@ -241,7 +241,7 @@ class Crn:
                 sanitize_url(settings.CRN_LIST_URL), params=params
             ) as resp:
                 resp.raise_for_status()
-                return CrnList.from_api(await resp.json())
+                return await resp.json()
 
     async def get_active_vms_v2(self, crn_address: str) -> CrnV2List:
         endpoint = "/v2/about/executions/list"
