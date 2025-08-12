@@ -5,6 +5,7 @@ import hashlib
 import hmac
 import json
 import logging
+import math
 import os
 import subprocess
 from datetime import date, datetime, time
@@ -66,6 +67,7 @@ from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from jwcrypto.jwa import JWA
 
+from aleph.sdk.client.services.pricing import ComputeUnit
 from aleph.sdk.conf import settings
 from aleph.sdk.types import GenericMessage, SEVInfo, SEVMeasurement
 
@@ -613,3 +615,14 @@ def sanitize_url(url: str) -> str:
         url = f"https://{url}"
 
     return url
+
+
+def _get_nb_compute_units(
+    service_compute: ComputeUnit,
+    vcpus: int = 1,
+    memory_mib: int = 2048,
+):
+    memory = math.ceil(memory_mib / service_compute.memory_mib)
+
+    nb_compute = vcpus if vcpus >= memory else memory
+    return nb_compute
