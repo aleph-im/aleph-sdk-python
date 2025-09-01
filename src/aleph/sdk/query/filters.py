@@ -193,3 +193,39 @@ class PostFilter:
                 result[key] = value
 
         return result
+
+
+class CreditsFilter:
+    """
+    A collection of filters that can be applied on Credits queries.
+    """
+
+    min_balance: Optional[int]
+
+    def __init__(
+        self,
+        min_balance: Optional[int] = None,
+    ):
+        self.min_balance = min_balance
+
+    def as_http_params(self) -> Dict[str, str]:
+        """Convert the filters into a dict that can be used by an `aiohttp` client
+        as `params` to build the HTTP query string.
+        """
+
+        partial_result = {
+            "min_balance": (
+                str(self.min_balance) if self.min_balance is not None else None
+            ),
+        }
+
+        # Ensure all values are strings.
+        result: Dict[str, str] = {}
+
+        # Drop empty values
+        for key, value in partial_result.items():
+            if value:
+                assert isinstance(value, str), f"Value must be a string: `{value}`"
+                result[key] = value
+
+        return result
