@@ -79,3 +79,17 @@ class PriceResponse(BaseModel):
 
     required_tokens: float
     payment_type: str
+
+
+class AddressCreditResponse(BaseModel):
+    """Response from an aleph.im node API on the path /api/v0/addresses/{address}/credit_balance"""
+
+    address: str
+    credits: float
+
+
+class CreditsResponse(PaginationResponse):
+    """Response from an aleph.im node API on the path /api/v0/credits"""
+
+    credit_balances: List[AddressCreditResponse]
+    pagination_item: str = "credit_balances"
