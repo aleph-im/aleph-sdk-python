@@ -40,6 +40,7 @@ class Price(BaseModel):
     payg: Optional[Decimal] = None
     holding: Optional[Decimal] = None
     fixed: Optional[Decimal] = None
+    credit: Optional[Decimal] = None
 
 
 class ComputeUnit(BaseModel):
