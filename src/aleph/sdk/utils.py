@@ -5,8 +5,8 @@ import hashlib
 import hmac
 import json
 import logging
-import math
 import os
+import re
 import subprocess
 from datetime import date, datetime, time
 from decimal import Context, Decimal, InvalidOperation
@@ -67,7 +67,6 @@ from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from jwcrypto.jwa import JWA
 
-from aleph.sdk.client.services.pricing import ComputeUnit
 from aleph.sdk.conf import settings
 from aleph.sdk.types import GenericMessage, SEVInfo, SEVMeasurement
 
@@ -617,12 +616,10 @@ def sanitize_url(url: str) -> str:
     return url
 
 
-def _get_nb_compute_units(
-    service_compute: ComputeUnit,
-    vcpus: int = 1,
-    memory_mib: int = 2048,
-):
-    memory = math.ceil(memory_mib / service_compute.memory_mib)
-
-    nb_compute = vcpus if vcpus >= memory else memory
-    return nb_compute
+def extract_valid_eth_address(address: str) -> str:
+    if address:
+        pattern = r"0x[a-fA-F0-9]{40}"
+        match = re.search(pattern, address)
+        if match:
+            return match.group(0)
+    return ""
