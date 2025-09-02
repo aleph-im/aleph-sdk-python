@@ -1,9 +1,9 @@
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from aleph.sdk.client.http import AlephHttpClient
 import pytest
 from aleph_message.models import Chain
 
+from aleph.sdk.client.http import AlephHttpClient
 from aleph.sdk.client.services.voucher import Vouchers
 
 from ..conftest import (
