@@ -20,7 +20,7 @@ async def test_get_evm_vouchers(mock_post_response, make_mock_aiohttp_session):
     client = AlephHttpClient(api_server="http://localhost")
 
     # Patch only the get_posts who is used to fetch voucher update for EVM
-    client.get_posts = AsyncMock(return_value=mock_post_response) 
+    client.get_posts = AsyncMock(return_value=mock_post_response)
     voucher_service = Vouchers(client=client)
 
     session = make_mock_aiohttp_session(MOCK_METADATA)
@@ -42,9 +42,9 @@ async def test_get_solana_vouchers(make_mock_aiohttp_session):
     registry_session = make_mock_aiohttp_session(MOCK_SOLANA_REGISTRY)
     metadata_session = make_mock_aiohttp_session(MOCK_METADATA)
 
-    # Here we patch the fetch of the registry made on 
+    # Here we patch the fetch of the registry made on
     #  https://api.claim.twentysix.cloud/v1/registry/solanna
-    # and we also patch the fetch of the metadata 
+    # and we also patch the fetch of the metadata
     #  https://claim.twentysix.cloud/sbt/metadata/{}.json
     with patch(
         "aiohttp.ClientSession", side_effect=[registry_session, metadata_session]
