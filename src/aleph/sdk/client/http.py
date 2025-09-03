@@ -564,7 +564,7 @@ class AlephHttpClient(AlephClient):
             message, status = await self.get_message(
                 item_hash=ItemHash(item_hash), with_status=True
             )
-            if status != MessageStatus.PROCESSED:
+            if status not in [MessageStatus.PROCESSED, MessageStatus.REMOVING]:
                 resp = f"Invalid message status: {status}"
             elif message.type != MessageType.store:
                 resp = f"Invalid message type: {message.type}"
