@@ -56,6 +56,7 @@ class MessageFilter:
     def __init__(
         self,
         message_types: Optional[Iterable[MessageType]] = None,
+        message_statuses: Optional[Iterable[str]] = None,
         content_types: Optional[Iterable[str]] = None,
         content_keys: Optional[Iterable[str]] = None,
         refs: Optional[Iterable[str]] = None,
@@ -82,6 +83,7 @@ class MessageFilter:
         self.end_date = end_date
         self.sort_by = sort_by
         self.sort_order = sort_order
+        self.message_statuses = message_statuses
 
     def as_http_params(self) -> Dict[str, str]:
         """Convert the filters into a dict that can be used by an `aiohttp` client
@@ -95,6 +97,7 @@ class MessageFilter:
                 else None
             ),
             "contentTypes": serialize_list(self.content_types),
+            "message_statuses": serialize_list(self.message_statuses),
             "contentKeys": serialize_list(self.content_keys),
             "refs": serialize_list(self.refs),
             "addresses": serialize_list(self.addresses),
