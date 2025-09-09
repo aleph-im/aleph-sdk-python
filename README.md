@@ -21,8 +21,7 @@ Using some chains may also require installing `libgmp3-dev`.
 ### macOs
 This project does not support Python 3.12 on macOS. Please use Python 3.11 instead.
 ```shell
-$ brew tap cuber/homebrew-libsecp256k1
-$ brew install libsecp256k1
+$ brew install secp256k1
 ```
 
 ## Installation
