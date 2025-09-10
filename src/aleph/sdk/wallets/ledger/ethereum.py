@@ -32,9 +32,9 @@ class LedgerETHAccount(ETHAccount):
         See the static methods `self.from_address(...)` and `self.from_path(...)`
         for an easier method of instantiation.
         """
-        super().__init__(bytes(), chain)
         self._account = account
         self._device = device
+        self.connect_chain(chain=chain)
 
     @staticmethod
     def get_accounts(
