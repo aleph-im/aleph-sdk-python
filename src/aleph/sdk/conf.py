@@ -287,7 +287,7 @@ class Settings(BaseSettings):
     )
 
 
-class AccountType(Enum):
+class AccountType(str, Enum):
     INTERNAL: str = "internal"
     EXTERNAL: str = "external"
 
@@ -337,8 +337,7 @@ if str(settings.CONFIG_FILE) == "config.json":
                 config_data = json.load(f)
 
             if "path" in config_data and (
-                "type" not in config_data
-                or config_data["type"] == AccountType.INTERNAL
+                "type" not in config_data or config_data["type"] == AccountType.INTERNAL
             ):
                 settings.PRIVATE_KEY_FILE = Path(config_data["path"])
         except json.JSONDecodeError:
