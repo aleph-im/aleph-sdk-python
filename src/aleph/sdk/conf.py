@@ -394,8 +394,6 @@ if str(settings.CONFIG_FILE) == "config.json":
                 "type" not in config_data or config_data["type"] == AccountType.IMPORTED
             ):
                 settings.PRIVATE_KEY_FILE = Path(config_data["path"])
-            else:
-                settings.PRIVATE_KEY_FILE = None
         except json.JSONDecodeError:
             pass
 
