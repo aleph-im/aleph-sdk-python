@@ -143,7 +143,7 @@ def _load_account(
     #         )
     #     )
     # New Ledger Implementation
-    elif config and config.address and config.type == AccountType.EXTERNAL.value:
+    elif config and config.address and config.type == AccountType.EXTERNAL:
         logger.debug("Using remote account")
         ledger_account = LedgerETHAccount.from_address(config.address)
         if ledger_account:
