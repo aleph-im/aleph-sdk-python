@@ -610,27 +610,22 @@ class AlephHttpClient(AlephClient):
             result = await resp.json()
             return AddressCreditResponse.model_validate(result)
 
-    async def get_credits(
+    async def get_credit_history(
         self,
+        address: str,
         page_size: int = 200,
         page: int = 1,
-        credit_filter: Optional[CreditsFilter] = None,
-    ) -> CreditsResponse:
+    ) -> CreditsHistoryResponse:
         """Return List of credits balance for all addresses"""
 
-        if not credit_filter:
-            params = {
-                "page": str(page),
-                "pagination": str(page_size),
-            }
-        else:
-            params = credit_filter.as_http_params()
-            params["page"] = str(page)
-            params["pagination"] = str(page_size)
+        params = {
+            "page": str(page),
+            "pagination": str(page_size),
+        }
 
         async with self.http_session.get(
-            "/api/v0/credit_balances", params=params
+            f"/api/v0/addresses/{address}/credit_history", params=params
         ) as resp:
             resp.raise_for_status()
             result = await resp.json()
-            return CreditsResponse.model_validate(result)
+            return CreditsHistoryResponse.model_validate(result)
