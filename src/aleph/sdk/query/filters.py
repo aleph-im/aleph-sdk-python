@@ -2,7 +2,7 @@ from datetime import datetime
 from enum import Enum
 from typing import Dict, Iterable, Optional, Union
 
-from aleph_message.models import MessageType
+from aleph_message.models import Chain, MessageType
 
 from ..utils import _date_field_to_timestamp, enum_as_str, serialize_list
 
@@ -198,29 +198,25 @@ class PostFilter:
         return result
 
 
-class CreditsFilter:
+class BalanceFilter:
     """
-    A collection of filters that can be applied on Credits queries.
+    A collection of filters that can be applied on Balance queries.
     """
 
-    min_balance: Optional[int]
+    chain: Optional[Chain]
 
     def __init__(
         self,
-        min_balance: Optional[int] = None,
+        chain: Optional[Chain] = None,
     ):
-        self.min_balance = min_balance
+        self.chain = chain
 
     def as_http_params(self) -> Dict[str, str]:
         """Convert the filters into a dict that can be used by an `aiohttp` client
         as `params` to build the HTTP query string.
         """
 
-        partial_result = {
-            "min_balance": (
-                str(self.min_balance) if self.min_balance is not None else None
-            ),
-        }
+        partial_result = {"chain": enum_as_str(self.chain)}
 
         # Ensure all values are strings.
         result: Dict[str, str] = {}
