@@ -40,11 +40,8 @@ class LedgerETHAccount(ETHAccount):
         a known wallet address.
         """
         device = device or init_dongle()
-        accounts: List[LedgerAccount] = get_accounts(
-            dongle=device, count=count
-        )
+        accounts: List[LedgerAccount] = get_accounts(dongle=device, count=count)
         return accounts
-
 
     @staticmethod
     def from_address(

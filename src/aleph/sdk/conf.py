@@ -288,8 +288,8 @@ class Settings(BaseSettings):
 
 
 class AccountType(Enum):
-    INTERNAL: str = 'internal'
-    EXTERNAL: str = 'external'
+    INTERNAL: str = "internal"
+    EXTERNAL: str = "external"
 
 
 class MainConfiguration(BaseModel):
@@ -297,7 +297,7 @@ class MainConfiguration(BaseModel):
     Intern Chain Management with Account.
     """
 
-    path: Optional[Path]
+    path: Optional[Path] = None
     type: Optional[AccountType] = AccountType.INTERNAL
     chain: Chain
     address: Optional[str] = None
@@ -336,11 +336,11 @@ if str(settings.CONFIG_FILE) == "config.json":
             with open(settings.CONFIG_FILE, "r", encoding="utf-8") as f:
                 config_data = json.load(f)
 
-            if ("path" in config_data and
-                    ("type" not in config_data or config_data['type'] == AccountType.INTERNAL.value)):
+            if "path" in config_data and (
+                "type" not in config_data
+                or config_data["type"] == AccountType.INTERNAL.value
+            ):
                 settings.PRIVATE_KEY_FILE = Path(config_data["path"])
-            else:
-                settings.PRIVATE_KEY_FILE = None
         except json.JSONDecodeError:
             pass
 
