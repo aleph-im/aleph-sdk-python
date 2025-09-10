@@ -1,6 +1,8 @@
+from unittest.mock import patch
+
 import pytest
 
-from aleph.sdk.query.responses import AddressCreditResponse, CreditsResponse
+from aleph.sdk.query.responses import AddressCreditResponse, CreditsHistoryResponse
 from tests.unit.conftest import make_mock_get_session
 
 
@@ -94,21 +96,31 @@ async def test_get_credit_balance():
     Test that the get_credit_balance method returns the correct AddressCreditResponse
     for a specific address when called on the AlephHttpClient.
     """
+    address = "0xd463495a6FEaC9921FD0C3a595B81E7B2C02B24d"
+
     # Mock data from the example
     credit_balance_data = {
-        "address": "0xd463495a6FEaC9921FD0C3a595B81E7B2C02B57d",
-        "credits": 100000,
+        "address": address,
+        "credits": 1000,
     }
 
-    # Create mock client with the predefined response
     mock_client = make_mock_get_session(credit_balance_data)
 
     # Test the method with a specific address
-    address = "0xd463495a6FEaC9921FD0C3a595B81E7B2C02B57d"
-    async with mock_client:
-        response = await mock_client.get_credit_balance(address)
+    expected_url = f"/api/v0/addresses/{address}/credit_balance"
+    # Adding type assertion to handle None case
+    assert mock_client._http_session is not None
+    with patch.object(
+        mock_client._http_session, "get", wraps=mock_client._http_session.get
+    ) as spy:
+        async with mock_client:
+            response = await mock_client.get_credit_balance(address)
 
-        # Verify the response
-        assert isinstance(response, AddressCreditResponse)
-        assert response.address == address
-        assert response.credits == 100000
+            # Verify the response
+            assert isinstance(response, AddressCreditResponse)
+            # Verify the credits commands call the good url
+            spy.assert_called_once_with(expected_url)
+
+            # Those 2 assert isn't that usefull since we mocked the data, still ensure no wrong conversion is made on credits
+            assert response.address == credit_balance_data["address"]
+            assert response.credits == credit_balance_data["credits"]
