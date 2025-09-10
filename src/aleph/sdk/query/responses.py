@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import datetime as dt
+from decimal import Decimal
 from typing import Any, Dict, List, Optional, Union
 
 from aleph_message.models import (
@@ -112,4 +114,9 @@ class CreditHistoryResponseItem(BaseModel):
     message_timestamp: dt.datetime
 
 
-
+class BalanceResponse(BaseModel):
+    address: str
+    balance: Decimal
+    details: Optional[Dict[str, Decimal]] = None
+    locked_amount: Decimal
+    credit_balance: int = 0
