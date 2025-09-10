@@ -302,7 +302,7 @@ class MainConfiguration(BaseModel):
     chain: Chain
     address: Optional[str] = None
 
-    model_config = SettingsConfigDict(use_enum_values=True)
+    # model_config = SettingsConfigDict(use_enum_values=True)
 
 
 # Settings singleton
