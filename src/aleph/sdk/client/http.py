@@ -39,6 +39,7 @@ from aleph.sdk.client.services.instance import Instance
 from aleph.sdk.client.services.port_forwarder import PortForwarder
 from aleph.sdk.client.services.pricing import Pricing
 from aleph.sdk.client.services.scheduler import Scheduler
+from aleph.sdk.client.services.voucher import Vouchers
 
 from ..conf import settings
 from ..exceptions import (
@@ -62,7 +63,6 @@ from ..utils import (
     safe_getattr,
 )
 from .abstract import AlephClient
-from .services.voucher import Vouchers
 
 logger = logging.getLogger(__name__)
 
