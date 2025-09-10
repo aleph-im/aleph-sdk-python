@@ -49,10 +49,11 @@ from ..exceptions import (
     RemovedMessageError,
     ResourceNotFoundError,
 )
-from ..query.filters import CreditsFilter, MessageFilter, PostFilter
+from ..query.filters import BalanceFilter, MessageFilter, PostFilter
 from ..query.responses import (
     AddressCreditResponse,
-    CreditsResponse,
+    BalanceResponse,
+    CreditsHistoryResponse,
     MessagesResponse,
     Post,
     PostsResponse,
@@ -629,3 +630,17 @@ class AlephHttpClient(AlephClient):
             resp.raise_for_status()
             result = await resp.json()
             return CreditsHistoryResponse.model_validate(result)
+
+    async def get_balances(
+        self,
+        address: str,
+        filter: Optional[BalanceFilter] = None,
+    ) -> BalanceResponse:
+
+        async with self.http_session.get(
+            f"/api/v0/addresses/{address}/balance",
+            params=filter.as_http_params() if filter else None,
+        ) as resp:
+            resp.raise_for_status()
+            result = await resp.json()
+            return BalanceResponse.model_validate(result)
