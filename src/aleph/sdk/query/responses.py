@@ -88,8 +88,28 @@ class AddressCreditResponse(BaseModel):
     credits: float
 
 
-class CreditsResponse(PaginationResponse):
+class CreditsHistoryResponse(PaginationResponse):
     """Response from an aleph.im node API on the path /api/v0/credits"""
 
-    credit_balances: List[AddressCreditResponse]
-    pagination_item: str = "credit_balances"
+    address: str
+    credit_balances: List[CreditHistoryResponseItem]
+    pagination_item: str = "credit_history"
+
+
+class CreditHistoryResponseItem(BaseModel):
+    amount: int
+    ratio: Optional[Decimal] = None
+    tx_hash: Optional[str] = None
+    token: Optional[str] = None
+    chain: Optional[str] = None
+    provider: Optional[str] = None
+    origin: Optional[str] = None
+    origin_ref: Optional[str] = None
+    payment_method: Optional[str] = None
+    credit_ref: str
+    credit_index: int
+    expiration_date: Optional[dt.datetime] = None
+    message_timestamp: dt.datetime
+
+
+

@@ -5,56 +5,87 @@ from tests.unit.conftest import make_mock_get_session
 
 
 @pytest.mark.asyncio
-async def test_get_credits():
+async def test_get_credits_history():
     """
-    Test that the get_credits method returns the correct CreditsResponse
-    when called on the AlephHttpClient.
+    Test credits history commands
     """
-    # Mock data from the example
-    credits_data = {
+    address = "0xd463495a6FEaC9921FD0C3a595B81E7B2C02B24d"
+
+    # Mock data for credit history
+    credit_history_data = {
+        "address": address,
         "credit_balances": [
             {
-                "address": "0xd463495a6FEaC9921FD0C3a595B81E7B2C02B57d",
-                "credits": 100000,
+                "amount": 1000,
+                "ratio": 1.0,
+                "tx_hash": "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
+                "token": "ALEPH",
+                "chain": "ETH",
+                "provider": "gateway",
+                "origin": "purchase",
+                "origin_ref": "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890",
+                "payment_method": "token",
+                "credit_ref": "init_credit_1",
+                "credit_index": 1,
+                "expiration_date": "2025-12-31T23:59:59Z",
+                "message_timestamp": "2023-01-01T12:00:00Z",
             },
             {
-                "address": "0x28152dDF5cd213F341c8104d5361bBe41e95b301",
-                "credits": 1000000,
+                "amount": -100,
+                "ratio": None,
+                "tx_hash": None,
+                "token": None,
+                "chain": None,
+                "provider": "node1.aleph.im",
+                "origin": "vm_usage",
+                "origin_ref": "vm_instance_123456",
+                "payment_method": None,
+                "credit_ref": "vm_consumption_1",
+                "credit_index": 2,
+                "expiration_date": None,
+                "message_timestamp": "2023-01-15T14:30:00Z",
+            },
+            {
+                "amount": 500,
+                "ratio": 0.8,
+                "tx_hash": "0x9876543210fedcba9876543210fedcba9876543210fedcba9876543210fedcba",
+                "token": "ALEPH",
+                "chain": "ETH",
+                "provider": "gateway",
+                "origin": "purchase",
+                "origin_ref": "0xfedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210",
+                "payment_method": "token",
+                "credit_ref": "add_credit_1",
+                "credit_index": 3,
+                "expiration_date": "2026-06-30T23:59:59Z",
+                "message_timestamp": "2023-02-01T09:15:00Z",
             },
         ],
-        "pagination_per_page": 100,
         "pagination_page": 1,
-        "pagination_total": 0,
-        "pagination_item": "credit_balances",
+        "pagination_total": 1,
+        "pagination_per_page": 200,
+        "pagination_item": "credit_history",
     }
 
-    # Create mock client with the predefined response
-    mock_client = make_mock_get_session(credits_data)
+    mock_client = make_mock_get_session(credit_history_data)
 
-    # Test the method
-    async with mock_client:
-        response = await mock_client.get_credits()
+    # Test the method with a specific address
+    expected_url = f"/api/v0/addresses/{address}/credit_history"
+    # Adding type assertion to handle None case
+    assert mock_client._http_session is not None
+    with patch.object(
+        mock_client._http_session, "get", wraps=mock_client._http_session.get
+    ) as spy:
+        async with mock_client:
+            response = await mock_client.get_credit_history(address)
 
-        # Verify the response structure
-        assert isinstance(response, CreditsResponse)
-        assert response.pagination_page == 1
-        assert response.pagination_per_page == 100
-        assert response.pagination_item == "credit_balances"
-
-        # Verify the credit balances
-        assert len(response.credit_balances) == 2
-
-        # Check first credit balance
-        first_balance = response.credit_balances[0]
-        assert isinstance(first_balance, AddressCreditResponse)
-        assert first_balance.address == "0xd463495a6FEaC9921FD0C3a595B81E7B2C02B57d"
-        assert first_balance.credits == 100000
-
-        # Check second credit balance
-        second_balance = response.credit_balances[1]
-        assert isinstance(second_balance, AddressCreditResponse)
-        assert second_balance.address == "0x28152dDF5cd213F341c8104d5361bBe41e95b301"
-        assert second_balance.credits == 1000000
+            # Verify the response
+            assert isinstance(response, CreditsHistoryResponse)
+            # Verify the credits history commands call the correct url
+            spy.assert_called_once_with(
+                expected_url, params={"page": "1", "pagination": "200"}
+            )
+            assert len(response.credit_balances) == 3
 
 
 @pytest.mark.asyncio
