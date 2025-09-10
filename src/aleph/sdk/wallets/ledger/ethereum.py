@@ -9,11 +9,12 @@ from ledgereth.comms import init_dongle
 from ledgereth.messages import sign_message
 from ledgereth.objects import LedgerAccount, SignedMessage
 
-from ...chains.common import BaseAccount, get_verification_buffer
+from ...chains.common import get_verification_buffer
+from ...chains.ethereum import ETHAccount
 from ...utils import bytes_from_hex
 
 
-class LedgerETHAccount(BaseAccount):
+class LedgerETHAccount(ETHAccount):
     """Account using the Ethereum app on Ledger hardware wallets."""
 
     CHAIN = "ETH"
@@ -30,6 +31,20 @@ class LedgerETHAccount(BaseAccount):
         """
         self._account = account
         self._device = device
+
+    @staticmethod
+    def get_accounts(
+        device: Optional[Dongle] = None, count: int = 5
+    ) -> List[LedgerAccount]:
+        """Initialize an aleph.im account from a LedgerHQ device from
+        a known wallet address.
+        """
+        device = device or init_dongle()
+        accounts: List[LedgerAccount] = get_accounts(
+            dongle=device, count=count
+        )
+        return accounts
+
 
     @staticmethod
     def from_address(
