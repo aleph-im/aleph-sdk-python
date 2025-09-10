@@ -28,7 +28,7 @@ class Vouchers:
         """
 
         post_filter = PostFilter(
-            types=["vouchers-update"], addresses=[settings.VOUCHER_SENDER]
+            types=["vouchers-update"], addresses=[settings.VOUCHER_ORIGIN_ADDRESS]
         )
         vouchers_post: PostsResponse = await self._client.get_posts(
             post_filter=post_filter, page_size=1
