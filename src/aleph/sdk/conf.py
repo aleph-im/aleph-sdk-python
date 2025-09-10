@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+from enum import Enum
 from pathlib import Path
 from shutil import which
 from typing import ClassVar, Dict, List, Optional, Union
@@ -286,13 +287,20 @@ class Settings(BaseSettings):
     )
 
 
+class AccountType(Enum):
+    INTERNAL: str = 'internal'
+    EXTERNAL: str = 'external'
+
+
 class MainConfiguration(BaseModel):
     """
     Intern Chain Management with Account.
     """
 
-    path: Path
+    path: Optional[Path]
+    type: Optional[AccountType] = AccountType.INTERNAL
     chain: Chain
+    address: Optional[str] = None
 
     model_config = SettingsConfigDict(use_enum_values=True)
 
@@ -328,8 +336,11 @@ if str(settings.CONFIG_FILE) == "config.json":
             with open(settings.CONFIG_FILE, "r", encoding="utf-8") as f:
                 config_data = json.load(f)
 
-            if "path" in config_data:
+            if ("path" in config_data and
+                    ("type" not in config_data or config_data['type'] == AccountType.INTERNAL.value)):
                 settings.PRIVATE_KEY_FILE = Path(config_data["path"])
+            else:
+                settings.PRIVATE_KEY_FILE = None
         except json.JSONDecodeError:
             pass
 
@@ -367,8 +378,7 @@ def load_main_configuration(file_path: Path) -> Optional[MainConfiguration]:
     try:
         with file_path.open("rb") as file:
             content = file.read()
-            data = json.loads(content.decode("utf-8"))
-            return MainConfiguration(**data)
+            return MainConfiguration.model_validate_json(content.decode("utf-8"))
     except UnicodeDecodeError as e:
         logger.error(f"Unable to decode {file_path} as UTF-8: {e}")
     except json.JSONDecodeError:

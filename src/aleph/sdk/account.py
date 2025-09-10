@@ -12,9 +12,10 @@ from aleph.sdk.chains.remote import RemoteAccount
 from aleph.sdk.chains.solana import SOLAccount
 from aleph.sdk.chains.substrate import DOTAccount
 from aleph.sdk.chains.svm import SVMAccount
-from aleph.sdk.conf import load_main_configuration, settings
+from aleph.sdk.conf import load_main_configuration, settings, AccountType
 from aleph.sdk.evm_utils import get_chains_with_super_token
 from aleph.sdk.types import AccountFromPrivateKey
+from aleph.sdk.wallets.ledger import LedgerETHAccount
 
 logger = logging.getLogger(__name__)
 
@@ -134,15 +135,19 @@ def _load_account(
     elif private_key_path and private_key_path.is_file():
         return account_from_file(private_key_path, account_type, chain)
     # For ledger keys
-    elif settings.REMOTE_CRYPTO_HOST:
+    # elif settings.REMOTE_CRYPTO_HOST:
+    #     logger.debug("Using remote account")
+    #     loop = asyncio.get_event_loop()
+    #     return loop.run_until_complete(
+    #         RemoteAccount.from_crypto_host(
+    #             host=settings.REMOTE_CRYPTO_HOST,
+    #             unix_socket=settings.REMOTE_CRYPTO_UNIX_SOCKET,
+    #         )
+    #     )
+    # New Ledger Implementation
+    elif config.type == AccountType.EXTERNAL.value:
         logger.debug("Using remote account")
-        loop = asyncio.get_event_loop()
-        return loop.run_until_complete(
-            RemoteAccount.from_crypto_host(
-                host=settings.REMOTE_CRYPTO_HOST,
-                unix_socket=settings.REMOTE_CRYPTO_UNIX_SOCKET,
-            )
-        )
+        return LedgerETHAccount.from_address(config.address)
     # Fallback: config.path if set, else generate a new private key
     else:
         new_private_key = get_fallback_private_key()
