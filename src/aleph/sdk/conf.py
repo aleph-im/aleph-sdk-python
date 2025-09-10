@@ -338,7 +338,7 @@ if str(settings.CONFIG_FILE) == "config.json":
 
             if "path" in config_data and (
                 "type" not in config_data
-                or config_data["type"] == AccountType.INTERNAL.value
+                or config_data["type"] == AccountType.INTERNAL
             ):
                 settings.PRIVATE_KEY_FILE = Path(config_data["path"])
         except json.JSONDecodeError:
