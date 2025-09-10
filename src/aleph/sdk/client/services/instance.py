@@ -77,7 +77,7 @@ class Instance:
             message_filter=MessageFilter(
                 message_types=[MessageType.instance],
                 addresses=[address],
-                message_statuses=[MessageStatus.PROCESSED, MessageStatus.REMOVING]
+                message_statuses=[MessageStatus.PROCESSED, MessageStatus.REMOVING],
             ),
             page_size=100,
         )
