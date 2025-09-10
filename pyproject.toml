@@ -46,6 +46,8 @@ dependencies = [
   "python-magic",
   "typing-extensions",
   "web3>=7.10",
+  "ledgerblue>=0.1.48",
+  "ledgereth>=0.10.0",
 ]
 
 optional-dependencies.all = [
