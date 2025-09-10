@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Dict, List, Optional
 
+from aleph_message.models import Chain
 from eth_typing import HexStr
 from ledgerblue.Dongle import Dongle
 from ledgereth import find_account, get_account_by_path, get_accounts
@@ -22,13 +23,16 @@ class LedgerETHAccount(ETHAccount):
     _account: LedgerAccount
     _device: Dongle
 
-    def __init__(self, account: LedgerAccount, device: Dongle):
+    def __init__(
+        self, account: LedgerAccount, device: Dongle, chain: Optional[Chain] = None
+    ):
         """Initialize an aleph.im account instance that relies on a LedgerHQ
         device and the Ethereum Ledger application for signatures.
 
         See the static methods `self.from_address(...)` and `self.from_path(...)`
         for an easier method of instantiation.
         """
+        super().__init__(bytes(), chain)
         self._account = account
         self._device = device
 
