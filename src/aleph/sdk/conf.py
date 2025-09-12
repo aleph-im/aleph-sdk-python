@@ -86,7 +86,7 @@ class Settings(BaseSettings):
 
     DNS_API: ClassVar[str] = "https://api.dns.public.aleph.sh/instances/list"
     CRN_URL_UPDATE: ClassVar[str] = "{crn_url}/control/machine/{vm_hash}/update"
-    CRN_LIST_URL: ClassVar[str] = "https://crns-list.aleph.sh/crns.json"
+    CRN_LIST_URL: str = "https://crns-list.aleph.sh/crns.json"
     CRN_VERSION_URL: ClassVar[str] = (
         "https://api.github.com/repos/aleph-im/aleph-vm/releases/latest"
     )
