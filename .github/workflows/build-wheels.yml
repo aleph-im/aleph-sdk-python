@@ -41,8 +41,7 @@ jobs:
         if: startsWith(matrix.os, 'macos-')
         run: |
           brew update
-          brew tap cuber/homebrew-libsecp256k1
-          brew install libsecp256k1
+          brew install secp256k1
 
       - name: Install required system packages only for Ubuntu Linux
         if: startsWith(matrix.os, 'ubuntu-')
