@@ -343,6 +343,7 @@ class DictLikeModel(BaseModel):
     def get(self, key: str, default=None):
         return getattr(self, key, default)
 
+
 class VoucherAttribute(BaseModel):
     value: Union[str, Decimal]
     trait_type: str = Field(..., alias="trait_type")
