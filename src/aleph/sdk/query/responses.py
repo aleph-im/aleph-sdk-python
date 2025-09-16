@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import datetime as dt
+from decimal import Decimal
 from typing import Any, Dict, List, Optional, Union
 
 from aleph_message.models import (
@@ -79,3 +81,42 @@ class PriceResponse(BaseModel):
 
     required_tokens: float
     payment_type: str
+
+
+class AddressCreditResponse(BaseModel):
+    """Response from an aleph.im node API on the path /api/v0/addresses/{address}/credit_balance"""
+
+    address: str
+    credits: float
+
+
+class CreditsHistoryResponse(PaginationResponse):
+    """Response from an aleph.im node API on the path /api/v0/credits"""
+
+    address: str
+    credit_balances: List[CreditHistoryResponseItem]
+    pagination_item: str = "credit_history"
+
+
+class CreditHistoryResponseItem(BaseModel):
+    amount: int
+    ratio: Optional[Decimal] = None
+    tx_hash: Optional[str] = None
+    token: Optional[str] = None
+    chain: Optional[str] = None
+    provider: Optional[str] = None
+    origin: Optional[str] = None
+    origin_ref: Optional[str] = None
+    payment_method: Optional[str] = None
+    credit_ref: str
+    credit_index: int
+    expiration_date: Optional[dt.datetime] = None
+    message_timestamp: dt.datetime
+
+
+class BalanceResponse(BaseModel):
+    address: str
+    balance: Decimal
+    details: Optional[Dict[str, Decimal]] = None
+    locked_amount: Decimal
+    credit_balance: int = 0
