@@ -6,6 +6,7 @@ import hmac
 import json
 import logging
 import os
+import re
 import subprocess
 from datetime import date, datetime, time
 from decimal import Context, Decimal, InvalidOperation
@@ -613,3 +614,12 @@ def sanitize_url(url: str) -> str:
         url = f"https://{url}"
 
     return url
+
+
+def extract_valid_eth_address(address: str) -> str:
+    if address:
+        pattern = r"0x[a-fA-F0-9]{40}"
+        match = re.search(pattern, address)
+        if match:
+            return match.group(0)
+    return ""
