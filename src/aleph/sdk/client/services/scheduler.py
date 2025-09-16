@@ -28,7 +28,6 @@ class Scheduler:
             async with session.get(url) as resp:
                 resp.raise_for_status()
                 raw = await resp.json()
-
                 return SchedulerPlan.model_validate(raw)
 
     async def get_nodes(self) -> SchedulerNodes:

@@ -1,10 +1,27 @@
 from abc import abstractmethod
 from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, List, Literal, Optional, Protocol, TypeVar, Union
+from typing import (
+    Any,
+    Dict,
+    Iterator,
+    List,
+    Literal,
+    Optional,
+    Protocol,
+    TypeVar,
+    Union,
+)
 
 from aleph_message.models import ItemHash
-from pydantic import BaseModel, Field, RootModel, TypeAdapter, field_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    RootModel,
+    TypeAdapter,
+    field_validator,
+)
 
 __all__ = ("StorageEnum", "Account", "AccountFromPrivateKey", "GenericMessage")
 
@@ -291,3 +308,36 @@ class Ports(BaseModel):
 
 
 AllForwarders = RootModel[Dict[ItemHash, Ports]]
+
+
+class DictLikeModel(BaseModel):
+    """
+    Base class: behaves like a dict while still being a Pydantic model.
+    """
+
+    # allow extra fields + validate on assignment
+    model_config = ConfigDict(extra="allow", validate_assignment=True)
+
+    def __getitem__(self, key: str) -> Any:
+        return getattr(self, key)
+
+    def __setitem__(self, key: str, value: Any) -> None:
+        setattr(self, key, value)
+
+    def __iter__(self) -> Iterator[str]:
+        return iter(self.model_dump().keys())
+
+    def __contains__(self, key: str) -> bool:
+        return hasattr(self, key)
+
+    def keys(self):
+        return self.model_dump().keys()
+
+    def values(self):
+        return self.model_dump().values()
+
+    def items(self):
+        return self.model_dump().items()
+
+    def get(self, key: str, default=None):
+        return getattr(self, key, default)
