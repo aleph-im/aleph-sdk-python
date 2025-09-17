@@ -69,6 +69,13 @@ def rejected_message():
 
 
 @pytest.fixture
+def removing_message():
+    message_path = Path(__file__).parent / "removing_message.json"
+    with open(message_path) as f:
+        return json.load(f)
+
+
+@pytest.fixture
 def aleph_messages() -> List[AlephMessage]:
     return [
         AggregateMessage.model_validate(

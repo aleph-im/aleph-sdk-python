@@ -68,8 +68,6 @@ async def test_get_pricing_aggregate(mock_client):
     storage_price = storage_entity.price["storage"]
     assert isinstance(storage_price, Price)  # Add type assertion for mypy
     assert storage_price.holding == Decimal("0.333333333")
-    assert storage_entity.price["storage"].holding == Decimal("0.333333333")
-
     # Check program entity has correct compute unit details
     program_entity = result[PricingEntity.PROGRAM]
     assert isinstance(program_entity, PricingPerEntity)

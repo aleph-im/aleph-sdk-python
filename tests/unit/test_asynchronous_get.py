@@ -86,13 +86,22 @@ async def test_get_forgotten_message():
 
 
 @pytest.mark.asyncio
-async def test_get_message_error(rejected_message):
+async def test_get_message_error_rejected(rejected_message):
     mock_session = make_mock_get_session(rejected_message)
     async with mock_session as session:
         error = await session.get_message_error(rejected_message["item_hash"])
         assert error
         assert error["error_code"] == rejected_message["error_code"]
         assert error["details"] == rejected_message["details"]
+
+
+@pytest.mark.asyncio
+async def test_get_message_error_removing(removing_message):
+    mock_session = make_mock_get_session(removing_message)
+    async with mock_session as session:
+        error = await session.get_message_error(removing_message["item_hash"])
+        assert error
+        assert error["reason"] == removing_message["reason"]
 
 
 if __name__ == "__main __":

@@ -465,6 +465,8 @@ class AlephHttpClient(AlephClient):
             raise RemovedMessageError(
                 f"The requested message {message_raw['item_hash']} has been removed by {', '.join(message_raw['reason'])}"
             )
+        if message_raw["status"] == "removing":
+            return {"reason": message_raw["reason"]}
         if message_raw["status"] != "rejected":
             return None
         return {
