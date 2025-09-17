@@ -1,10 +1,12 @@
 import base64
 import hashlib
 import json
-from typing import Union
+from pathlib import Path
+from typing import Optional, Union
 
 import ecdsa
 from cosmospy._wallet import privkey_to_address, privkey_to_pubkey
+from ecdsa import BadSignatureError
 
 from .common import BaseAccount, get_fallback_private_key, get_verification_buffer
 
@@ -52,7 +54,8 @@ class CSDKAccount(BaseAccount):
     async def sign_message(self, message):
         message = self._setup_sender(message)
         verif = get_verification_string(message)
-        base64_pubkey = base64.b64encode(self.get_public_key().encode()).decode("utf-8")
+        pub_key = bytes.fromhex(self.get_public_key())
+        base64_pubkey = base64.b64encode(pub_key).decode()
         signature = await self.sign_raw(verif.encode("utf-8"))
 
         sig = {
@@ -78,17 +81,43 @@ class CSDKAccount(BaseAccount):
         return privkey_to_address(self.private_key)
 
     def get_public_key(self) -> str:
-        return privkey_to_pubkey(self.private_key).decode()
+        return privkey_to_pubkey(self.private_key).hex()
 
 
-def get_fallback_account(hrp=DEFAULT_HRP):
-    return CSDKAccount(private_key=get_fallback_private_key(), hrp=hrp)
+def get_fallback_account(path: Optional[Path] = None, hrp=DEFAULT_HRP):
+    return CSDKAccount(private_key=get_fallback_private_key(path=path), hrp=hrp)
 
 
 def verify_signature(
     signature: Union[bytes, str],
     public_key: Union[bytes, str],
     message: Union[bytes, str],
-) -> bool:
-    """TODO: Implement this"""
-    raise NotImplementedError("Not implemented yet")
+):
+    """
+    Verifies a signature.
+    Args:
+        signature: The signature to verify. Can be a base64 encoded string or bytes.
+        public_key: The public key to use for verification. Can be a base64 encoded string or bytes.
+        message: The message to verify. Can be an utf-8 string or bytes.
+    Raises:
+        BadSignatureError: If the signature is invalid.!
+    """
+
+    if isinstance(signature, str):
+        signature = base64.b64decode(signature.encode("utf-8"))
+    if isinstance(public_key, str):
+        public_key = base64.b64decode(public_key)
+    if isinstance(message, str):
+        message = message.encode("utf-8")
+
+    vk = ecdsa.VerifyingKey.from_string(public_key, curve=ecdsa.SECP256k1)
+
+    try:
+        vk.verify(
+            signature,
+            message,
+            hashfunc=hashlib.sha256,
+        )
+        return True
+    except Exception as e:
+        raise BadSignatureError from e
