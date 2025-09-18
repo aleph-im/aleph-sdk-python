@@ -51,7 +51,6 @@ from ..exceptions import (
 )
 from ..query.filters import BalanceFilter, MessageFilter, PostFilter
 from ..query.responses import (
-    AddressCreditResponse,
     BalanceResponse,
     CreditsHistoryResponse,
     MessagesResponse,
@@ -601,15 +600,6 @@ class AlephHttpClient(AlephClient):
             if result
             else StoredContent(error=resp, filename=None, hash=None, url=None)
         )
-
-    async def get_credit_balance(self, address: str) -> AddressCreditResponse:
-        """return the credit balance for an address"""
-        async with self.http_session.get(
-            f"/api/v0/addresses/{address}/credit_balance"
-        ) as resp:
-            resp.raise_for_status()
-            result = await resp.json()
-            return AddressCreditResponse.model_validate(result)
 
     async def get_credit_history(
         self,
