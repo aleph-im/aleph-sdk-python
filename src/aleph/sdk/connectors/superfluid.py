@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Optional
 
 from eth_utils import to_normalized_address
 from superfluid import CFA_V1, Operation, Web3FlowInfo
+from web3.exceptions import ContractCustomError
 
 from aleph.sdk.evm_utils import (
     FlowUpdate,
@@ -37,6 +38,32 @@ class Superfluid:
             self.super_token = str(get_super_token_address(account.chain))
             self.cfaV1Instance = CFA_V1(account.rpc, account.chain_id)
 
+    def _simulate_create_tx_flow(self, flow: Decimal, block=True) -> bool:
+        try:
+            operation = self.cfaV1Instance.create_flow(
+                sender=self.normalized_address,
+                receiver=to_normalized_address(
+                    "0x0000000000000000000000000000000000000001"
+                ),  # Fake Address we do not sign/send this transactions
+                super_token=self.super_token,
+                flow_rate=int(to_wei_token(flow)),
+            )
+
+            populated_transaction = operation._get_populated_transaction_request(
+                self.account.rpc, self.account._account.key
+            )
+            return self.account.can_transact(tx=populated_transaction, block=block)
+        except ContractCustomError as e:
+            if getattr(e, "data", None) == "0xea76c9b3":
+                balance = self.account.get_super_token_balance()
+                MIN_FLOW_4H = to_wei_token(flow) * Decimal(self.MIN_4_HOURS)
+                raise InsufficientFundsError(
+                    token_type=TokenType.ALEPH,
+                    required_funds=float(from_wei_token(MIN_FLOW_4H)),
+                    available_funds=float(from_wei_token(balance)),
+                )
+            return False
+
     async def _execute_operation_with_account(self, operation: Operation) -> str:
         """
         Execute an operation using the provided ETHAccount
@@ -46,26 +73,16 @@ class Superfluid:
         populated_transaction = operation._get_populated_transaction_request(
             self.account.rpc, self.account._account.key
         )
+        self.account.can_transact(tx=populated_transaction)
+
         return await self.account._sign_and_send_transaction(populated_transaction)
 
     def can_start_flow(self, flow: Decimal, block=True) -> bool:
         """Check if the account has enough funds to start a Superfluid flow of the given size."""
-        valid = False
-        if self.account.can_transact(block=block):
-            balance = self.account.get_super_token_balance()
-            MIN_FLOW_4H = to_wei_token(flow) * Decimal(self.MIN_4_HOURS)
-            valid = balance > MIN_FLOW_4H
-            if not valid and block:
-                raise InsufficientFundsError(
-                    token_type=TokenType.ALEPH,
-                    required_funds=float(from_wei_token(MIN_FLOW_4H)),
-                    available_funds=float(from_wei_token(balance)),
-                )
-        return valid
+        return self._simulate_create_tx_flow(flow=flow, block=block)
 
     async def create_flow(self, receiver: str, flow: Decimal) -> str:
         """Create a Superfluid flow between two addresses."""
-        self.can_start_flow(flow)
         return await self._execute_operation_with_account(
             operation=self.cfaV1Instance.create_flow(
                 sender=self.normalized_address,
