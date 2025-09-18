@@ -92,6 +92,12 @@ class Settings(BaseSettings):
     )
     SCHEDULER_URL: ClassVar[str] = "https://scheduler.api.aleph.cloud/"
 
+    VOUCHER_METDATA_TEMPLATE_URL: str = (
+        "https://claim.twentysix.cloud/sbt/metadata/{}.json"
+    )
+    VOUCHER_SOL_REGISTRY: str = "https://api.claim.twentysix.cloud/v1/registry/sol"
+    VOUCHER_ORIGIN_ADDRESS: str = "0xB34f25f2c935bCA437C061547eA12851d719dEFb"
+
     # Web3Provider settings
     TOKEN_DECIMALS: ClassVar[int] = 18
     TX_TIMEOUT: ClassVar[int] = 60 * 3

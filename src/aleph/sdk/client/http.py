@@ -39,6 +39,7 @@ from aleph.sdk.client.services.instance import Instance
 from aleph.sdk.client.services.port_forwarder import PortForwarder
 from aleph.sdk.client.services.pricing import Pricing
 from aleph.sdk.client.services.scheduler import Scheduler
+from aleph.sdk.client.services.voucher import Vouchers
 
 from ..conf import settings
 from ..exceptions import (
@@ -137,6 +138,8 @@ class AlephHttpClient(AlephClient):
         self.scheduler = Scheduler(self)
         self.instance = Instance(self)
         self.pricing = Pricing(self)
+        self.voucher = Vouchers(self)
+
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
