@@ -120,6 +120,7 @@ class TokenType(str, Enum):
 
     GAS = "GAS"
     ALEPH = "ALEPH"
+    CREDIT = "CREDIT"
 
 
 # Scheduler

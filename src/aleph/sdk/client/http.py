@@ -50,8 +50,15 @@ from ..exceptions import (
     RemovedMessageError,
     ResourceNotFoundError,
 )
-from ..query.filters import MessageFilter, PostFilter
-from ..query.responses import MessagesResponse, Post, PostsResponse, PriceResponse
+from ..query.filters import BalanceFilter, MessageFilter, PostFilter
+from ..query.responses import (
+    BalanceResponse,
+    CreditsHistoryResponse,
+    MessagesResponse,
+    Post,
+    PostsResponse,
+    PriceResponse,
+)
 from ..types import GenericMessage, StoredContent
 from ..utils import (
     Writable,
@@ -596,3 +603,37 @@ class AlephHttpClient(AlephClient):
             if result
             else StoredContent(error=resp, filename=None, hash=None, url=None)
         )
+
+    async def get_credit_history(
+        self,
+        address: str,
+        page_size: int = 200,
+        page: int = 1,
+    ) -> CreditsHistoryResponse:
+        """Return List of credits balance for all addresses"""
+
+        params = {
+            "page": str(page),
+            "pagination": str(page_size),
+        }
+
+        async with self.http_session.get(
+            f"/api/v0/addresses/{address}/credit_history", params=params
+        ) as resp:
+            resp.raise_for_status()
+            result = await resp.json()
+            return CreditsHistoryResponse.model_validate(result)
+
+    async def get_balances(
+        self,
+        address: str,
+        filter: Optional[BalanceFilter] = None,
+    ) -> BalanceResponse:
+
+        async with self.http_session.get(
+            f"/api/v0/addresses/{address}/balance",
+            params=filter.as_http_params() if filter else None,
+        ) as resp:
+            resp.raise_for_status()
+            result = await resp.json()
+            return BalanceResponse.model_validate(result)
