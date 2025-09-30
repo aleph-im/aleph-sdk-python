@@ -87,7 +87,7 @@ class CreditsHistoryResponse(PaginationResponse):
     """Response from an aleph.im node API on the path /api/v0/credits"""
 
     address: str
-    credit_balances: List[CreditHistoryResponseItem]
+    credit_history: List[CreditHistoryResponseItem]
     pagination_item: str = "credit_history"
 
 
