@@ -610,7 +610,7 @@ class AlephHttpClient(AlephClient):
         page_size: int = 200,
         page: int = 1,
     ) -> CreditsHistoryResponse:
-        """Return List of credits balance for all addresses"""
+        """Return List of credits history for a specific addresses"""
 
         params = {
             "page": str(page),
