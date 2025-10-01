@@ -1,20 +1,19 @@
-import asyncio
 import logging
 from pathlib import Path
-from typing import Dict, Optional, Type, TypeVar
+from typing import Dict, Optional, Type, TypeVar, Union
 
 from aleph_message.models import Chain
 
 from aleph.sdk.chains.common import get_fallback_private_key
 from aleph.sdk.chains.ethereum import ETHAccount
 from aleph.sdk.chains.evm import EVMAccount
-from aleph.sdk.chains.remote import RemoteAccount
 from aleph.sdk.chains.solana import SOLAccount
 from aleph.sdk.chains.substrate import DOTAccount
 from aleph.sdk.chains.svm import SVMAccount
-from aleph.sdk.conf import load_main_configuration, settings
+from aleph.sdk.conf import AccountType, load_main_configuration, settings
 from aleph.sdk.evm_utils import get_chains_with_super_token
 from aleph.sdk.types import AccountFromPrivateKey
+from aleph.sdk.wallets.ledger import LedgerETHAccount
 
 logger = logging.getLogger(__name__)
 
@@ -102,7 +101,7 @@ def _load_account(
     private_key_path: Optional[Path] = None,
     account_type: Optional[Type[AccountFromPrivateKey]] = None,
     chain: Optional[Chain] = None,
-) -> AccountFromPrivateKey:
+) -> Union[AccountFromPrivateKey, LedgerETHAccount]:
     """Load an account from a private key string or file, or from the configuration file."""
 
     config = load_main_configuration(settings.CONFIG_FILE)
@@ -134,22 +133,24 @@ def _load_account(
     elif private_key_path and private_key_path.is_file():
         return account_from_file(private_key_path, account_type, chain)
     # For ledger keys
-    elif settings.REMOTE_CRYPTO_HOST:
+    # elif settings.REMOTE_CRYPTO_HOST:
+    #     logger.debug("Using remote account")
+    #     loop = asyncio.get_event_loop()
+    #     return loop.run_until_complete(
+    #         RemoteAccount.from_crypto_host(
+    #             host=settings.REMOTE_CRYPTO_HOST,
+    #             unix_socket=settings.REMOTE_CRYPTO_UNIX_SOCKET,
+    #         )
+    #     )
+    # New Ledger Implementation
+    elif config and config.address and config.type == AccountType.EXTERNAL:
         logger.debug("Using remote account")
-        loop = asyncio.get_event_loop()
-        return loop.run_until_complete(
-            RemoteAccount.from_crypto_host(
-                host=settings.REMOTE_CRYPTO_HOST,
-                unix_socket=settings.REMOTE_CRYPTO_UNIX_SOCKET,
-            )
-        )
+        ledger_account = LedgerETHAccount.from_address(config.address)
+        if ledger_account:
+            return ledger_account
+
     # Fallback: config.path if set, else generate a new private key
-    else:
-        new_private_key = get_fallback_private_key()
-        account = account_from_hex_string(
-            bytes.hex(new_private_key), account_type, chain
-        )
-        logger.info(
-            f"Generated fallback private key with address {account.get_address()}"
-        )
-        return account
+    new_private_key = get_fallback_private_key()
+    account = account_from_hex_string(bytes.hex(new_private_key), account_type, chain)
+    logger.info(f"Generated fallback private key with address {account.get_address()}")
+    return account

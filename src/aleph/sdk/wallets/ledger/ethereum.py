@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Dict, List, Optional
 
+from aleph_message.models import Chain
 from eth_typing import HexStr
 from ledgerblue.Dongle import Dongle
 from ledgereth import find_account, get_account_by_path, get_accounts
@@ -9,11 +10,12 @@ from ledgereth.comms import init_dongle
 from ledgereth.messages import sign_message
 from ledgereth.objects import LedgerAccount, SignedMessage
 
-from ...chains.common import BaseAccount, get_verification_buffer
+from ...chains.common import get_verification_buffer
+from ...chains.ethereum import ETHAccount
 from ...utils import bytes_from_hex
 
 
-class LedgerETHAccount(BaseAccount):
+class LedgerETHAccount(ETHAccount):
     """Account using the Ethereum app on Ledger hardware wallets."""
 
     CHAIN = "ETH"
@@ -21,7 +23,9 @@ class LedgerETHAccount(BaseAccount):
     _account: LedgerAccount
     _device: Dongle
 
-    def __init__(self, account: LedgerAccount, device: Dongle):
+    def __init__(
+        self, account: LedgerAccount, device: Dongle, chain: Optional[Chain] = None
+    ):
         """Initialize an aleph.im account instance that relies on a LedgerHQ
         device and the Ethereum Ledger application for signatures.
 
@@ -30,6 +34,18 @@ class LedgerETHAccount(BaseAccount):
         """
         self._account = account
         self._device = device
+        self.connect_chain(chain=chain)
+
+    @staticmethod
+    def get_accounts(
+        device: Optional[Dongle] = None, count: int = 5
+    ) -> List[LedgerAccount]:
+        """Initialize an aleph.im account from a LedgerHQ device from
+        a known wallet address.
+        """
+        device = device or init_dongle()
+        accounts: List[LedgerAccount] = get_accounts(dongle=device, count=count)
+        return accounts
 
     @staticmethod
     def from_address(
@@ -68,7 +84,7 @@ class LedgerETHAccount(BaseAccount):
 
         # TODO: Check why the code without a wallet uses `encode_defunct`.
         msghash: bytes = get_verification_buffer(message)
-        sig: SignedMessage = sign_message(msghash, dongle=self._device)
+        sig: SignedMessage = sign_message(msghash, dongle=self._device, sender_path=self._account.path)
 
         signature: HexStr = sig.signature
 
@@ -77,7 +93,7 @@ class LedgerETHAccount(BaseAccount):
 
     async def sign_raw(self, buffer: bytes) -> bytes:
         """Sign a raw buffer."""
-        sig: SignedMessage = sign_message(buffer, dongle=self._device)
+        sig: SignedMessage = sign_message(buffer, dongle=self._device, sender_path=self._account.path)
         signature: HexStr = sig.signature
         return bytes_from_hex(signature)
 
