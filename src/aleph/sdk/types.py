@@ -309,7 +309,7 @@ class Ports(BaseModel):
     ports: Dict[int, PortFlags]
 
 
-AllForwarders = RootModel[Dict[ItemHash, Ports]]
+AllForwarders = RootModel[Dict[ItemHash, Optional[Ports]]]
 
 
 class DictLikeModel(BaseModel):
