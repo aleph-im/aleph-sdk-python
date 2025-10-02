@@ -3,6 +3,7 @@ import logging
 import os.path
 import ssl
 import time
+from decimal import Decimal
 from io import BytesIO
 from pathlib import Path
 from typing import (
@@ -543,8 +544,16 @@ class AlephHttpClient(AlephClient):
             try:
                 resp.raise_for_status()
                 response_json = await resp.json()
+                token_value = response_json.get(
+                    "cost", response_json.get("required_tokens")
+                )
+                if isinstance(token_value, str):
+                    required_tokens = Decimal(token_value)
+                else:
+                    required_tokens = Decimal(str(token_value))
+
                 return PriceResponse(
-                    required_tokens=response_json["required_tokens"],
+                    required_tokens=required_tokens,
                     payment_type=response_json["payment_type"],
                 )
             except aiohttp.ClientResponseError as e:

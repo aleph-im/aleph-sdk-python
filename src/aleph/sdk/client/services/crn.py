@@ -230,9 +230,8 @@ class Crn:
         dict
             The parsed JSON response from /crns.json.
         """
-        # We want filter_inactive = (not only_active)
         # Convert bool to string for the query parameter
-        filter_inactive_str = str(not only_active).lower()
+        filter_inactive_str = str(only_active).lower()
         params = {"filter_inactive": filter_inactive_str}
 
         # Create a new session for external domain requests
