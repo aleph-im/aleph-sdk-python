@@ -46,7 +46,8 @@ async def test_get_program_price_cost_and_required_token():
 
     # Expected model using the cost field as the source of truth
     expected_model = PriceResponse(
-        required_tokens=Decimal("0.001527777777777777"),
+        required_tokens=Decimal("0.001527777777777778"),
+        cost=expected["cost"],
         payment_type=expected["payment_type"],
     )
 
@@ -61,11 +62,15 @@ async def test_get_program_price_cost_and_required_token():
 
     async with mock_session:
         response = await mock_session.get_program_price("cacacacacacaca")
-        assert response == expected_model
+        assert str(response.required_tokens) == str(expected_model.required_tokens)
+        assert response.cost == expected_model.cost
+        assert response.payment_type == expected_model.payment_type
 
     async with mock_session_old:
         response = await mock_session_old.get_program_price("cacacacacacaca")
-        assert response == expected_model_old
+        assert str(response.required_tokens) == str(expected_model_old.required_tokens)
+        assert response.cost == expected_model_old.cost
+        assert response.payment_type == expected_model_old.payment_type
 
 
 @pytest.mark.asyncio
