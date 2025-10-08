@@ -531,7 +531,10 @@ class AlephHttpClient(AlephClient):
             try:
                 resp.raise_for_status()
                 response_json = await resp.json()
+                cost = response_json.get("cost", None)
+
                 return PriceResponse(
+                    cost=cost,
                     required_tokens=response_json["required_tokens"],
                     payment_type=response_json["payment_type"],
                 )
@@ -543,8 +546,12 @@ class AlephHttpClient(AlephClient):
             try:
                 resp.raise_for_status()
                 response_json = await resp.json()
+                cost = response_json.get("cost", None)
+                required_tokens = response_json["required_tokens"]
+
                 return PriceResponse(
-                    required_tokens=response_json["required_tokens"],
+                    required_tokens=required_tokens,
+                    cost=cost,
                     payment_type=response_json["payment_type"],
                 )
             except aiohttp.ClientResponseError as e:

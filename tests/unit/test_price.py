@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 import pytest
 
 from aleph.sdk.exceptions import InvalidHashError
@@ -19,6 +21,56 @@ async def test_get_program_price_valid():
     async with mock_session:
         response = await mock_session.get_program_price("cacacacacacaca")
         assert response == expected
+
+
+@pytest.mark.asyncio
+async def test_get_program_price_cost_and_required_token():
+    """
+    Test that the get_program_price method returns the correct PriceResponse
+    when
+        1 ) cost & required_token is here (priority to cost) who is a string that convert to decimal
+        2 ) When only required_token is here who is a float that now would be to be convert to decimal
+    """
+    # Case 1
+    expected = {
+        "required_tokens": 0.001527777777777778,
+        "cost": "0.001527777777777777",
+        "payment_type": "credit",
+    }
+
+    # Case 2
+    expected_old = {
+        "required_tokens": 0.001527777777777778,
+        "payment_type": "credit",
+    }
+
+    # Expected model using the cost field as the source of truth
+    expected_model = PriceResponse(
+        required_tokens=Decimal("0.001527777777777778"),
+        cost=expected["cost"],
+        payment_type=expected["payment_type"],
+    )
+
+    # Expected model for the old format
+    expected_model_old = PriceResponse(
+        required_tokens=Decimal(str(expected_old["required_tokens"])),
+        payment_type=expected_old["payment_type"],
+    )
+
+    mock_session = make_mock_get_session(expected)
+    mock_session_old = make_mock_get_session(expected_old)
+
+    async with mock_session:
+        response = await mock_session.get_program_price("cacacacacacaca")
+        assert str(response.required_tokens) == str(expected_model.required_tokens)
+        assert response.cost == expected_model.cost
+        assert response.payment_type == expected_model.payment_type
+
+    async with mock_session_old:
+        response = await mock_session_old.get_program_price("cacacacacacaca")
+        assert str(response.required_tokens) == str(expected_model_old.required_tokens)
+        assert response.cost == expected_model_old.cost
+        assert response.payment_type == expected_model_old.payment_type
 
 
 @pytest.mark.asyncio

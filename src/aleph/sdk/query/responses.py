@@ -79,7 +79,8 @@ class MessagesResponse(PaginationResponse):
 class PriceResponse(BaseModel):
     """Response from an aleph.im node API on the path /api/v0/price/{item_hash}"""
 
-    required_tokens: float
+    required_tokens: Decimal
+    cost: Optional[str] = None
     payment_type: str
 
 
