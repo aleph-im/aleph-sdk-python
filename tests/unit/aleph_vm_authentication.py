@@ -16,6 +16,7 @@ from eth_account.messages import encode_defunct
 from jwcrypto import jwk
 from jwcrypto.jwa import JWA
 from pydantic import BaseModel, ValidationError, field_validator, model_validator
+from typing_extensions import Self
 
 from aleph.sdk.utils import bytes_from_hex
 
@@ -76,28 +77,28 @@ class SignedPubKeyHeader(BaseModel):
         return bytes_from_hex(value.decode())
 
     @model_validator(mode="after")  # type: ignore
-    def check_expiry(cls, values: SignedPubKeyHeader) -> SignedPubKeyHeader:
+    def check_expiry(self) -> Self:
         """Check that the token has not expired"""
-        payload: bytes = values.payload
+        payload: bytes = self.payload
         content = SignedPubKeyPayload.model_validate_json(payload)
 
         if not is_token_still_valid(content.expires):
             msg = "Token expired"
             raise ValueError(msg)
 
-        return values
+        return self
 
     @model_validator(mode="after")  # type: ignore
-    def check_signature(cls, values: SignedPubKeyHeader) -> SignedPubKeyHeader:
-        signature: bytes = values.signature
-        payload: bytes = values.payload
+    def check_signature(self) -> Self:
+        signature: bytes = self.signature
+        payload: bytes = self.payload
         content = SignedPubKeyPayload.model_validate_json(payload)
 
         if not verify_wallet_signature(signature, payload.hex(), content.address):
             msg = "Invalid signature"
             raise ValueError(msg)
 
-        return values
+        return self
 
     @property
     def content(self) -> SignedPubKeyPayload:
