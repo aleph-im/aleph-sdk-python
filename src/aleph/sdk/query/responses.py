@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import datetime as dt
+from decimal import Decimal
 from typing import Any, Dict, List, Optional, Union
 
 from aleph_message.models import (
@@ -9,7 +11,7 @@ from aleph_message.models import (
     ItemType,
     MessageConfirmation,
 )
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class Post(BaseModel):
@@ -48,9 +50,9 @@ class Post(BaseModel):
     ref: Optional[Union[str, Any]] = Field(
         description="Other message referenced by this one"
     )
+    address: Optional[str] = Field(description="Address of the sender")
 
-    class Config:
-        allow_extra = False
+    model_config = ConfigDict(extra="forbid")
 
 
 class PaginationResponse(BaseModel):
@@ -64,18 +66,51 @@ class PostsResponse(PaginationResponse):
     """Response from an aleph.im node API on the path /api/v0/posts.json"""
 
     posts: List[Post]
-    pagination_item = "posts"
+    pagination_item: str = "posts"
 
 
 class MessagesResponse(PaginationResponse):
     """Response from an aleph.im node API on the path /api/v0/messages.json"""
 
     messages: List[AlephMessage]
-    pagination_item = "messages"
+    pagination_item: str = "messages"
 
 
 class PriceResponse(BaseModel):
     """Response from an aleph.im node API on the path /api/v0/price/{item_hash}"""
 
-    required_tokens: float
+    required_tokens: Decimal
+    cost: Optional[str] = None
     payment_type: str
+
+
+class CreditsHistoryResponse(PaginationResponse):
+    """Response from an aleph.im node API on the path /api/v0/credits"""
+
+    address: str
+    credit_history: List[CreditHistoryResponseItem]
+    pagination_item: str = "credit_history"
+
+
+class CreditHistoryResponseItem(BaseModel):
+    amount: int
+    ratio: Optional[Decimal] = None
+    tx_hash: Optional[str] = None
+    token: Optional[str] = None
+    chain: Optional[str] = None
+    provider: Optional[str] = None
+    origin: Optional[str] = None
+    origin_ref: Optional[str] = None
+    payment_method: Optional[str] = None
+    credit_ref: str
+    credit_index: int
+    expiration_date: Optional[dt.datetime] = None
+    message_timestamp: dt.datetime
+
+
+class BalanceResponse(BaseModel):
+    address: str
+    balance: Decimal
+    details: Optional[Dict[str, Decimal]] = None
+    locked_amount: Decimal
+    credit_balance: int = 0

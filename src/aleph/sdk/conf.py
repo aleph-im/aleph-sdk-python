@@ -3,11 +3,12 @@ import logging
 import os
 from pathlib import Path
 from shutil import which
-from typing import Dict, Optional, Union
+from typing import ClassVar, Dict, List, Optional, Union
 
 from aleph_message.models import Chain
 from aleph_message.models.execution.environment import HypervisorType
-from pydantic import BaseModel, BaseSettings, Field
+from pydantic import BaseModel, Field
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from aleph.sdk.types import ChainInfo
 
@@ -41,7 +42,7 @@ class Settings(BaseSettings):
     REMOTE_CRYPTO_HOST: Optional[str] = None
     REMOTE_CRYPTO_UNIX_SOCKET: Optional[str] = None
     ADDRESS_TO_USE: Optional[str] = None
-    HTTP_REQUEST_TIMEOUT = 15.0
+    HTTP_REQUEST_TIMEOUT: ClassVar[float] = 15.0
 
     DEFAULT_CHANNEL: str = "ALEPH-CLOUDSOLUTIONS"
 
@@ -78,14 +79,28 @@ class Settings(BaseSettings):
 
     CODE_USES_SQUASHFS: bool = which("mksquashfs") is not None  # True if command exists
 
-    VM_URL_PATH = "https://aleph.sh/vm/{hash}"
-    VM_URL_HOST = "https://{hash_base32}.aleph.sh"
-    IPFS_GATEWAY = "https://ipfs.aleph.cloud/ipfs/"
-    CRN_URL_FOR_PROGRAMS = "https://dchq.staging.aleph.sh/"
+    VM_URL_PATH: ClassVar[str] = "https://aleph.sh/vm/{hash}"
+    VM_URL_HOST: ClassVar[str] = "https://{hash_base32}.aleph.sh"
+    IPFS_GATEWAY: ClassVar[str] = "https://ipfs.aleph.cloud/ipfs/"
+    CRN_URL_FOR_PROGRAMS: ClassVar[str] = "https://dchq.staging.aleph.sh/"
+
+    DNS_API: ClassVar[str] = "https://api.dns.public.aleph.sh/instances/list"
+    CRN_URL_UPDATE: ClassVar[str] = "{crn_url}/control/machine/{vm_hash}/update"
+    CRN_LIST_URL: str = "https://crns-list.aleph.sh/crns.json"
+    CRN_VERSION_URL: ClassVar[str] = (
+        "https://api.github.com/repos/aleph-im/aleph-vm/releases/latest"
+    )
+    SCHEDULER_URL: ClassVar[str] = "https://scheduler.api.aleph.cloud/"
+
+    VOUCHER_METDATA_TEMPLATE_URL: str = (
+        "https://claim.twentysix.cloud/sbt/metadata/{}.json"
+    )
+    VOUCHER_SOL_REGISTRY: str = "https://api.claim.twentysix.cloud/v1/registry/sol"
+    VOUCHER_ORIGIN_ADDRESS: str = "0xB34f25f2c935bCA437C061547eA12851d719dEFb"
 
     # Web3Provider settings
-    TOKEN_DECIMALS = 18
-    TX_TIMEOUT = 60 * 3
+    TOKEN_DECIMALS: ClassVar[int] = 18
+    TX_TIMEOUT: ClassVar[int] = 60 * 3
     CHAINS: Dict[Union[Chain, str], ChainInfo] = {
         # TESTNETS
         "SEPOLIA": ChainInfo(
@@ -99,6 +114,10 @@ class Settings(BaseSettings):
         Chain.ARBITRUM: ChainInfo(
             chain_id=42161,
             rpc="https://arbitrum-one.publicnode.com",
+        ),
+        Chain.AURORA: ChainInfo(
+            chain_id=1313161554,
+            rpc="https://mainnet.aurora.dev",
         ),
         Chain.AVAX: ChainInfo(
             chain_id=43114,
@@ -135,9 +154,25 @@ class Settings(BaseSettings):
             rpc="https://eth-mainnet.public.blastapi.io",
             token="0x27702a26126e0B3702af63Ee09aC4d1A084EF628",
         ),
+        Chain.ETHERLINK: ChainInfo(
+            chain_id=42793,
+            rpc="https://node.mainnet.etherlink.com",
+        ),
         Chain.FRAXTAL: ChainInfo(
             chain_id=252,
             rpc="https://rpc.frax.com",
+        ),
+        Chain.HYPE: ChainInfo(
+            chain_id=999,
+            rpc="https://rpc.hyperliquid.xyz/evm",
+        ),
+        Chain.INK: ChainInfo(
+            chain_id=57073,
+            rpc="https://rpc-gel.inkonchain.com",
+        ),
+        Chain.LENS: ChainInfo(
+            chain_id=232,
+            rpc="https://rpc.lens.xyz",
         ),
         Chain.LINEA: ChainInfo(
             chain_id=59144,
@@ -163,6 +198,18 @@ class Settings(BaseSettings):
             chain_id=137,
             rpc="https://polygon.gateway.tenderly.co",
         ),
+        Chain.SOMNIA: ChainInfo(
+            chain_id=50312,
+            rpc="https://dream-rpc.somnia.network",
+        ),
+        Chain.SONIC: ChainInfo(
+            chain_id=146,
+            rpc="https://rpc.soniclabs.com",
+        ),
+        Chain.UNICHAIN: ChainInfo(
+            chain_id=130,
+            rpc="https://mainnet.unichain.org",
+        ),
         Chain.WORLDCHAIN: ChainInfo(
             chain_id=480,
             rpc="https://worldchain-mainnet.gateway.tenderly.co",
@@ -179,16 +226,23 @@ class Settings(BaseSettings):
     CHAINS_BASE_ACTIVE: Optional[bool] = None
     CHAINS_BSC_ACTIVE: Optional[bool] = None
     CHAINS_ARBITRUM_ACTIVE: Optional[bool] = None
+    CHAINS_AURORA_ACTIVE: Optional[bool] = None
     CHAINS_BLAST_ACTIVE: Optional[bool] = None
     CHAINS_BOB_ACTIVE: Optional[bool] = None
     CHAINS_CYBER_ACTIVE: Optional[bool] = None
+    CHAINS_ETHERLINK_ACTIVE: Optional[bool] = None
     CHAINS_FRAXTAL_ACTIVE: Optional[bool] = None
+    CHAINS_HYPE_ACTIVE: Optional[bool] = None
+    CHAINS_LENS_ACTIVE: Optional[bool] = None
     CHAINS_LINEA_ACTIVE: Optional[bool] = None
     CHAINS_LISK_ACTIVE: Optional[bool] = None
     CHAINS_METIS_ACTIVE: Optional[bool] = None
     CHAINS_MODE_ACTIVE: Optional[bool] = None
     CHAINS_OPTIMISM_ACTIVE: Optional[bool] = None
     CHAINS_POL_ACTIVE: Optional[bool] = None
+    CHAINS_SOMNIA_ACTIVE: Optional[bool] = None
+    CHAINS_SONIC_ACTIVE: Optional[bool] = None
+    CHAINS_UNICHAIN_ACTIVE: Optional[bool] = None
     CHAINS_WORLDCHAIN_ACTIVE: Optional[bool] = None
     CHAINS_ZORA_ACTIVE: Optional[bool] = None
 
@@ -198,32 +252,38 @@ class Settings(BaseSettings):
     CHAINS_BASE_RPC: Optional[str] = None
     CHAINS_BSC_RPC: Optional[str] = None
     CHAINS_ARBITRUM_RPC: Optional[str] = None
+    CHAINS_AURORA_RPC: Optional[str] = None
     CHAINS_BLAST_RPC: Optional[str] = None
     CHAINS_BOB_RPC: Optional[str] = None
     CHAINS_CYBER_RPC: Optional[str] = None
+    CHAINS_ETHERLINK_RPC: Optional[str] = None
     CHAINS_FRAXTAL_RPC: Optional[str] = None
+    CHAINS_HYPE_RPC: Optional[str] = None
+    CHAINS_LENS_RPC: Optional[str] = None
     CHAINS_LINEA_RPC: Optional[str] = None
     CHAINS_LISK_RPC: Optional[str] = None
     CHAINS_METIS_RPC: Optional[str] = None
     CHAINS_MODE_RPC: Optional[str] = None
     CHAINS_OPTIMISM_RPC: Optional[str] = None
     CHAINS_POL_RPC: Optional[str] = None
+    CHAINS_SOMNIA_RPC: Optional[str] = None
+    CHAINS_SONIC_RPC: Optional[str] = None
+    CHAINS_UNICHAIN_RPC: Optional[str] = None
     CHAINS_WORLDCHAIN_RPC: Optional[str] = None
     CHAINS_ZORA_RPC: Optional[str] = None
 
     DEFAULT_CHAIN: Chain = Chain.ETH
 
     # Dns resolver
-    DNS_IPFS_DOMAIN = "ipfs.public.aleph.sh"
-    DNS_PROGRAM_DOMAIN = "program.public.aleph.sh"
-    DNS_INSTANCE_DOMAIN = "instance.public.aleph.sh"
-    DNS_STATIC_DOMAIN = "static.public.aleph.sh"
-    DNS_RESOLVERS = ["9.9.9.9", "1.1.1.1"]
+    DNS_IPFS_DOMAIN: ClassVar[str] = "ipfs.public.aleph.sh"
+    DNS_PROGRAM_DOMAIN: ClassVar[str] = "program.public.aleph.sh"
+    DNS_INSTANCE_DOMAIN: ClassVar[str] = "instance.public.aleph.sh"
+    DNS_STATIC_DOMAIN: ClassVar[str] = "static.public.aleph.sh"
+    DNS_RESOLVERS: ClassVar[List[str]] = ["9.9.9.9", "1.1.1.1"]
 
-    class Config:
-        env_prefix = "ALEPH_"
-        case_sensitive = False
-        env_file = ".env"
+    model_config = SettingsConfigDict(
+        env_prefix="ALEPH_", case_sensitive=False, env_file=".env", extra="ignore"
+    )
 
 
 class MainConfiguration(BaseModel):
@@ -234,8 +294,7 @@ class MainConfiguration(BaseModel):
     path: Path
     chain: Chain
 
-    class Config:
-        use_enum_values = True
+    model_config = SettingsConfigDict(use_enum_values=True)
 
 
 # Settings singleton
@@ -291,7 +350,7 @@ def save_main_configuration(file_path: Path, data: MainConfiguration):
     Synchronously save a single ChainAccount object as JSON to a file.
     """
     with file_path.open("w") as file:
-        data_serializable = data.dict()
+        data_serializable = data.model_dump()
         data_serializable["path"] = str(data_serializable["path"])
         json.dump(data_serializable, file, indent=4)
 

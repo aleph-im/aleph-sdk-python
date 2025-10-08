@@ -2,9 +2,9 @@ import json
 from pathlib import Path
 from typing import Dict, Optional, Union
 
-from aleph_pytezos.crypto.key import Key
 from nacl.public import SealedBox
 from nacl.signing import SigningKey
+from pytezos_crypto.key import Key
 
 from .common import BaseAccount, get_fallback_private_key, get_verification_buffer
 

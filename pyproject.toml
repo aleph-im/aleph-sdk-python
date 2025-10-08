@@ -30,18 +30,20 @@ dynamic = [ "version" ]
 dependencies = [
   "aiohttp>=3.8.3",
   "aioresponses>=0.7.6",
-  "aleph-message>=0.6",
-  "aleph-superfluid>=0.2.1",
+  "aleph-message>=1.0.4",
+  "aleph-superfluid>=0.3",
   "base58==2.1.1",                         # Needed now as default with _load_account changement
-  "coincurve; python_version<'3.11'",
-  "coincurve>=19; python_version>='3.11'",
-  "eth-abi>=4; python_version>='3.11'",
-  "eth-typing==4.3.1",
+  "coincurve; python_version>='3.9'",
+  "coincurve>=19; python_version>='3.9'",
+  "eth-abi>=5.0.1; python_version>='3.9'",
+  "eth-typing>=5.0.1",
   "jwcrypto==1.5.6",
+  "pydantic>=2,<3",
+  "pydantic-settings>=2",
   "pynacl==1.5",                           # Needed now as default with _load_account changement
   "python-magic",
   "typing-extensions",
-  "web3==6.3",
+  "web3>=7.10",
 ]
 
 optional-dependencies.all = [
@@ -80,8 +82,7 @@ optional-dependencies.substrate = [
   "substrate-interface",
 ]
 optional-dependencies.tezos = [
-  "aleph-pytezos==3.13.4",
-  "pynacl",
+  "pytezos-crypto==3.13.4.1",
 ]
 urls.Documentation = "https://aleph.im/"
 urls.Homepage = "https://github.com/aleph-im/aleph-sdk-python"

@@ -1,5 +1,7 @@
 from abc import ABC
 
+from aleph_message.status import MessageStatus
+
 from .types import TokenType
 from .utils import displayable_amount
 
@@ -18,6 +20,74 @@ class MessageNotFoundError(QueryError):
 
 class MultipleMessagesError(QueryError):
     """Multiple messages were found when a single message is expected."""
+
+    pass
+
+
+class MessageNotProcessed(Exception):
+    """
+    The resources that you arte trying to interact is not processed
+    """
+
+    item_hash: str
+    status: MessageStatus
+
+    def __init__(
+        self,
+        item_hash: str,
+        status: MessageStatus,
+    ):
+        self.item_hash = item_hash
+        self.status = status
+        super().__init__(
+            f"Resources {item_hash} is not processed : {self.status.value}"
+        )
+
+
+class NotAuthorize(Exception):
+    """
+    Request not authorize, this could happens for exemple in Ports Forwarding
+    if u try to setup ports for a vm who is not yours
+    """
+
+    item_hash: str
+    target_address: str
+    current_address: str
+
+    def __init__(self, item_hash: str, target_address, current_address):
+        self.item_hash = item_hash
+        self.target_address = target_address
+        self.current_address = current_address
+        super().__init__(
+            f"Operations not authorize on resources {self.item_hash} \nTarget address : {self.target_address} \nCurrent address : {self.current_address}"
+        )
+
+
+class VmNotFoundOnHost(Exception):
+    """
+    The VM not found on the host,
+    The Might might not be processed yet / wrong CRN_URL
+    """
+
+    item_hash: str
+    crn_url: str
+
+    def __init__(
+        self,
+        item_hash: str,
+        crn_url,
+    ):
+        self.item_hash = item_hash
+        self.crn_url = crn_url
+
+        super().__init__(f"Vm : {self.item_hash} not found on crn : {self.crn_url}")
+
+
+class MethodNotAvailableOnCRN(Exception):
+    """
+    If this error appears that means CRN you trying to interact is outdated and does
+    not handle this feature
+    """
 
     pass
 
@@ -65,6 +135,18 @@ class DomainConfigurationError(Exception):
 
 class ForgottenMessageError(QueryError):
     """The requested message was forgotten"""
+
+    pass
+
+
+class RemovedMessageError(QueryError):
+    """The requested message was removed"""
+
+    pass
+
+
+class ResourceNotFoundError(QueryError):
+    """A message resource was expected but could not be found."""
 
     pass
 

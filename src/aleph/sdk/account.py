@@ -12,6 +12,7 @@ from aleph.sdk.chains.evm import EVMAccount
 from aleph.sdk.chains.remote import RemoteAccount
 from aleph.sdk.chains.solana import SOLAccount
 from aleph.sdk.chains.substrate import DOTAccount
+from aleph.sdk.chains.svm import SVMAccount
 from aleph.sdk.conf import load_main_configuration, settings
 from aleph.sdk.evm_utils import get_chains_with_super_token
 from aleph.sdk.types import AccountFromPrivateKey
@@ -22,21 +23,29 @@ T = TypeVar("T", bound=AccountFromPrivateKey)
 
 chain_account_map: Dict[Chain, Type[T]] = {  # type: ignore
     Chain.ARBITRUM: EVMAccount,
+    Chain.AURORA: EVMAccount,
     Chain.AVAX: ETHAccount,
     Chain.BASE: ETHAccount,
     Chain.BLAST: EVMAccount,
     Chain.BOB: EVMAccount,
+    Chain.BSC: EVMAccount,
     Chain.CYBER: EVMAccount,
     Chain.DOT: DOTAccount,
+    Chain.ECLIPSE: SVMAccount,
     Chain.ETH: ETHAccount,
     Chain.FRAXTAL: EVMAccount,
+    Chain.INK: EVMAccount,
     Chain.LINEA: EVMAccount,
     Chain.LISK: EVMAccount,
     Chain.METIS: EVMAccount,
     Chain.MODE: EVMAccount,
+    Chain.NEO: EVMAccount,
     Chain.OPTIMISM: EVMAccount,
     Chain.POL: EVMAccount,
     Chain.SOL: SOLAccount,
+    Chain.SOMNIA: EVMAccount,
+    Chain.SONIC: EVMAccount,
+    Chain.UNICHAIN: EVMAccount,
     Chain.WORLDCHAIN: EVMAccount,
     Chain.ZORA: EVMAccount,
     Chain.CSDK: CSDKAccount,

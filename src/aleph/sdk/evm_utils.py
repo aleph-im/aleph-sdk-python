@@ -9,7 +9,7 @@ from web3.types import ChecksumAddress
 
 from .conf import settings
 
-MIN_ETH_BALANCE: float = 0.005
+MIN_ETH_BALANCE: float = 0.001
 MIN_ETH_BALANCE_WEI = Decimal(to_wei(MIN_ETH_BALANCE, "ether"))
 BALANCEOF_ABI = """[{
     "name": "balanceOf",

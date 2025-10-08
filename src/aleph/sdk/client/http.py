@@ -33,15 +33,32 @@ from aleph_message.models import (
 from aleph_message.status import MessageStatus
 from pydantic import ValidationError
 
+from aleph.sdk.client.services.crn import Crn
+from aleph.sdk.client.services.dns import DNS
+from aleph.sdk.client.services.instance import Instance
+from aleph.sdk.client.services.port_forwarder import PortForwarder
+from aleph.sdk.client.services.pricing import Pricing
+from aleph.sdk.client.services.scheduler import Scheduler
+from aleph.sdk.client.services.voucher import Vouchers
+
 from ..conf import settings
 from ..exceptions import (
     FileTooLarge,
     ForgottenMessageError,
     InvalidHashError,
     MessageNotFoundError,
+    RemovedMessageError,
+    ResourceNotFoundError,
 )
-from ..query.filters import MessageFilter, PostFilter
-from ..query.responses import MessagesResponse, Post, PostsResponse, PriceResponse
+from ..query.filters import BalanceFilter, MessageFilter, PostFilter
+from ..query.responses import (
+    BalanceResponse,
+    CreditsHistoryResponse,
+    MessagesResponse,
+    Post,
+    PostsResponse,
+    PriceResponse,
+)
 from ..types import GenericMessage, StoredContent
 from ..utils import (
     Writable,
@@ -121,6 +138,15 @@ class AlephHttpClient(AlephClient):
                 )
             )
 
+        # Initialize default services
+        self.dns = DNS(self)
+        self.port_forwarder = PortForwarder(self)
+        self.crn = Crn(self)
+        self.scheduler = Scheduler(self)
+        self.instance = Instance(self)
+        self.pricing = Pricing(self)
+        self.voucher = Vouchers(self)
+
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
@@ -137,7 +163,8 @@ class AlephHttpClient(AlephClient):
             resp.raise_for_status()
             result = await resp.json()
             data = result.get("data", dict())
-            return data.get(key)
+            final_result = data.get(key)
+            return final_result
 
     async def fetch_aggregates(
         self, address: str, keys: Optional[Iterable[str]] = None
@@ -191,7 +218,7 @@ class AlephHttpClient(AlephClient):
             posts: List[Post] = []
             for post_raw in posts_raw:
                 try:
-                    posts.append(Post.parse_obj(post_raw))
+                    posts.append(Post.model_validate(post_raw))
                 except ValidationError as e:
                     if not ignore_invalid_messages:
                         raise e
@@ -231,6 +258,9 @@ class AlephHttpClient(AlephClient):
                     )
                 else:
                     raise FileTooLarge(f"The file from {file_hash} is too large")
+            if response.status == 404:
+                raise ResourceNotFoundError()
+            return None
 
     async def download_file_ipfs_to_buffer(
         self,
@@ -400,6 +430,10 @@ class AlephHttpClient(AlephClient):
             raise ForgottenMessageError(
                 f"The requested message {message_raw['item_hash']} has been forgotten by {', '.join(message_raw['forgotten_by'])}"
             )
+        if message_raw["status"] == "removed":
+            raise RemovedMessageError(
+                f"The requested message {message_raw['item_hash']} has been removed by {', '.join(message_raw['reason'])}"
+            )
         message = parse_message(message_raw["message"])
         if message_type:
             expected_type = get_message_type_value(message_type)
@@ -428,6 +462,10 @@ class AlephHttpClient(AlephClient):
         if message_raw["status"] == "forgotten":
             raise ForgottenMessageError(
                 f"The requested message {message_raw['item_hash']} has been forgotten by {', '.join(message_raw['forgotten_by'])}"
+            )
+        if message_raw["status"] == "removed":
+            raise RemovedMessageError(
+                f"The requested message {message_raw['item_hash']} has been removed by {', '.join(message_raw['reason'])}"
             )
         if message_raw["status"] != "rejected":
             return None
@@ -462,29 +500,30 @@ class AlephHttpClient(AlephClient):
         self,
         content: ExecutableContent,
     ) -> PriceResponse:
-        cleaned_content = content.dict(exclude_none=True)
+        cleaned_content = content.model_dump(exclude_none=True)
         item_content: str = json.dumps(
             cleaned_content,
             separators=(",", ":"),
             default=extended_json_encoder,
         )
-        message = parse_message(
-            dict(
-                sender=content.address,
-                chain=Chain.ETH,
-                type=(
-                    MessageType.program
-                    if isinstance(content, ProgramContent)
-                    else MessageType.instance
-                ),
-                content=cleaned_content,
-                item_content=item_content,
-                time=time.time(),
-                channel=settings.DEFAULT_CHANNEL,
-                item_type=ItemType.inline,
-                item_hash=compute_sha256(item_content),
-            )
+        message_dict = dict(
+            sender=content.address,
+            chain=Chain.ETH,
+            type=(
+                MessageType.program
+                if isinstance(content, ProgramContent)
+                else MessageType.instance
+            ),
+            content=cleaned_content,
+            item_content=item_content,
+            time=time.time(),
+            channel=settings.DEFAULT_CHANNEL,
+            item_type=ItemType.inline,
+            item_hash=compute_sha256(item_content),
+            signature="0x" + "0" * 130,  # Add a dummy signature to pass validation
         )
+
+        message = parse_message(message_dict)
 
         async with self.http_session.post(
             "/api/v0/price/estimate", json=dict(message=message)
@@ -492,7 +531,10 @@ class AlephHttpClient(AlephClient):
             try:
                 resp.raise_for_status()
                 response_json = await resp.json()
+                cost = response_json.get("cost", None)
+
                 return PriceResponse(
+                    cost=cost,
                     required_tokens=response_json["required_tokens"],
                     payment_type=response_json["payment_type"],
                 )
@@ -504,8 +546,12 @@ class AlephHttpClient(AlephClient):
             try:
                 resp.raise_for_status()
                 response_json = await resp.json()
+                cost = response_json.get("cost", None)
+                required_tokens = response_json["required_tokens"]
+
                 return PriceResponse(
-                    required_tokens=response_json["required_tokens"],
+                    required_tokens=required_tokens,
+                    cost=cost,
                     payment_type=response_json["payment_type"],
                 )
             except aiohttp.ClientResponseError as e:
@@ -515,7 +561,9 @@ class AlephHttpClient(AlephClient):
 
     async def get_message_status(self, item_hash: str) -> MessageStatus:
         """return Status of a message"""
-        async with self.http_session.get(f"/api/v0/messages/{item_hash}") as resp:
+        async with self.http_session.get(
+            f"/api/v0/messages/{item_hash}/status"
+        ) as resp:
             if resp.status == HTTPNotFound.status_code:
                 raise MessageNotFoundError(f"No such hash {item_hash}")
             resp.raise_for_status()
@@ -534,7 +582,7 @@ class AlephHttpClient(AlephClient):
             message, status = await self.get_message(
                 item_hash=ItemHash(item_hash), with_status=True
             )
-            if status != MessageStatus.PROCESSED:
+            if status not in [MessageStatus.PROCESSED, MessageStatus.REMOVING]:
                 resp = f"Invalid message status: {status}"
             elif message.type != MessageType.store:
                 resp = f"Invalid message type: {message.type}"
@@ -555,8 +603,44 @@ class AlephHttpClient(AlephClient):
             resp = f"Message not found: {item_hash}"
         except ForgottenMessageError:
             resp = f"Message forgotten: {item_hash}"
+        except RemovedMessageError as e:
+            resp = f"Message resources not available {item_hash}: {str(e)}"
         return (
             result
             if result
             else StoredContent(error=resp, filename=None, hash=None, url=None)
         )
+
+    async def get_credit_history(
+        self,
+        address: str,
+        page_size: int = 200,
+        page: int = 1,
+    ) -> CreditsHistoryResponse:
+        """Return List of credits history for a specific addresses"""
+
+        params = {
+            "page": str(page),
+            "pagination": str(page_size),
+        }
+
+        async with self.http_session.get(
+            f"/api/v0/addresses/{address}/credit_history", params=params
+        ) as resp:
+            resp.raise_for_status()
+            result = await resp.json()
+            return CreditsHistoryResponse.model_validate(result)
+
+    async def get_balances(
+        self,
+        address: str,
+        filter: Optional[BalanceFilter] = None,
+    ) -> BalanceResponse:
+
+        async with self.http_session.get(
+            f"/api/v0/addresses/{address}/balance",
+            params=filter.as_http_params() if filter else None,
+        ) as resp:
+            resp.raise_for_status()
+            result = await resp.json()
+            return BalanceResponse.model_validate(result)

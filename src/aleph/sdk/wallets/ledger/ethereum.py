@@ -68,7 +68,9 @@ class LedgerETHAccount(BaseAccount):
 
         # TODO: Check why the code without a wallet uses `encode_defunct`.
         msghash: bytes = get_verification_buffer(message)
-        sig: SignedMessage = sign_message(msghash, dongle=self._device)
+        sig: SignedMessage = sign_message(
+            msghash, dongle=self._device, sender_path=self._account.path
+        )
 
         signature: HexStr = sig.signature
 
@@ -77,7 +79,9 @@ class LedgerETHAccount(BaseAccount):
 
     async def sign_raw(self, buffer: bytes) -> bytes:
         """Sign a raw buffer."""
-        sig: SignedMessage = sign_message(buffer, dongle=self._device)
+        sig: SignedMessage = sign_message(
+            buffer, dongle=self._device, sender_path=self._account.path
+        )
         signature: HexStr = sig.signature
         return bytes_from_hex(signature)
 

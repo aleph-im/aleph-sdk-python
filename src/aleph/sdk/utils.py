@@ -6,6 +6,7 @@ import hmac
 import json
 import logging
 import os
+import re
 import subprocess
 from datetime import date, datetime, time
 from decimal import Context, Decimal, InvalidOperation
@@ -25,9 +26,11 @@ from typing import (
     Union,
     get_args,
 )
+from urllib.parse import urlparse
 from uuid import UUID
 from zipfile import BadZipFile, ZipFile
 
+import pydantic_core
 from aleph_message.models import (
     Chain,
     InstanceContent,
@@ -63,7 +66,6 @@ from aleph_message.utils import Mebibytes
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from jwcrypto.jwa import JWA
-from pydantic.json import pydantic_encoder
 
 from aleph.sdk.conf import settings
 from aleph.sdk.types import GenericMessage, SEVInfo, SEVMeasurement
@@ -202,7 +204,7 @@ def extended_json_encoder(obj: Any) -> Any:
     elif isinstance(obj, time):
         return obj.hour * 3600 + obj.minute * 60 + obj.second + obj.microsecond / 1e6
     else:
-        return pydantic_encoder(obj)
+        return pydantic_core.to_jsonable_python(obj)
 
 
 def parse_volume(volume_dict: Union[Mapping, MachineVolume]) -> MachineVolume:
@@ -213,7 +215,7 @@ def parse_volume(volume_dict: Union[Mapping, MachineVolume]) -> MachineVolume:
 
     for volume_type in get_args(MachineVolume):
         try:
-            return volume_type.parse_obj(volume_dict)
+            return volume_type.model_validate(volume_dict)
         except ValueError:
             pass
     raise ValueError(f"Could not parse volume: {volume_dict}")
@@ -591,3 +593,33 @@ def make_program_content(
         authorized_keys=[],
         payment=payment,
     )
+
+
+def sanitize_url(url: str) -> str:
+    """
+    Sanitize a URL by removing the trailing slash and ensuring it's properly formatted.
+
+    Args:
+        url: The URL to sanitize
+
+    Returns:
+        The sanitized URL
+    """
+    # Remove trailing slash if present
+    url = url.rstrip("/")
+
+    # Ensure URL has a proper scheme
+    parsed = urlparse(url)
+    if not parsed.scheme:
+        url = f"https://{url}"
+
+    return url
+
+
+def extract_valid_eth_address(address: str) -> str:
+    if address:
+        pattern = r"0x[a-fA-F0-9]{40}"
+        match = re.search(pattern, address)
+        if match:
+            return match.group(0)
+    return ""
