@@ -207,7 +207,10 @@ class DomainValidator:
             if entries:
                 if record_type == "txt":
                     for entry in entries:
-                        if hasattr(entry, "text") and entry.text == record_value:
+                        if (
+                            hasattr(entry, "text")
+                            and str(entry.text).lower() == str(record_value).lower()
+                        ):
                             status[dns_rule.name] = True
                             break
                 elif (
