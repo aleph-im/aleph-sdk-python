@@ -38,6 +38,8 @@ dependencies = [
   "eth-abi>=5.0.1; python_version>='3.9'",
   "eth-typing>=5.0.1",
   "jwcrypto==1.5.6",
+  "ledgerblue>=0.1.48",
+  "ledgereth>=0.10",
   "pydantic>=2,<3",
   "pydantic-settings>=2",
   "pynacl==1.5",                           # Needed now as default with _load_account changement
