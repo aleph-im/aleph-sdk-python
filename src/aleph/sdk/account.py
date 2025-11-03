@@ -132,17 +132,6 @@ def _load_account(
     # Loads private key from a file
     elif private_key_path and private_key_path.is_file():
         return account_from_file(private_key_path, account_type, chain)
-    # For ledger keys
-    # elif settings.REMOTE_CRYPTO_HOST:
-    #     logger.debug("Using remote account")
-    #     loop = asyncio.get_event_loop()
-    #     return loop.run_until_complete(
-    #         RemoteAccount.from_crypto_host(
-    #             host=settings.REMOTE_CRYPTO_HOST,
-    #             unix_socket=settings.REMOTE_CRYPTO_UNIX_SOCKET,
-    #         )
-    #     )
-    # New Ledger Implementation
     elif config and config.address and config.type == AccountType.EXTERNAL:
         logger.debug("Using remote account")
         ledger_account = LedgerETHAccount.from_address(config.address)
