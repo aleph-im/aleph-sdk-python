@@ -18,8 +18,6 @@ from ...utils import bytes_from_hex
 class LedgerETHAccount(ETHAccount):
     """Account using the Ethereum app on Ledger hardware wallets."""
 
-    CHAIN = "ETH"
-    CURVE = "secp256k1"
     _account: LedgerAccount
     _device: Dongle
 
