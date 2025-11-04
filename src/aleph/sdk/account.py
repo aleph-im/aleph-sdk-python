@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import Dict, Optional, Type, TypeVar, Union
 
 from aleph_message.models import Chain
+from ledgereth.exceptions import LedgerError
 
 from aleph.sdk.chains.common import get_fallback_private_key
 from aleph.sdk.chains.ethereum import ETHAccount
@@ -14,7 +15,6 @@ from aleph.sdk.conf import AccountType, load_main_configuration, settings
 from aleph.sdk.evm_utils import get_chains_with_super_token
 from aleph.sdk.types import AccountFromPrivateKey
 from aleph.sdk.wallets.ledger import LedgerETHAccount
-from ledgereth.exceptions import LedgerError
 
 logger = logging.getLogger(__name__)
 
