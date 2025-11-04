@@ -14,6 +14,7 @@ from aleph.sdk.conf import AccountType, load_main_configuration, settings
 from aleph.sdk.evm_utils import get_chains_with_super_token
 from aleph.sdk.types import AccountFromPrivateKey
 from aleph.sdk.wallets.ledger import LedgerETHAccount
+from ledgereth.exceptions import LedgerError
 
 logger = logging.getLogger(__name__)
 
@@ -134,9 +135,16 @@ def _load_account(
         return account_from_file(private_key_path, account_type, chain)
     elif config and config.address and config.type == AccountType.EXTERNAL:
         logger.debug("Using remote account")
-        ledger_account = LedgerETHAccount.from_address(config.address)
-        if ledger_account:
-            return ledger_account
+        try:
+            ledger_account = LedgerETHAccount.from_address(config.address)
+            if ledger_account:
+                return ledger_account
+        except LedgerError as e:
+            logger.warning(f"Ledger Error : {e.message}")
+            raise e
+        except OSError as e:
+            logger.warning("Please ensure Udev rules are set to use Ledger")
+            raise e
 
     # Fallback: config.path if set, else generate a new private key
     new_private_key = get_fallback_private_key()
