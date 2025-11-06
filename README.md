@@ -39,15 +39,15 @@ $ pip install aleph-sdk-python[solana, dns]
 ```
 
 The following extra dependencies are available:
-- `solana` for Solana accounts and signatures
-- `cosmos` for Substrate/Cosmos accounts and signatures
-- `nuls2` for NULS2 accounts and signatures
-- `polkadot` for Polkadot accounts and signatures
+- `solana` for Solana accounts and signatures.
+- `cosmos` for Substrate/Cosmos accounts and signatures.
+- `nuls2` for NULS2 accounts and signatures.
+- `polkadot` for Polkadot accounts and signatures.
 - `ledger` for Ledger hardware wallet support, see [Usage with LedgerHQ hardware](#usage-with-ledgerhq-hardware)
 - `mqtt` for MQTT-related functionalities, see [examples/mqtt.py](examples/mqtt.py)
 - `docs` for building the documentation, see [Documentation](#documentation)
-- `dns` for DNS-related functionalities
-- `all` installs all extra dependencies
+- `dns` for DNS-related functionalities.
+- `all` installs all extra dependencies.
 
 
 ## Installation for development
