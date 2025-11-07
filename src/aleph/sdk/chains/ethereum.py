@@ -117,9 +117,12 @@ class BaseEthAccount(BaseAccount):
         return valid
 
     def get_eth_balance(self) -> Decimal:
-        return Decimal(
-            self._provider.eth.get_balance(self.get_address()) if self._provider else 0
-        )
+        if not self._provider:
+            raise ValueError(
+                "Provider not set. Please configure a provider before checking balance."
+            )
+
+        return Decimal(self._provider.eth.get_balance(self.get_address()))
 
     def get_token_balance(self) -> Decimal:
         if self.chain and self._provider:
