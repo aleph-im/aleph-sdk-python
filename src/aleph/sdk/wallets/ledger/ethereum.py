@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import asyncio
+import logging
 from typing import Dict, List, Optional
 
 from aleph_message.models import Chain
@@ -9,13 +11,17 @@ from ledgereth import find_account, get_account_by_path, get_accounts
 from ledgereth.comms import init_dongle
 from ledgereth.messages import sign_message
 from ledgereth.objects import LedgerAccount, SignedMessage
+from ledgereth.transactions import sign_transaction
+from web3.types import TxReceipt
 
 from ...chains.common import get_verification_buffer
-from ...chains.ethereum import ETHAccount
+from ...chains.ethereum import BaseEthAccount
 from ...utils import bytes_from_hex
 
+logger = logging.getLogger(__name__)
 
-class LedgerETHAccount(ETHAccount):
+
+class LedgerETHAccount(BaseEthAccount):
     """Account using the Ethereum app on Ledger hardware wallets."""
 
     _account: LedgerAccount
@@ -30,9 +36,12 @@ class LedgerETHAccount(ETHAccount):
         See the static methods `self.from_address(...)` and `self.from_path(...)`
         for an easier method of instantiation.
         """
+        super().__init__(chain=None)
+
         self._account = account
         self._device = device
-        self.connect_chain(chain=chain)
+        if chain:
+            self.connect_chain(chain=chain)
 
     @staticmethod
     def get_accounts(
@@ -82,6 +91,9 @@ class LedgerETHAccount(ETHAccount):
 
         # TODO: Check why the code without a wallet uses `encode_defunct`.
         msghash: bytes = get_verification_buffer(message)
+        logger.warning(
+            "Please Sign messages using ledger"
+        )  # allow to propagate it to cli
         sig: SignedMessage = sign_message(
             msghash, dongle=self._device, sender_path=self._account.path
         )
@@ -93,11 +105,53 @@ class LedgerETHAccount(ETHAccount):
 
     async def sign_raw(self, buffer: bytes) -> bytes:
         """Sign a raw buffer."""
+        logger.warning(
+            "Please Sign messages using ledger"
+        )  # allow to propagate it to cli
         sig: SignedMessage = sign_message(
             buffer, dongle=self._device, sender_path=self._account.path
         )
         signature: HexStr = sig.signature
         return bytes_from_hex(signature)
+
+    async def _sign_and_send_transaction(self, tx_params: dict) -> str:
+        """
+        Sign and broadcast a transaction using the Ledger hardware wallet.
+        Equivalent of the software _sign_and_send_transaction().
+
+        @param tx_params: dict - Transaction parameters
+        @returns: str - Transaction hash
+        """
+        if self._provider is None:
+            raise ValueError("Provider not connected")
+
+        def sign_and_send() -> TxReceipt:
+            logger.warning(
+                "Please Sign messages using ledger"
+            )  # allow to propagate it to cli
+            signed_tx = sign_transaction(
+                tx=tx_params,
+                sender_path=self._account.path,
+                dongle=self._device,
+            )
+
+            provider = self._provider
+            if provider is None:
+                raise ValueError("Provider not connected")
+
+            tx_hash = provider.eth.send_raw_transaction(bytes_from_hex(signed_tx))
+
+            tx_receipt = provider.eth.wait_for_transaction_receipt(
+                tx_hash,
+                timeout=getattr(self, "TX_TIMEOUT", 120),  # optional custom timeout
+            )
+
+            return tx_receipt
+
+        loop = asyncio.get_running_loop()
+        tx_receipt = await loop.run_in_executor(None, sign_and_send)
+
+        return tx_receipt["transactionHash"].hex()
 
     def get_address(self) -> str:
         return self._account.address
