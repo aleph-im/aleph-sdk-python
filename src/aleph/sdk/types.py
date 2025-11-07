@@ -24,7 +24,13 @@ from pydantic import (
     field_validator,
 )
 
-__all__ = ("StorageEnum", "Account", "AccountFromPrivateKey", "GenericMessage")
+__all__ = (
+    "StorageEnum",
+    "Account",
+    "AccountFromPrivateKey",
+    "HardwareAccount",
+    "GenericMessage",
+)
 
 from aleph_message.models import AlephMessage, Chain
 
@@ -62,6 +68,26 @@ class AccountFromPrivateKey(Account, Protocol):
     def export_private_key(self) -> str: ...
 
     def switch_chain(self, chain: Optional[str] = None) -> None: ...
+
+
+class HardwareAccount(Account, Protocol):
+    """Account using hardware wallet."""
+
+    @staticmethod
+    def from_address(
+        address: str, device: Optional[Any] = None
+    ) -> Optional["HardwareAccount"]: ...
+
+    @staticmethod
+    def from_path(path: str, device: Optional[Any] = None) -> "HardwareAccount": ...
+
+    def get_address(self) -> str: ...
+
+    def switch_chain(self, chain: Optional[str] = None) -> None: ...
+
+    async def sign_message(self, message: Dict) -> Dict: ...
+
+    async def sign_raw(self, buffer: bytes) -> bytes: ...
 
 
 GenericMessage = TypeVar("GenericMessage", bound=AlephMessage)
