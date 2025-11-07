@@ -23,6 +23,7 @@ from pydantic import (
     TypeAdapter,
     field_validator,
 )
+from typing_extensions import runtime_checkable
 
 __all__ = (
     "StorageEnum",
@@ -41,6 +42,7 @@ class StorageEnum(str, Enum):
 
 
 # Use a protocol to avoid importing crypto libraries
+@runtime_checkable
 class Account(Protocol):
     CHAIN: str
     CURVE: str
