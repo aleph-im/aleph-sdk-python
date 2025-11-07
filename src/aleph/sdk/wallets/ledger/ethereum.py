@@ -106,7 +106,7 @@ class LedgerETHAccount(BaseEthAccount):
     async def sign_raw(self, buffer: bytes) -> bytes:
         """Sign a raw buffer."""
         logger.warning(
-            "Please Sign messages using ledger"
+            "Please sign the message on your Ledger device"
         )  # allow to propagate it to cli
         sig: SignedMessage = sign_message(
             buffer, dongle=self._device, sender_path=self._account.path
