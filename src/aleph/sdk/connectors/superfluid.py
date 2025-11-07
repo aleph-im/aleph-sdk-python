@@ -39,7 +39,7 @@ class Superfluid:
             self.cfaV1Instance = CFA_V1(account.rpc, account.chain_id)
 
     # Helpers Functions
-    def _get_populated_transaction_request(self, operation, rpc: Optional[str]):
+    def _get_populated_transaction_request(self, operation, rpc: str):
         """
         Prepares the transaction to be signed by either imported / hardware wallets
         @param operation - on chain operations
@@ -55,9 +55,6 @@ class Superfluid:
         populated_transaction = call.build_transaction(
             {"from": self.normalized_address}
         )
-
-        if rpc is None:
-            raise ValueError("RPC URL cannot be None")
 
         web3 = Web3(Web3.HTTPProvider(rpc))
         nonce = web3.eth.get_transaction_count(self.normalized_address)
@@ -78,6 +75,10 @@ class Superfluid:
                 super_token=self.super_token,
                 flow_rate=int(to_wei_token(flow)),
             )
+            if not self.account.rpc:
+                raise ValueError(
+                    f"RPC endpoint is required but not set for this chain {self.account.chain}."
+                )
             populated_transaction = self._get_populated_transaction_request(
                 operation=operation,
                 rpc=self.account.rpc,
@@ -100,6 +101,11 @@ class Superfluid:
         @param operation - Operation instance from the library
         @returns - str - Transaction hash
         """
+        if not self.account.rpc:
+            raise ValueError(
+                f"RPC endpoint is required but not set for this chain {self.account.chain}."
+            )
+
         populated_transaction = self._get_populated_transaction_request(
             operation=operation, rpc=self.account.rpc
         )
