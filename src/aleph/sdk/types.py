@@ -60,6 +60,7 @@ class Account(Protocol):
     def get_public_key(self) -> str: ...
 
 
+@runtime_checkable
 class AccountFromPrivateKey(Account, Protocol):
     """Only accounts that are initialized from a private key string are supported."""
 
@@ -72,6 +73,7 @@ class AccountFromPrivateKey(Account, Protocol):
     def switch_chain(self, chain: Optional[str] = None) -> None: ...
 
 
+@runtime_checkable
 class HardwareAccount(Account, Protocol):
     """Account using hardware wallet."""
 
