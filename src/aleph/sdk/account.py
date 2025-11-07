@@ -20,7 +20,7 @@ from aleph.sdk.wallets.ledger import LedgerETHAccount
 logger = logging.getLogger(__name__)
 
 T = TypeVar("T", bound=AccountFromPrivateKey)
-AccountLike: TypeAlias = Union["AccountFromPrivateKey", "HardwareAccount"]
+AccountTypes: TypeAlias = Union["AccountFromPrivateKey", "HardwareAccount"]
 
 chain_account_map: Dict[Chain, Type[T]] = {  # type: ignore
     Chain.ARBITRUM: EVMAccount,
@@ -130,17 +130,17 @@ def _load_account(
 def _load_account(
     private_key_str: Optional[str] = None,
     private_key_path: Optional[Path] = None,
-    account_type: Optional[Type[AccountLike]] = None,
+    account_type: Optional[Type[AccountTypes]] = None,
     chain: Optional[Chain] = None,
-) -> AccountLike: ...
+) -> AccountTypes: ...
 
 
 def _load_account(
     private_key_str: Optional[str] = None,
     private_key_path: Optional[Path] = None,
-    account_type: Optional[Type[AccountLike]] = None,
+    account_type: Optional[Type[AccountTypes]] = None,
     chain: Optional[Chain] = None,
-) -> AccountLike:
+) -> AccountTypes:
     """Load an account from a private key string or file, or from the configuration file.
 
     This function can return different types of accounts based on the input:
