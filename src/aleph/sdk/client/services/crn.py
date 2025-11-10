@@ -95,9 +95,9 @@ class CrnList(DictLikeModel):
             available_gpu_list=available_compatible_gpu,
         )
 
-    async def filter_crn(
+    def filter_crn(
         self,
-        latest_crn_version: bool = False,
+        crn_version: str = None,
         ipv6: bool = False,
         stream_address: bool = False,
         confidential: bool = False,
@@ -105,7 +105,7 @@ class CrnList(DictLikeModel):
     ) -> list[CRN]:
         """Filter compute resource node list, unfiltered by default.
         Args:
-            latest_crn_version (bool): Filter by latest crn version.
+            crn_version (str): Filter by specific crn version.
             ipv6 (bool): Filter invalid IPv6 configuration.
             stream_address (bool): Filter invalid payment receiver address.
             confidential (bool): Filter by confidential computing support.
@@ -113,15 +113,13 @@ class CrnList(DictLikeModel):
         Returns:
             list[CRN]: List of compute resource nodes. (if no filter applied, return all)
         """
-        if latest_crn_version:
-            settings_aggregates = await self._client.settings.get_settings_aggregate()
 
         filtered_crn: list[CRN] = []
         for crn_ in self.crns:
             # Check crn version
             if (
-                latest_crn_version
-                and (crn_.version or "0.0.0") < settings_aggregates.last_crn_version
+                crn_version
+                and (crn_.version or "0.0.0") < crn_version
             ):
                 continue
 
