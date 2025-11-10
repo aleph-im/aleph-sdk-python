@@ -95,7 +95,7 @@ class CrnList(DictLikeModel):
             available_gpu_list=available_compatible_gpu,
         )
 
-    def filter_crn(
+    async def filter_crn(
         self,
         latest_crn_version: bool = False,
         ipv6: bool = False,
@@ -113,15 +113,16 @@ class CrnList(DictLikeModel):
         Returns:
             list[CRN]: List of compute resource nodes. (if no filter applied, return all)
         """
-        # current_crn_version = await fetch_latest_crn_version()
-        # Relax current filter to allow use aleph-vm versions since 1.5.1.
-        # TODO: Allow to specify that option on settings aggregate on maybe on GitHub
-        current_crn_version = "1.5.1"
+        if latest_crn_version:
+            settings_aggregates = await self._client.settings.get_settings_aggregate()
 
         filtered_crn: list[CRN] = []
         for crn_ in self.crns:
             # Check crn version
-            if latest_crn_version and (crn_.version or "0.0.0") < current_crn_version:
+            if (
+                latest_crn_version
+                and (crn_.version or "0.0.0") < settings_aggregates.last_crn_version
+            ):
                 continue
 
             # Filter with ipv6 check
