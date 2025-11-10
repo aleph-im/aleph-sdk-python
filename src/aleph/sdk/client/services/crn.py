@@ -117,10 +117,7 @@ class CrnList(DictLikeModel):
         filtered_crn: list[CRN] = []
         for crn_ in self.crns:
             # Check crn version
-            if (
-                crn_version
-                and (crn_.version or "0.0.0") < crn_version
-            ):
+            if crn_version and (crn_.version or "0.0.0") < crn_version:
                 continue
 
             # Filter with ipv6 check
