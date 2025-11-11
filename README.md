@@ -1,116 +1,127 @@
-
 # aleph-sdk-python
-Python SDK for the Aleph.im network, next generation network of decentralized big data applications.
+
+Python SDK for the Aleph.im network, a next-generation network for decentralized big-data applications.
 
 Development follows the [Aleph Whitepaper](https://github.com/aleph-im/aleph-whitepaper).
 
 ## Documentation
-The latest documentation, albeit incomplete, is available at [https://docs.aleph.im/libraries/python-sdk/](https://docs.aleph.im/libraries/python-sdk/).
 
-For the full documentation, please refer to the docstrings in the source code.
+The latest (incomplete) documentation is available at <https://docs.aleph.im/libraries/python-sdk/>.  
+For full details, refer to the docstrings in the source code.
 
 ## Requirements
-### Linux 
-Some cryptographic functionalities use curve secp256k1 and require installing [libsecp256k1](https://github.com/bitcoin-core/secp256k1).
 
-```shell
-$ apt-get install -y python3-pip libsecp256k1-dev
+### Linux
+
+Some cryptographic functionality uses the secp256k1 curve and requires installing [libsecp256k1](https://github.com/bitcoin-core/secp256k1).
+
+```sh
+apt-get install -y python3-pip libsecp256k1-dev
 ```
+
 Using some chains may also require installing `libgmp3-dev`.
 
-### macOs
+### macOS
+
 This project does not support Python 3.12 on macOS. Please use Python 3.11 instead.
-```shell
-$ brew install secp256k1
+
+```sh
+brew install secp256k1
 ```
 
 ## Installation
-Using pip and [PyPI](https://pypi.org/project/aleph-sdk-python/):
 
-```shell
-$ pip install aleph-sdk-python
+Install from [PyPI](https://pypi.org/project/aleph-sdk-python/):
+
+```sh
+pip install aleph-sdk-python
 ```
 
 ### Additional dependencies
-Some functionalities require additional dependencies. They can be installed like this:
 
-```shell
-$ pip install aleph-sdk-python[solana, dns]
+Some functionality requires extra dependencies. For example:
+
+```sh
+pip install 'aleph-sdk-python[solana,dns]'
 ```
 
-The following extra dependencies are available:
-- `solana` for Solana accounts and signatures
-- `cosmos` for Substrate/Cosmos accounts and signatures
-- `nuls2` for NULS2 accounts and signatures
-- `polkadot` for Polkadot accounts and signatures
-- `ledger` for Ledger hardware wallet support, see [Usage with LedgerHQ hardware](#usage-with-ledgerhq-hardware)
-- `mqtt` for MQTT-related functionalities, see [examples/mqtt.py](examples/mqtt.py)
-- `docs` for building the documentation, see [Documentation](#documentation)
-- `dns` for DNS-related functionalities
-- `all` installs all extra dependencies
+Available extras:
 
+- `solana` — Solana accounts and signatures  
+- `cosmos` — Substrate/Cosmos accounts and signatures  
+- `nuls2` — NULS2 accounts and signatures  
+- `polkadot` — Polkadot accounts and signatures  
+- `ledger` — Ledger hardware wallet support (see [Usage with LedgerHQ hardware](#usage-with-ledgerhq-hardware))  
+- `mqtt` — MQTT-related functionality (see `examples/mqtt.py`)  
+- `docs` — Build the documentation (see [Generating the documentation](#generating-the-documentation-deprecated))  
+- `dns` — DNS-related functionality  
+- `all` — Installs all extras  
 
 ## Installation for development
-Setup a virtual environment using [hatch](https://hatch.pypa.io/):
-```shell
-$ hatch shell
+
+Set up a virtual environment using [hatch](https://hatch.pypa.io/):
+
+```sh
+hatch shell
 ```
 
-Then install the SDK from source with all extra dependencies:
+Then install the SDK from source with all extras:
 
-```shell
-$ pip install -e .[all]
+```sh
+pip install -e '.[all]'
 ```
 
 ### Running tests & Hatch scripts
-You can use the test env defined for hatch to run the tests:
 
-```shell
-$ hatch run testing:run
+Use the Hatch test environment to run tests:
+
+```sh
+hatch run testing:run
 ```
 
-See `hatch env show` for more information about all the environments and their scripts.
+Run `hatch env show` to see all environments and scripts.
 
 ### Generating the documentation [DEPRECATED]
-The documentation is built using [Sphinx](https://www.sphinx-doc.org/).
 
-To build the documentation, install the SDK with the `docs` extra dependencies:
+The documentation is built with [Sphinx](https://www.sphinx-doc.org/).
 
-```shell
-$ pip install -e .[docs]
+Install the SDK with the `docs` extras:
+
+```sh
+pip install -e '.[docs]'
 ```
 
-Then build the documentation:
+Then build the docs:
 
-```shell
-$ cd docs
-$ make html
+```sh
+cd docs
+make html
 ```
 
 ## Usage with LedgerHQ hardware
 
-The SDK supports signatures using [app-ethereum](https://github.com/LedgerHQ/app-ethereum),
-the Ethereum app for the Ledger hardware wallets.
+The SDK supports signatures using [app-ethereum](https://github.com/LedgerHQ/app-ethereum), the Ethereum app for Ledger hardware wallets.
 
-This has been tested successfully on Linux (amd64).
-Let us know if it works for you on other operating systems.
+Tested on Linux (amd64). Let us know if it works on other operating systems.
 
-Using a Ledger device on Linux requires root access or the setup of udev rules.
-
-Unlocking the device is required before using the relevant SDK functions.
+Using a Ledger device on Linux requires root access or udev rules. Unlock the device before using the SDK functions.
 
 ### Debian / Ubuntu
 
-Install [ledger-wallets-udev](https://packages.debian.org/bookworm/ledger-wallets-udev).
+Install [ledger-wallets-udev](https://packages.debian.org/bookworm/ledger-wallets-udev):
 
-`sudo apt-get install ledger-wallets-udev`
+```sh
+sudo apt-get install ledger-wallets-udev
+```
 
-### On NixOS
+### NixOS
 
-Configure `hardware.ledger.enable = true`.
+Configure:
+
+```nix
+hardware.ledger.enable = true;
+```
 
 ### Other Linux systems
 
-See https://github.com/LedgerHQ/udev-rules
-
-
+See <https://github.com/LedgerHQ/udev-rules>.
