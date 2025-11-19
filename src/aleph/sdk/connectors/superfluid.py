@@ -47,9 +47,10 @@ class Superfluid:
         @param address - address from Ledger account
         @returns - TxParams - The transaction object
         """
+
         call = (
             operation.forwarder_call
-            if operation.forwarder_call
+            if operation.forwarder_call is not None
             else operation.agreement_call
         )
         populated_transaction = call.build_transaction(
@@ -60,9 +61,6 @@ class Superfluid:
         nonce = web3.eth.get_transaction_count(self.normalized_address)
 
         populated_transaction["nonce"] = nonce
-        populated_transaction["chainId"] = web3.eth.chain_id
-        populated_transaction["gasPrice"] = web3.eth.gas_price
-
         return populated_transaction
 
     def _simulate_create_tx_flow(self, flow: Decimal, block=True) -> bool:
