@@ -11,7 +11,7 @@ from ledgereth import find_account, get_account_by_path, get_accounts
 from ledgereth.comms import init_dongle
 from ledgereth.messages import sign_message
 from ledgereth.objects import LedgerAccount, SignedMessage
-from ledgereth.transactions import sign_transaction
+from ledgereth.transactions import Type2Transaction, sign_transaction
 from web3.types import TxReceipt
 
 from ...chains.common import get_verification_buffer
@@ -129,8 +129,20 @@ class LedgerETHAccount(BaseEthAccount):
             logger.warning(
                 "Please Sign messages using ledger"
             )  # allow to propagate it to cli
+
+            #  Type2Transaction
+            tx = Type2Transaction(
+                chain_id=tx_params["chainId"],
+                nonce=tx_params["nonce"],
+                max_priority_fee_per_gas=tx_params["maxPriorityFeePerGas"],
+                max_fee_per_gas=tx_params["maxFeePerGas"],
+                gas_limit=tx_params["gas"],
+                destination=bytes.fromhex(tx_params["to"][2:]),
+                amount=tx_params["value"],
+                data=bytes.fromhex(tx_params["data"][2:]),
+            )
             signed_tx = sign_transaction(
-                tx=tx_params,
+                tx=tx,
                 sender_path=self._account.path,
                 dongle=self._device,
             )
@@ -139,7 +151,7 @@ class LedgerETHAccount(BaseEthAccount):
             if provider is None:
                 raise ValueError("Provider not connected")
 
-            tx_hash = provider.eth.send_raw_transaction(bytes_from_hex(signed_tx))
+            tx_hash = provider.eth.send_raw_transaction(signed_tx.rawTransaction)
 
             tx_receipt = provider.eth.wait_for_transaction_receipt(
                 tx_hash,
