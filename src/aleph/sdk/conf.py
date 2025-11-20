@@ -301,6 +301,7 @@ class MainConfiguration(BaseModel):
     type: AccountType = AccountType.IMPORTED
     chain: Chain
     address: Optional[str] = None
+    derivation_path: Optional[str] = None
     model_config = SettingsConfigDict(use_enum_values=True)
 
     @field_validator("type", mode="before")

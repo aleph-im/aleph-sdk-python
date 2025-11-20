@@ -186,7 +186,10 @@ def _load_account(
     elif config and config.address and config.type == AccountType.HARDWARE:
         logger.debug("Using ledger account")
         try:
-            ledger_account = LedgerETHAccount.from_address(config.address)
+            if config.derivation_path:
+                ledger_account = LedgerETHAccount.from_path(config.derivation_path)
+            else:
+                ledger_account = LedgerETHAccount.from_address(config.address)
             if ledger_account:
                 # Connect provider to the chain
                 # Only valid for EVM chain sign we sign TX using device
