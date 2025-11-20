@@ -415,7 +415,10 @@ def save_main_configuration(file_path: Path, data: MainConfiguration):
     """
     with file_path.open("w") as file:
         data_serializable = data.model_dump()
-        data_serializable["path"] = str(data_serializable["path"])
+        if (
+            data_serializable["path"] is not None
+        ):  # Avoid having path : "None" in config file
+            data_serializable["path"] = str(data_serializable["path"])
         json.dump(data_serializable, file, indent=4)
 
 
