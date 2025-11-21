@@ -97,7 +97,7 @@ class CrnList(DictLikeModel):
 
     def filter_crn(
         self,
-        crn_version: str = None,
+        crn_version: Optional[str] = None,
         ipv6: bool = False,
         stream_address: bool = False,
         confidential: bool = False,
