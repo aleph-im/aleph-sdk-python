@@ -23,8 +23,15 @@ from pydantic import (
     TypeAdapter,
     field_validator,
 )
+from typing_extensions import runtime_checkable
 
-__all__ = ("StorageEnum", "Account", "AccountFromPrivateKey", "GenericMessage")
+__all__ = (
+    "StorageEnum",
+    "Account",
+    "AccountFromPrivateKey",
+    "HardwareAccount",
+    "GenericMessage",
+)
 
 from aleph_message.models import AlephMessage, Chain
 
@@ -35,6 +42,7 @@ class StorageEnum(str, Enum):
 
 
 # Use a protocol to avoid importing crypto libraries
+@runtime_checkable
 class Account(Protocol):
     CHAIN: str
     CURVE: str
@@ -52,6 +60,7 @@ class Account(Protocol):
     def get_public_key(self) -> str: ...
 
 
+@runtime_checkable
 class AccountFromPrivateKey(Account, Protocol):
     """Only accounts that are initialized from a private key string are supported."""
 
@@ -62,6 +71,27 @@ class AccountFromPrivateKey(Account, Protocol):
     def export_private_key(self) -> str: ...
 
     def switch_chain(self, chain: Optional[str] = None) -> None: ...
+
+
+@runtime_checkable
+class HardwareAccount(Account, Protocol):
+    """Account using hardware wallet."""
+
+    @staticmethod
+    def from_address(
+        address: str, device: Optional[Any] = None
+    ) -> Optional["HardwareAccount"]: ...
+
+    @staticmethod
+    def from_path(path: str, device: Optional[Any] = None) -> "HardwareAccount": ...
+
+    def get_address(self) -> str: ...
+
+    def switch_chain(self, chain: Optional[str] = None) -> None: ...
+
+    async def sign_message(self, message: Dict) -> Dict: ...
+
+    async def sign_raw(self, buffer: bytes) -> bytes: ...
 
 
 GenericMessage = TypeVar("GenericMessage", bound=AlephMessage)

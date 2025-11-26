@@ -1,13 +1,14 @@
 import json
 import logging
 import os
+from enum import Enum
 from pathlib import Path
 from shutil import which
 from typing import ClassVar, Dict, List, Optional, Union
 
 from aleph_message.models import Chain
 from aleph_message.models.execution.environment import HypervisorType
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from aleph.sdk.types import ChainInfo
@@ -286,15 +287,76 @@ class Settings(BaseSettings):
     )
 
 
+class AccountType(str, Enum):
+    IMPORTED: str = "imported"
+    HARDWARE: str = "hardware"
+
+
 class MainConfiguration(BaseModel):
     """
     Intern Chain Management with Account.
     """
 
-    path: Path
+    path: Optional[Path] = None
+    type: AccountType = AccountType.IMPORTED
     chain: Chain
-
+    address: Optional[str] = None
+    derivation_path: Optional[str] = None
     model_config = SettingsConfigDict(use_enum_values=True)
+
+    @field_validator("type", mode="before")
+    def normalize_type(cls, v):
+        """Handle legacy 'internal'/'external' and accept both strings or enums."""
+        if v is None:
+            return v
+        if isinstance(v, AccountType):
+            return v
+        v_str = str(v).lower().strip()
+        if v_str == "internal":
+            return AccountType.IMPORTED
+        elif v_str == "external":
+            return AccountType.HARDWARE
+        elif v_str in ("imported", "hardware"):
+            return AccountType(v_str)
+        raise ValueError(f"Unknown account type: {v}")
+
+    @model_validator(mode="before")
+    def infer_type(cls, values: dict):
+        """
+        Previously, the `type` field was optional to maintain backward compatibility
+        for users with older configurations (e.g., using a private key).
+
+        We now enforce `type` as required, but still handle legacy cases where it may
+        be missing by inferring its value automatically.
+
+        Inference logic:
+            - If `type` is explicitly set, it is left unchanged.
+            - If `type` is missing:
+                - If `path` is provided → assume `imported`
+                - If only `address` is provided → assume `hardware` (Ledger)
+                  (This scenario should not normally occur, but is handled for safety.)
+                - If both `path` and `address` are present → trust `path` (imported)
+        """
+
+        t = values.get("type")
+        path = values.get("path")
+        address = values.get("address")
+
+        # If type already given , keep it
+        if t is not None:
+            return values
+
+        # Infer if missing
+        if path:
+            values["type"] = AccountType.IMPORTED
+        elif address:
+            values["type"] = AccountType.HARDWARE
+        else:
+            raise ValueError(
+                "Cannot infer account type: please provide 'type', or 'path' (imported), or 'address' (hardware)."
+            )
+
+        return values
 
 
 # Settings singleton
@@ -328,7 +390,9 @@ if str(settings.CONFIG_FILE) == "config.json":
             with open(settings.CONFIG_FILE, "r", encoding="utf-8") as f:
                 config_data = json.load(f)
 
-            if "path" in config_data:
+            if "path" in config_data and (
+                "type" not in config_data or config_data["type"] == AccountType.IMPORTED
+            ):
                 settings.PRIVATE_KEY_FILE = Path(config_data["path"])
         except json.JSONDecodeError:
             pass
@@ -351,7 +415,10 @@ def save_main_configuration(file_path: Path, data: MainConfiguration):
     """
     with file_path.open("w") as file:
         data_serializable = data.model_dump()
-        data_serializable["path"] = str(data_serializable["path"])
+        if (
+            data_serializable["path"] is not None
+        ):  # Avoid having path : "None" in config file
+            data_serializable["path"] = str(data_serializable["path"])
         json.dump(data_serializable, file, indent=4)
 
 
@@ -367,8 +434,7 @@ def load_main_configuration(file_path: Path) -> Optional[MainConfiguration]:
     try:
         with file_path.open("rb") as file:
             content = file.read()
-            data = json.loads(content.decode("utf-8"))
-            return MainConfiguration(**data)
+            return MainConfiguration.model_validate_json(content.decode("utf-8"))
     except UnicodeDecodeError as e:
         logger.error(f"Unable to decode {file_path} as UTF-8: {e}")
     except json.JSONDecodeError:
