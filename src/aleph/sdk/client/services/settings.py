@@ -1,7 +1,7 @@
 from typing import List
 
 from pydantic import BaseModel
-
+from aleph.sdk.conf import settings
 from .base import BaseService
 
 
@@ -35,6 +35,6 @@ class Settings(BaseService[NetworkSettingsModel]):
         self,
     ) -> NetworkSettingsModel:
         result = await self.get_config(
-            address="0xFba561a84A537fCaa567bb7A2257e7142701ae2A"
+            address=settings.ALEPH_AGGREGATE_ADDRESS
         )
         return result.data[0]
