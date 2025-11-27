@@ -147,7 +147,7 @@ class AlephHttpClient(AlephClient):
         self.instance = Instance(self)
         self.pricing = Pricing(self)
         self.voucher = Vouchers(self)
-        self.settings = NetworkSettingsService(self)
+        self.network_settings = NetworkSettingsService(self)
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
