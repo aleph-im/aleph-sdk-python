@@ -99,7 +99,7 @@ class Settings(BaseSettings):
     VOUCHER_SOL_REGISTRY: str = "https://api.claim.twentysix.cloud/v1/registry/sol"
     VOUCHER_ORIGIN_ADDRESS: str = "0xB34f25f2c935bCA437C061547eA12851d719dEFb"
 
-    ALEPH_AGGREGATE_ADDRESS = "0xFba561a84A537fCaa567bb7A2257e7142701ae2A"
+    ALEPH_AGGREGATE_ADDRESS: str = "0xFba561a84A537fCaa567bb7A2257e7142701ae2A"
 
     # Web3Provider settings
     TOKEN_DECIMALS: ClassVar[int] = 18
