@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import TYPE_CHECKING, Dict, List, Optional, Union
 
 import aiohttp
@@ -13,11 +14,54 @@ from aleph.sdk.types import (
     CrnV1List,
     CrnV2List,
     DictLikeModel,
+    VmResources,
 )
 from aleph.sdk.utils import extract_valid_eth_address, sanitize_url
 
 if TYPE_CHECKING:
     from aleph.sdk.client.http import AlephHttpClient
+
+
+class CpuLoad(BaseModel):
+    load1: float
+    load5: float
+    load15: float
+
+
+class CoreFrequencies(BaseModel):
+    min: float
+    max: float
+
+
+class CpuInfo(BaseModel):
+    count: int
+    load_average: CpuLoad
+    core_frequencies: CoreFrequencies
+
+
+class MemoryInfo(BaseModel):
+    total_kB: int
+    available_kB: int
+
+
+class DiskInfo(BaseModel):
+    total_kB: int
+    available_kB: int
+
+
+class UsagePeriod(BaseModel):
+    start_timestamp: datetime
+    duration_seconds: int
+
+
+class SystemUsage(BaseModel):
+    cpu: CpuInfo
+    mem: MemoryInfo
+    disk: DiskInfo
+    period: UsagePeriod
+    properties: dict
+    gpu: dict
+    active: bool
 
 
 class GPU(BaseModel):
@@ -47,6 +91,7 @@ class CRN(DictLikeModel):
     gpu_support: Optional[bool] = False
     confidential_support: Optional[bool] = False
     qemu_support: Optional[bool] = False
+    system_usage: Optional[SystemUsage] = None
 
     version: Optional[str] = "0.0.0"
     payment_receiver_address: Optional[str]  # Can be None if not configured
@@ -102,6 +147,7 @@ class CrnList(DictLikeModel):
         stream_address: bool = False,
         confidential: bool = False,
         gpu: bool = False,
+        vm_resources: Optional[VmResources] = None,
     ) -> list[CRN]:
         """Filter compute resource node list, unfiltered by default.
         Args:
@@ -110,6 +156,7 @@ class CrnList(DictLikeModel):
             stream_address (bool): Filter invalid payment receiver address.
             confidential (bool): Filter by confidential computing support.
             gpu (bool): Filter by GPU support.
+            vm_resources (VmResources): Filter by VM need, vcpus, memory, disk.
         Returns:
             list[CRN]: List of compute resource nodes. (if no filter applied, return all)
         """
@@ -139,6 +186,28 @@ class CrnList(DictLikeModel):
             available_gpu = crn_.get("compatible_available_gpus")
             if gpu and (not crn_.gpu_support or not available_gpu):
                 continue
+
+            # Filter VM resources
+            if vm_resources:
+                sys = crn_.system_usage
+                if not sys:
+                    continue
+
+                # Check CPU count
+                if sys.cpu.count < vm_resources.vcpus:
+                    continue
+
+                # Convert MiB to kB (1 MiB = 1024 kB) for proper comparison
+                memory_kb_required = vm_resources.memory * 1024
+                disk_kb_required = vm_resources.disk_mib * 1024
+
+                # Check free memory
+                if sys.mem.available_kB < memory_kb_required:
+                    continue
+
+                # Check free disk
+                if sys.disk.available_kB < disk_kb_required:
+                    continue
 
             filtered_crn.append(crn_)
         return filtered_crn

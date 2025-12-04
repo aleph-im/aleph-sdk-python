@@ -399,3 +399,9 @@ class Voucher(BaseModel):
     image: str
     icon: str
     attributes: list[VoucherAttribute]
+
+
+class VmResources(BaseModel):
+    vcpus: int
+    memory: int
+    disk_mib: int
