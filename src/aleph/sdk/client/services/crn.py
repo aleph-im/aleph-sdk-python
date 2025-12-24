@@ -39,6 +39,12 @@ class CpuInfo(BaseModel):
     core_frequencies: CoreFrequencies
 
 
+class CpuProperties(BaseModel):
+    architecture: str
+    vendor: str
+    features: List[str] = []
+
+
 class MemoryInfo(BaseModel):
     total_kB: PositiveInt
     available_kB: PositiveInt
@@ -54,14 +60,8 @@ class UsagePeriod(BaseModel):
     duration_seconds: int
 
 
-class SystemUsage(BaseModel):
-    cpu: CpuInfo
-    mem: MemoryInfo
-    disk: DiskInfo
-    period: UsagePeriod
-    properties: dict
-    gpu: dict
-    active: bool
+class Properties(BaseModel):
+    cpu: CpuProperties
 
 
 class GPU(BaseModel):
@@ -70,7 +70,23 @@ class GPU(BaseModel):
     device_name: str
     device_class: str
     pci_host: str
+    device_id: str
     compatible: bool
+
+
+class GpuUsages(BaseModel):
+    devices: List[GPU] = []
+    available_devices: List[GPU] = []
+
+
+class SystemUsage(BaseModel):
+    cpu: CpuInfo
+    mem: MemoryInfo
+    disk: DiskInfo
+    period: UsagePeriod
+    properties: Properties
+    gpu: GpuUsages
+    active: bool
 
 
 class NetworkGPUS(BaseModel):
