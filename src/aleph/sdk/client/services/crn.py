@@ -132,20 +132,20 @@ class CrnList(DictLikeModel):
         compatible_gpu: Dict[str, List[GPU]] = {}
         available_compatible_gpu: Dict[str, List[GPU]] = {}
 
-        for crn_ in self.crns:
-            if not crn_.gpu_support:
+        for crn in self.crns:
+            if not crn.gpu_support:
                 continue
 
             # Extracts used GPU
-            compatible_gpu[crn_.address] = []
-            for gpu in crn_.get("compatible_gpus", []):
-                compatible_gpu[crn_.address].append(GPU.model_validate(gpu))
+            compatible_gpu[crn.address] = []
+            for gpu in crn.get("compatible_gpus", []):
+                compatible_gpu[crn.address].append(GPU.model_validate(gpu))
                 gpu_count += 1
 
             # Extracts available GPU
-            available_compatible_gpu[crn_.address] = []
-            for gpu in crn_.get("compatible_available_gpus", []):
-                available_compatible_gpu[crn_.address].append(GPU.model_validate(gpu))
+            available_compatible_gpu[crn.address] = []
+            for gpu in crn.get("compatible_available_gpus", []):
+                available_compatible_gpu[crn.address].append(GPU.model_validate(gpu))
                 gpu_count += 1
                 available_gpu_count += 1
 
@@ -178,34 +178,34 @@ class CrnList(DictLikeModel):
         """
 
         filtered_crn: list[CRN] = []
-        for crn_ in self.crns:
+        for crn in self.crns:
             # Check crn version
-            if crn_version and (crn_.version or "0.0.0") < crn_version:
+            if crn_version and (crn.version or "0.0.0") < crn_version:
                 continue
 
             # Filter with ipv6 check
             if ipv6:
-                ipv6_check = crn_.get("ipv6_check")
+                ipv6_check = crn.get("ipv6_check")
                 if not ipv6_check or not all(ipv6_check.values()):
                     continue
 
             if stream_address and not extract_valid_eth_address(
-                crn_.payment_receiver_address or ""
+                crn.payment_receiver_address or ""
             ):
                 continue
 
             # Confidential Filter
-            if confidential and not crn_.confidential_support:
+            if confidential and not crn.confidential_support:
                 continue
 
             # Filter with GPU / Available GPU
-            available_gpu = crn_.get("compatible_available_gpus")
-            if gpu and (not crn_.gpu_support or not available_gpu):
+            available_gpu = crn.get("compatible_available_gpus")
+            if gpu and (not crn.gpu_support or not available_gpu):
                 continue
 
             # Filter VM resources
             if vm_resources:
-                sys = crn_.system_usage
+                sys = crn.system_usage
                 if not sys:
                     continue
 
@@ -225,21 +225,21 @@ class CrnList(DictLikeModel):
                 if sys.disk.available_kB < disk_kb_required:
                     continue
 
-            filtered_crn.append(crn_)
+            filtered_crn.append(crn)
         return filtered_crn
 
     # Find CRN by address
     def find_crn_by_address(self, address: str) -> Optional[CRN]:
-        for crn_ in self.crns:
-            if crn_.address == sanitize_url(address):
-                return crn_
+        for crn in self.crns:
+            if crn.address == sanitize_url(address):
+                return crn
         return None
 
     # Find CRN by hash
     def find_crn_by_hash(self, crn_hash: str) -> Optional[CRN]:
-        for crn_ in self.crns:
-            if crn_.hash == crn_hash:
-                return crn_
+        for crn in self.crns:
+            if crn.hash == crn_hash:
+                return crn
         return None
 
     def find_crn(
