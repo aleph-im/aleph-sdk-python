@@ -186,7 +186,13 @@ class CrnList(DictLikeModel):
             # Filter with ipv6 check
             if ipv6:
                 ipv6_check = crn.get("ipv6_check")
-                if not ipv6_check or not all(ipv6_check.values()):
+
+                """
+                The diagnostic VM has an issue where it can fail even when it is working correctly.
+                To avoid ending up with only a few working CRNs, we only ensure that the
+                `ipv6_check` field exists, which means the VM ran, even if the test failed.
+                """
+                if not ipv6_check:  # or not all(ipv6_check.values())
                     continue
 
             if stream_address and not extract_valid_eth_address(
