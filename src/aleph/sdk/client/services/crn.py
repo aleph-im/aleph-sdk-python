@@ -47,12 +47,12 @@ class CpuProperties(BaseModel):
 
 class MemoryInfo(BaseModel):
     total_kB: PositiveInt
-    available_kB: PositiveInt
+    available_kB: int
 
 
 class DiskInfo(BaseModel):
     total_kB: PositiveInt
-    available_kB: PositiveInt
+    available_kB: int
 
 
 class UsagePeriod(BaseModel):
