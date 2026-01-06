@@ -34,7 +34,7 @@ class CoreFrequencies(BaseModel):
 
 
 class CpuInfo(BaseModel):
-    count: int
+    count: PositiveInt
     load_average: CpuLoad
     core_frequencies: CoreFrequencies
 
@@ -51,8 +51,8 @@ class MemoryInfo(BaseModel):
 
 
 class DiskInfo(BaseModel):
-    total_kB: int
-    available_kB: int
+    total_kB: PositiveInt
+    available_kB: PositiveInt
 
 
 class UsagePeriod(BaseModel):
