@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, Dict, List, Optional, Union
 import aiohttp
 from aiohttp.client_exceptions import ClientResponseError
 from aleph_message.models import ItemHash
-from pydantic import BaseModel, PositiveInt
+from pydantic import BaseModel, PositiveInt, NonNegativeInt
 
 from aleph.sdk.conf import settings
 from aleph.sdk.exceptions import MethodNotAvailableOnCRN, VmNotFoundOnHost
@@ -47,12 +47,12 @@ class CpuProperties(BaseModel):
 
 class MemoryInfo(BaseModel):
     total_kB: PositiveInt
-    available_kB: int
+    available_kB: NonNegativeInt
 
 
 class DiskInfo(BaseModel):
     total_kB: PositiveInt
-    available_kB: int
+    available_kB: NonNegativeInt
 
 
 class UsagePeriod(BaseModel):
