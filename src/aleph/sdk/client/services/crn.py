@@ -76,14 +76,14 @@ class CrnList(DictLikeModel):
                 continue
 
             # Extracts used GPU
+            compatible_gpu[crn_.address] = []
             for gpu in crn_.get("compatible_gpus", []):
-                compatible_gpu[crn_.address] = []
                 compatible_gpu[crn_.address].append(GPU.model_validate(gpu))
                 gpu_count += 1
 
             # Extracts available GPU
+            available_compatible_gpu[crn_.address] = []
             for gpu in crn_.get("compatible_available_gpus", []):
-                available_compatible_gpu[crn_.address] = []
                 available_compatible_gpu[crn_.address].append(GPU.model_validate(gpu))
                 gpu_count += 1
                 available_gpu_count += 1
