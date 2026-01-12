@@ -170,7 +170,7 @@ async def test_get_settings_aggregate(
     # Properly mock the fetch_aggregate method using monkeypatch
     client._http_session = MagicMock()
     monkeypatch = AsyncMock(return_value=mock_settings_aggregate_response)
-    setattr(client, "fetch_aggregate", monkeypatch)
+    setattr(client, "get_aggregate", monkeypatch)
 
     settings_service = Settings(client)
     result = await settings_service.get_settings_aggregate()

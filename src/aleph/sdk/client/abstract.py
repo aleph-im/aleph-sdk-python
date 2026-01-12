@@ -17,6 +17,7 @@ from typing import (
     Type,
     Union,
 )
+from typing_extensions import deprecated
 
 from aleph_message.models import (
     AlephMessage,
@@ -49,7 +50,32 @@ DEFAULT_PAGE_SIZE = 200
 
 
 class AlephClient(ABC):
+    async def get_aggregate(self, address: str, key: str) -> Optional[Dict[str, Dict]]:
+        """
+        Get a value from the aggregate store by owner address and item key.
+        Returns None if no aggregate was found.
+
+        :param address: Address of the owner of the aggregate
+        :param key: Key of the aggregate
+        """
+        raise NotImplementedError("Did you mean to import `AlephHttpClient`?")
+
+    async def get_aggregates(
+        self, address: str, keys: Optional[Iterable[str]] = None
+    ) -> Optional[Dict[str, Dict]]:
+        """
+        Get key-value pairs from the aggregate store by owner address.
+        Returns None if no aggregate was found.
+
+        :param address: Address of the owner of the aggregate
+        :param keys: Keys of the aggregates to fetch (Default: all items)
+        """
+        raise NotImplementedError("Did you mean to import `AlephHttpClient`?")
+
     @abstractmethod
+    @deprecated(
+        "This method is deprecated and will be removed in upcoming versions. Use get_aggregate instead."
+    )
     async def fetch_aggregate(self, address: str, key: str) -> Dict[str, Dict]:
         """
         Fetch a value from the aggregate store by owner address and item key.
@@ -60,6 +86,9 @@ class AlephClient(ABC):
         raise NotImplementedError("Did you mean to import `AlephHttpClient`?")
 
     @abstractmethod
+    @deprecated(
+        "This method is deprecated and will be removed in upcoming versions. Use get_aggregates instead."
+    )
     async def fetch_aggregates(
         self, address: str, keys: Optional[Iterable[str]] = None
     ) -> Dict[str, Dict]:
