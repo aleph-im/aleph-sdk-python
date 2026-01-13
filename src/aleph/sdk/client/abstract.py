@@ -17,7 +17,6 @@ from typing import (
     Type,
     Union,
 )
-from typing_extensions import deprecated
 
 from aleph_message.models import (
     AlephMessage,
@@ -36,6 +35,7 @@ from aleph_message.models.execution.environment import (
 )
 from aleph_message.models.execution.program import Encoding
 from aleph_message.status import MessageStatus
+from typing_extensions import deprecated
 
 from aleph.sdk.conf import settings
 from aleph.sdk.types import Account
