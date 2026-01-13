@@ -19,6 +19,7 @@ from typing import (
 )
 
 import aiohttp
+from aiohttp import ClientResponseError
 from aiohttp.web import HTTPNotFound
 from aleph_message import parse_message
 from aleph_message.models import (
@@ -155,7 +156,7 @@ class AlephHttpClient(AlephClient):
         if self._http_session is not None:
             await self._http_session.close()
 
-    async def fetch_aggregate(self, address: str, key: str) -> Dict[str, Dict]:
+    async def _fetch_aggregate(self, address: str, key: str) -> Dict[str, Dict]:
         params: Dict[str, Any] = {"keys": key}
 
         async with self.http_session.get(
@@ -167,7 +168,7 @@ class AlephHttpClient(AlephClient):
             final_result = data.get(key)
             return final_result
 
-    async def fetch_aggregates(
+    async def _fetch_aggregates(
         self, address: str, keys: Optional[Iterable[str]] = None
     ) -> Dict[str, Dict]:
         keys_str = ",".join(keys) if keys else ""
@@ -183,6 +184,32 @@ class AlephHttpClient(AlephClient):
             result = await resp.json()
             data = result.get("data", dict())
             return data
+
+    async def get_aggregate(self, address: str, key: str) -> Optional[Dict[str, Dict]]:
+        try:
+            return await self.fetch_aggregate(address=address, key=key)
+        except ClientResponseError as e:
+            if e.status == 404:
+                return None
+            raise
+
+    async def get_aggregates(
+        self, address: str, keys: Optional[Iterable[str]] = None
+    ) -> Optional[Dict[str, Dict]]:
+        try:
+            return await self.fetch_aggregates(address=address, keys=keys)
+        except ClientResponseError as e:
+            if e.status == 404:
+                return None
+            raise
+
+    async def fetch_aggregate(self, address: str, key: str) -> Dict[str, Dict]:
+        return await self._fetch_aggregate(address=address, key=key)
+
+    async def fetch_aggregates(
+        self, address: str, keys: Optional[Iterable[str]] = None
+    ) -> Dict[str, Dict]:
+        return await self._fetch_aggregates(address=address, keys=keys)
 
     async def get_posts(
         self,

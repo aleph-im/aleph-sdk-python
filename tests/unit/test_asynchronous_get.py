@@ -24,6 +24,20 @@ async def test_fetch_aggregate():
 
 
 @pytest.mark.asyncio
+async def test_get_aggregate():
+    mock_session = make_mock_get_session(
+        {"data": {"corechannel": {"nodes": [], "resource_nodes": []}}}
+    )
+    async with mock_session:
+        response = await mock_session.get_aggregate(
+            address="0xa1B3bb7d2332383D96b7796B908fB7f7F3c2Be10",
+            key="corechannel",
+        )
+    assert response is not None
+    assert response.keys() == {"nodes", "resource_nodes"}
+
+
+@pytest.mark.asyncio
 async def test_fetch_aggregates():
     mock_session = make_mock_get_session(
         {"data": {"corechannel": {"nodes": [], "resource_nodes": []}}}
@@ -33,6 +47,21 @@ async def test_fetch_aggregates():
         response = await mock_session.fetch_aggregates(
             address="0xa1B3bb7d2332383D96b7796B908fB7f7F3c2Be10"
         )
+        assert response.keys() == {"corechannel"}
+        assert response["corechannel"].keys() == {"nodes", "resource_nodes"}
+
+
+@pytest.mark.asyncio
+async def test_get_aggregates():
+    mock_session = make_mock_get_session(
+        {"data": {"corechannel": {"nodes": [], "resource_nodes": []}}}
+    )
+
+    async with mock_session:
+        response = await mock_session.get_aggregates(
+            address="0xa1B3bb7d2332383D96b7796B908fB7f7F3c2Be10"
+        )
+        assert response is not None
         assert response.keys() == {"corechannel"}
         assert response["corechannel"].keys() == {"nodes", "resource_nodes"}
 
