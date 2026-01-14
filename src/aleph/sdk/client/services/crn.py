@@ -1,9 +1,10 @@
+from datetime import datetime
 from typing import TYPE_CHECKING, Dict, List, Optional, Union
 
 import aiohttp
 from aiohttp.client_exceptions import ClientResponseError
 from aleph_message.models import ItemHash
-from pydantic import BaseModel
+from pydantic import BaseModel, NonNegativeInt, PositiveInt
 
 from aleph.sdk.conf import settings
 from aleph.sdk.exceptions import MethodNotAvailableOnCRN, VmNotFoundOnHost
@@ -13,11 +14,54 @@ from aleph.sdk.types import (
     CrnV1List,
     CrnV2List,
     DictLikeModel,
+    VmResources,
 )
 from aleph.sdk.utils import extract_valid_eth_address, sanitize_url
 
 if TYPE_CHECKING:
     from aleph.sdk.client.http import AlephHttpClient
+
+
+class CpuLoad(BaseModel):
+    load1: float
+    load5: float
+    load15: float
+
+
+class CoreFrequencies(BaseModel):
+    min: float
+    max: float
+
+
+class CpuInfo(BaseModel):
+    count: PositiveInt
+    load_average: CpuLoad
+    core_frequencies: CoreFrequencies
+
+
+class CpuProperties(BaseModel):
+    architecture: str
+    vendor: str
+    features: List[str] = []
+
+
+class MemoryInfo(BaseModel):
+    total_kB: PositiveInt
+    available_kB: NonNegativeInt
+
+
+class DiskInfo(BaseModel):
+    total_kB: PositiveInt
+    available_kB: NonNegativeInt
+
+
+class UsagePeriod(BaseModel):
+    start_timestamp: datetime
+    duration_seconds: NonNegativeInt
+
+
+class Properties(BaseModel):
+    cpu: CpuProperties
 
 
 class GPU(BaseModel):
@@ -26,7 +70,23 @@ class GPU(BaseModel):
     device_name: str
     device_class: str
     pci_host: str
+    device_id: str
     compatible: bool
+
+
+class GpuUsages(BaseModel):
+    devices: List[GPU] = []
+    available_devices: List[GPU] = []
+
+
+class SystemUsage(BaseModel):
+    cpu: CpuInfo
+    mem: MemoryInfo
+    disk: DiskInfo
+    period: UsagePeriod
+    properties: Properties
+    gpu: GpuUsages
+    active: bool
 
 
 class NetworkGPUS(BaseModel):
@@ -47,6 +107,7 @@ class CRN(DictLikeModel):
     gpu_support: Optional[bool] = False
     confidential_support: Optional[bool] = False
     qemu_support: Optional[bool] = False
+    system_usage: Optional[SystemUsage] = None
 
     version: Optional[str] = "0.0.0"
     payment_receiver_address: Optional[str]  # Can be None if not configured
@@ -71,20 +132,20 @@ class CrnList(DictLikeModel):
         compatible_gpu: Dict[str, List[GPU]] = {}
         available_compatible_gpu: Dict[str, List[GPU]] = {}
 
-        for crn_ in self.crns:
-            if not crn_.gpu_support:
+        for crn in self.crns:
+            if not crn.gpu_support:
                 continue
 
             # Extracts used GPU
-            compatible_gpu[crn_.address] = []
-            for gpu in crn_.get("compatible_gpus", []):
-                compatible_gpu[crn_.address].append(GPU.model_validate(gpu))
+            compatible_gpu[crn.address] = []
+            for gpu in crn.get("compatible_gpus", []):
+                compatible_gpu[crn.address].append(GPU.model_validate(gpu))
                 gpu_count += 1
 
             # Extracts available GPU
-            available_compatible_gpu[crn_.address] = []
-            for gpu in crn_.get("compatible_available_gpus", []):
-                available_compatible_gpu[crn_.address].append(GPU.model_validate(gpu))
+            available_compatible_gpu[crn.address] = []
+            for gpu in crn.get("compatible_available_gpus", []):
+                available_compatible_gpu[crn.address].append(GPU.model_validate(gpu))
                 gpu_count += 1
                 available_gpu_count += 1
 
@@ -102,6 +163,7 @@ class CrnList(DictLikeModel):
         stream_address: bool = False,
         confidential: bool = False,
         gpu: bool = False,
+        vm_resources: Optional[VmResources] = None,
     ) -> list[CRN]:
         """Filter compute resource node list, unfiltered by default.
         Args:
@@ -110,51 +172,75 @@ class CrnList(DictLikeModel):
             stream_address (bool): Filter invalid payment receiver address.
             confidential (bool): Filter by confidential computing support.
             gpu (bool): Filter by GPU support.
+            vm_resources (VmResources): Filter by VM need, vcpus, memory, disk.
         Returns:
             list[CRN]: List of compute resource nodes. (if no filter applied, return all)
         """
 
         filtered_crn: list[CRN] = []
-        for crn_ in self.crns:
+        for crn in self.crns:
             # Check crn version
-            if crn_version and (crn_.version or "0.0.0") < crn_version:
+            if crn_version and (crn.version or "0.0.0") < crn_version:
                 continue
 
             # Filter with ipv6 check
             if ipv6:
-                ipv6_check = crn_.get("ipv6_check")
+                ipv6_check = crn.get("ipv6_check")
+
                 if not ipv6_check or not all(ipv6_check.values()):
                     continue
 
             if stream_address and not extract_valid_eth_address(
-                crn_.payment_receiver_address or ""
+                crn.payment_receiver_address or ""
             ):
                 continue
 
             # Confidential Filter
-            if confidential and not crn_.confidential_support:
+            if confidential and not crn.confidential_support:
                 continue
 
             # Filter with GPU / Available GPU
-            available_gpu = crn_.get("compatible_available_gpus")
-            if gpu and (not crn_.gpu_support or not available_gpu):
+            available_gpu = crn.get("compatible_available_gpus")
+            if gpu and (not crn.gpu_support or not available_gpu):
                 continue
 
-            filtered_crn.append(crn_)
+            # Filter VM resources
+            if vm_resources:
+                crn_usage = crn.system_usage
+                if not crn_usage:
+                    continue
+
+                # Check CPU count
+                if crn_usage.cpu.count < vm_resources.vcpus:
+                    continue
+
+                # Convert MiB to kB (1 MiB = 1024 kB) for proper comparison
+                memory_kb_required = vm_resources.memory * 1024
+                disk_kb_required = vm_resources.disk_mib * 1024
+
+                # Check free memory
+                if crn_usage.mem.available_kB < memory_kb_required:
+                    continue
+
+                # Check free disk
+                if crn_usage.disk.available_kB < disk_kb_required:
+                    continue
+
+            filtered_crn.append(crn)
         return filtered_crn
 
     # Find CRN by address
     def find_crn_by_address(self, address: str) -> Optional[CRN]:
-        for crn_ in self.crns:
-            if crn_.address == sanitize_url(address):
-                return crn_
+        for crn in self.crns:
+            if crn.address == sanitize_url(address):
+                return crn
         return None
 
     # Find CRN by hash
     def find_crn_by_hash(self, crn_hash: str) -> Optional[CRN]:
-        for crn_ in self.crns:
-            if crn_.hash == crn_hash:
-                return crn_
+        for crn in self.crns:
+            if crn.hash == crn_hash:
+                return crn
         return None
 
     def find_crn(
