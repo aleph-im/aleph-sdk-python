@@ -57,7 +57,7 @@ class DiskInfo(BaseModel):
 
 class UsagePeriod(BaseModel):
     start_timestamp: datetime
-    duration_seconds: int
+    duration_seconds: NonNegativeInt
 
 
 class Properties(BaseModel):
@@ -206,24 +206,24 @@ class CrnList(DictLikeModel):
 
             # Filter VM resources
             if vm_resources:
-                sys = crn.system_usage
-                if not sys:
+                crn_usage = crn.system_usage
+                if not crn_usage:
                     continue
 
                 # Check CPU count
-                if sys.cpu.count < vm_resources.vcpus:
+                if crn_usage.cpu.count < vm_resources.vcpus:
                     continue
 
                 # Convert MiB to kB (1 MiB = 1024 kB) for proper comparison
-                memory_kb_required = vm_resources.memory * 1024
+                memory_kb_required = vm_resources.memory_mib * 1024
                 disk_kb_required = vm_resources.disk_mib * 1024
 
                 # Check free memory
-                if sys.mem.available_kB < memory_kb_required:
+                if crn_usage.mem.available_kB < memory_kb_required:
                     continue
 
                 # Check free disk
-                if sys.disk.available_kB < disk_kb_required:
+                if crn_usage.disk.available_kB < disk_kb_required:
                     continue
 
             filtered_crn.append(crn)

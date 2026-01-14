@@ -19,6 +19,7 @@ from pydantic import (
     BaseModel,
     ConfigDict,
     Field,
+    PositiveInt,
     RootModel,
     TypeAdapter,
     field_validator,
@@ -402,6 +403,6 @@ class Voucher(BaseModel):
 
 
 class VmResources(BaseModel):
-    vcpus: int
-    memory: int
-    disk_mib: int
+    vcpus: PositiveInt
+    memory_mib: PositiveInt
+    disk_mib: PositiveInt
