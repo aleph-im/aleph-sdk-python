@@ -81,7 +81,7 @@ optional-dependencies.solana = [
 ]
 optional-dependencies.substrate = [
   "py-sr25519-bindings",
-  "substrate-interface",
+  "substrate-interface<1.8",
 ]
 optional-dependencies.tezos = [
   "pytezos-crypto==3.13.4.1",
