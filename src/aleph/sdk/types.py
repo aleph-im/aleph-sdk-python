@@ -14,7 +14,7 @@ from typing import (
     Union,
 )
 
-from aleph_message.models import ItemHash
+from aleph_message.models import ItemHash, MessageType
 from pydantic import (
     BaseModel,
     ConfigDict,
@@ -24,9 +24,11 @@ from pydantic import (
     TypeAdapter,
     field_validator,
 )
-from typing_extensions import runtime_checkable
+from typing_extensions import Self, runtime_checkable
 
 __all__ = (
+    "Authorization",
+    "AuthorizationBuilder",
     "StorageEnum",
     "Account",
     "AccountFromPrivateKey",
@@ -406,3 +408,68 @@ class VmResources(BaseModel):
     vcpus: PositiveInt
     memory: PositiveInt
     disk_mib: PositiveInt
+
+
+class Authorization(BaseModel):
+    """A single authorization entry for delegated access."""
+
+    address: str
+    chain: Optional[Chain] = None
+    channels: list[str] = []
+    types: list[MessageType] = []
+    post_types: list[str] = []
+    aggregate_keys: list[str] = []
+
+
+class AuthorizationBuilder:
+    def __init__(self, address: str):
+        self._address: str = address
+        self._chain: Optional[Chain] = None
+        self._channels: list[str] = []
+        self._message_types: list[MessageType] = []
+        self._post_types: list[str] = []
+        self._aggregate_keys: list[str] = []
+
+    def chain(self, chain: Chain) -> Self:
+        self._chain = chain
+        return self
+
+    def channel(self, channel: str) -> Self:
+        self._channels.append(channel)
+        return self
+
+    def message_type(self, message_type: MessageType) -> Self:
+        self._message_types.append(message_type)
+        return self
+
+    def post_type(self, post_type: str) -> Self:
+        if MessageType.post not in self._message_types:
+            raise ValueError(
+                "Cannot set post_type without allowing POST message type first"
+            )
+        self._post_types.append(post_type)
+        return self
+
+    def aggregate_key(self, aggregate_key: str) -> Self:
+        if MessageType.aggregate not in self._message_types:
+            raise ValueError(
+                "Cannot set post_type without allowing AGGREGATE message type first"
+            )
+        self._aggregate_keys.append(aggregate_key)
+        return self
+
+    def build(self) -> Authorization:
+        return Authorization(
+            address=self._address,
+            chain=self._chain,
+            channels=self._channels,
+            types=self._message_types,
+            post_types=self._post_types,
+            aggregate_keys=self._aggregate_keys,
+        )
+
+
+class SecurityAggregateContent(BaseModel):
+    """Content schema for the 'security' aggregate."""
+
+    authorizations: list[Authorization] = []

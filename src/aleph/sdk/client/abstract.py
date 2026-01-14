@@ -38,7 +38,7 @@ from aleph_message.status import MessageStatus
 from typing_extensions import deprecated
 
 from aleph.sdk.conf import settings
-from aleph.sdk.types import Account
+from aleph.sdk.types import Account, Authorization, SecurityAggregateContent
 from aleph.sdk.utils import extended_json_encoder
 
 from ..query.filters import MessageFilter, PostFilter
@@ -294,6 +294,30 @@ class AlephClient(ABC):
         :param item_hash: item_hash of executable message
         """
         raise NotImplementedError("Did you mean to import `AlephHttpClient`?")
+
+    async def get_authorizations(self, address: str) -> list[Authorization]:
+        """
+        Retrieves all authorizations for a specific address.
+        """
+        # TODO: update this implementation to use `get_aggregate()` once
+        #  https://github.com/aleph-im/aleph-sdk-python/pull/273 is merged.
+        # There's currently no way to detect a nonexistent aggregate in generic code just yet.
+        # fetch_aggregate() throws an implementation-specific ClientResponseError in case of 404.
+        import aiohttp
+
+        try:
+            security_aggregate_dict = await self.fetch_aggregate(
+                address=address, key="security"
+            )
+        except aiohttp.ClientResponseError as e:
+            if e.status == 404:
+                return []
+            raise
+
+        security_aggregate = SecurityAggregateContent.model_validate(
+            security_aggregate_dict
+        )
+        return security_aggregate.authorizations
 
 
 class AuthenticatedAlephClient(AlephClient):
@@ -617,3 +641,35 @@ class AuthenticatedAlephClient(AlephClient):
         :param content: The dict-like content to upload
         """
         raise NotImplementedError()
+
+    async def update_all_authorizations(self, authorizations: list[Authorization]):
+        """
+        Updates all authorizations for the current account.
+        Danger! This will replace all authorizations for the account. Use with care.
+
+        :param authorizations: List of authorizations to set. These authorizations will replace the existing ones.
+        """
+        security_aggregate = SecurityAggregateContent(authorizations=authorizations)
+        await self.create_aggregate(
+            key="security", content=security_aggregate.model_dump()
+        )
+
+    async def add_authorization(self, authorization: Authorization):
+        """
+        Adds a specific authorization for the current account.
+        """
+        authorizations = await self.get_authorizations(self.account.get_address())
+        authorizations.append(authorization)
+        await self.update_all_authorizations(authorizations)
+
+    async def revoke_all_authorizations(self, address: str):
+        """
+        Revokes all authorizations for a specific address.
+        """
+        authorizations = await self.get_authorizations(self.account.get_address())
+        filtered_authorizations = [
+            authorization
+            for authorization in authorizations
+            if authorization.address != address
+        ]
+        await self.update_all_authorizations(filtered_authorizations)
