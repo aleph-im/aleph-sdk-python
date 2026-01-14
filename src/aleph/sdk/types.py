@@ -404,5 +404,5 @@ class Voucher(BaseModel):
 
 class VmResources(BaseModel):
     vcpus: PositiveInt
-    memory_mib: PositiveInt
+    memory: PositiveInt
     disk_mib: PositiveInt

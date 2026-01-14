@@ -215,7 +215,7 @@ class CrnList(DictLikeModel):
                     continue
 
                 # Convert MiB to kB (1 MiB = 1024 kB) for proper comparison
-                memory_kb_required = vm_resources.memory_mib * 1024
+                memory_kb_required = vm_resources.memory * 1024
                 disk_kb_required = vm_resources.disk_mib * 1024
 
                 # Check free memory
