@@ -524,6 +524,61 @@ class AlephHttpClient(AlephClient):
                 elif msg.type == aiohttp.WSMsgType.ERROR:
                     break
 
+    async def get_store_estimated_price(
+        self,
+        storage_size_mib: int,
+    ) -> PriceResponse:
+        """
+        Get the estimated price for a store operation.
+
+        :param storage_size_mib: size in mib you want to store
+        :return: Price response with cost information
+        """
+        content = {
+            "address": "0xWeDoNotNeedARealAddress",
+            "time": time.time(),
+            "item_type": ItemType.storage,
+            "estimated_size_mib": storage_size_mib,
+            "item_hash": compute_sha256("dummy_value"),
+        }
+
+        item_content: str = json.dumps(
+            content,
+            separators=(",", ":"),
+            default=extended_json_encoder,
+        )
+
+        message_dict = dict(
+            sender=content["address"],
+            chain=Chain.ETH,
+            type=MessageType.store,
+            content=content,
+            item_content=item_content,
+            time=time.time(),
+            channel=settings.DEFAULT_CHANNEL,
+            item_type=ItemType.inline,
+            item_hash=compute_sha256(item_content),
+            signature="0x" + "0" * 130,  # Add a dummy signature to pass validation
+        )
+
+        message = parse_message(message_dict)
+
+        async with self.http_session.post(
+            "/api/v0/price/estimate", json=dict(message=message)
+        ) as resp:
+            try:
+                resp.raise_for_status()
+                response_json = await resp.json()
+                cost = response_json.get("cost", None)
+
+                return PriceResponse(
+                    cost=cost,
+                    required_tokens=response_json["required_tokens"],
+                    payment_type=response_json["payment_type"],
+                )
+            except aiohttp.ClientResponseError as e:
+                raise e
+
     async def get_estimated_price(
         self,
         content: ExecutableContent,
