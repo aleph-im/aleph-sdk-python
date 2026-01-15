@@ -68,7 +68,7 @@ optional-dependencies.ledger = [
   "ledgereth==0.10",
 ]
 optional-dependencies.mqtt = [
-  "aiomqtt<=0.1.3",
+  "aiomqtt<=2.4.0",
   "certifi",
   "click",
 ]
