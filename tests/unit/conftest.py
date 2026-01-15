@@ -11,6 +11,7 @@ import pytest as pytest
 from aiohttp import ClientResponseError
 from aleph_message.models import AggregateMessage, AlephMessage, PostMessage
 
+import aleph.sdk.chains.cosmos as cosmos
 import aleph.sdk.chains.ethereum as ethereum
 import aleph.sdk.chains.solana as solana
 import aleph.sdk.chains.substrate as substrate
@@ -52,6 +53,13 @@ def substrate_account() -> substrate.DOTAccount:
     with NamedTemporaryFile(delete=False) as private_key_file:
         private_key_file.close()
         yield substrate.get_fallback_account(path=Path(private_key_file.name))
+
+
+@pytest.fixture
+def cosmos_account() -> cosmos.CSDKAccount:
+    with NamedTemporaryFile(delete=False) as private_key_file:
+        private_key_file.close()
+        yield cosmos.get_fallback_account(path=Path(private_key_file.name))
 
 
 @pytest.fixture
