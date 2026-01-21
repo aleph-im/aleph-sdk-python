@@ -157,6 +157,60 @@ def raw_posts_response(json_post) -> Callable[[int], Dict[str, Any]]:
     }
 
 
+@pytest.fixture
+def address_stats_data() -> List[Dict[str, Any]]:
+    return [
+        {
+            "address": "0xa1B3bb7d2332383D96b7796B908fB7f7F3c2Be10",
+            "post": 10,
+            "aggregate": 5,
+            "store": 3,
+            "forget": 0,
+            "program": 2,
+            "instance": 1,
+            "total": 21,
+        },
+        {
+            "address": "0x51A58800b26AA1451aaA803d1746687cB88E0501",
+            "post": 15,
+            "aggregate": 8,
+            "store": 6,
+            "forget": 1,
+            "program": 3,
+            "instance": 2,
+            "total": 35,
+        },
+    ]
+
+
+@pytest.fixture
+def raw_address_stats_response(
+    address_stats_data,
+) -> Callable[[int], Dict[str, Any]]:
+    # Convert list of address stats to dict format as returned by API
+    data_dict = {}
+    if int(1) == 1:  # page 1
+        for item in address_stats_data:
+            address = item["address"]
+            data_dict[address] = {
+                "messages": item["total"],
+                "post": item["post"],
+                "aggregate": item["aggregate"],
+                "store": item["store"],
+                "forget": item["forget"],
+                "program": item["program"],
+                "instance": item["instance"],
+            }
+
+    return lambda page: {
+        "data": data_dict if int(page) == 1 else {},
+        "pagination_item": "addresses",
+        "pagination_page": int(page),
+        "pagination_per_page": max(len(address_stats_data), 20),
+        "pagination_total": len(address_stats_data) if page == 1 else 0,
+    }
+
+
 class MockResponse:
     def __init__(self, sync: bool):
         self.sync = sync
