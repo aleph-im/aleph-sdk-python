@@ -329,3 +329,48 @@ class AccountFilesFilter:
                 result[key] = value
 
         return result
+
+
+class ChainBalancesFilter:
+    """
+    A collection of query parameters for chain balances queries.
+
+    :param chains: Filter by specific blockchain chains
+    :param min_balance: Minimum balance required (must be >= 1)
+    """
+
+    chains: Optional[Iterable[Chain]]
+    min_balance: Optional[int]
+
+    def __init__(
+        self,
+        chains: Optional[Iterable[Chain]] = None,
+        min_balance: Optional[int] = None,
+    ):
+        self.chains = chains
+        self.min_balance = min_balance
+
+    def as_http_params(self) -> Dict[str, str]:
+        """Convert the filters into a dict that can be used by an `aiohttp` client
+        as `params` to build the HTTP query string.
+        """
+
+        partial_result = {
+            "chains": serialize_list(
+                [chain.value for chain in self.chains] if self.chains else None
+            ),
+            "min_balance": (
+                str(self.min_balance) if self.min_balance is not None else None
+            ),
+        }
+
+        # Ensure all values are strings.
+        result: Dict[str, str] = {}
+
+        # Drop empty values
+        for key, value in partial_result.items():
+            if value:
+                assert isinstance(value, str), f"Value must be a string: `{value}`"
+                result[key] = value
+
+        return result

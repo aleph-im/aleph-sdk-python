@@ -2,12 +2,13 @@ import unittest
 from datetime import datetime
 
 import pytest
-from aleph_message.models import MessagesResponse, MessageType
+from aleph_message.models import Chain, MessagesResponse, MessageType
 
 from aleph.sdk.exceptions import ForgottenMessageError
 from aleph.sdk.query.filters import (
     AccountFilesFilter,
     AddressesFilter,
+    ChainBalancesFilter,
     MessageFilter,
     PostFilter,
     SortByMessageType,
@@ -16,6 +17,7 @@ from aleph.sdk.query.filters import (
 from aleph.sdk.query.responses import (
     AccountFilesResponse,
     AddressStatsResponse,
+    ChainBalancesResponse,
     PostsResponse,
 )
 from tests.unit.conftest import make_mock_get_session
@@ -233,6 +235,45 @@ async def test_get_account_files_without_filter():
         assert len(response.files) == 1
         assert response.pagination_page == 1
         assert response.pagination_item == "files"
+
+
+@pytest.mark.asyncio
+async def test_get_chain_balances(raw_chain_balances_response, chain_balances_data):
+    """Test the get_chain_balances endpoint with filters applied."""
+    mock_session = make_mock_get_session(raw_chain_balances_response(1))
+    async with mock_session as session:
+        response: ChainBalancesResponse = await session.get_chain_balances(
+            page_size=100,
+            page=1,
+            filter=ChainBalancesFilter(
+                chains=[Chain.ETH, Chain.AVAX],
+                min_balance=100,
+            ),
+        )
+
+        balances = response.balances
+        assert len(balances) == 3
+        assert balances[0].address == chain_balances_data[0]["address"]
+        assert float(balances[0].balance) == chain_balances_data[0]["balance"]
+        assert balances[0].chain == Chain.ETH
+        assert response.pagination_item == "balances"
+        assert response.pagination_page == 1
+        assert response.pagination_total == 3
+
+
+@pytest.mark.asyncio
+async def test_get_chain_balances_without_filter(raw_chain_balances_response):
+    """Test the get_chain_balances endpoint without filters."""
+    mock_session = make_mock_get_session(raw_chain_balances_response(1))
+    async with mock_session as session:
+        response: ChainBalancesResponse = await session.get_chain_balances(
+            page_size=100,
+            page=1,
+        )
+
+        assert len(response.balances) >= 0
+        assert response.pagination_page == 1
+        assert response.pagination_item == "balances"
 
 
 if __name__ == "__main __":

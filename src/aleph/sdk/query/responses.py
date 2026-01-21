@@ -168,3 +168,26 @@ class AccountFilesResponse(PaginationResponse):
     pagination_item: str = "files"
 
     model_config = ConfigDict(extra="forbid")
+
+
+class AddressBalanceResponseItem(BaseModel):
+    """
+    A single balance entry for an address on a specific chain.
+    """
+
+    address: str = Field(description="The account address")
+    balance: Decimal = Field(description="Balance amount")
+    chain: Chain = Field(description="Blockchain the balance is on")
+
+    model_config = ConfigDict(extra="forbid")
+
+
+class ChainBalancesResponse(PaginationResponse):
+    """Response from an aleph.im node API on the path /api/v0/balances"""
+
+    balances: List[AddressBalanceResponseItem] = Field(
+        description="List of address balances across different chains"
+    )
+    pagination_item: str = "balances"
+
+    model_config = ConfigDict(extra="forbid")

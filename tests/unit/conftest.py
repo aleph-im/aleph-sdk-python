@@ -239,6 +239,43 @@ def address_files_data() -> Dict[str, Any]:
     }
 
 
+@pytest.fixture
+def chain_balances_data() -> List[Dict[str, Any]]:
+    """Return mock data representing chain balances."""
+    return [
+        {
+            "address": "0x1234567890123456789012345678901234567890",
+            "balance": 1000.5,
+            "chain": "ETH",
+        },
+        {
+            "address": "0xabcdefabcdefabcdefabcdefabcdefabcdefabcd",
+            "balance": 2500.75,
+            "chain": "ETH",
+        },
+        {
+            "address": "0x9876543210987654321098765432109876543210",
+            "balance": 500.0,
+            "chain": "AVAX",
+        },
+    ]
+
+
+@pytest.fixture
+def raw_chain_balances_response(
+    chain_balances_data: List[Dict[str, Any]],
+) -> Callable[[int], Dict[str, Any]]:
+    """Return a function that generates paginated chain balances API responses."""
+
+    return lambda page: {
+        "balances": chain_balances_data if int(page) == 1 else [],
+        "pagination_item": "balances",
+        "pagination_page": int(page),
+        "pagination_per_page": 100,
+        "pagination_total": len(chain_balances_data) if page == 1 else 0,
+    }
+
+
 class MockResponse:
     def __init__(self, sync: bool):
         self.sync = sync
