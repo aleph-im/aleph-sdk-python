@@ -52,9 +52,19 @@ from ..exceptions import (
     RemovedMessageError,
     ResourceNotFoundError,
 )
-from ..query.filters import BalanceFilter, MessageFilter, PostFilter
+from ..query.filters import (
+    AccountFilesFilter,
+    AddressesFilter,
+    BalanceFilter,
+    ChainBalancesFilter,
+    MessageFilter,
+    PostFilter,
+)
 from ..query.responses import (
+    AccountFilesResponse,
+    AddressStatsResponse,
     BalanceResponse,
+    ChainBalancesResponse,
     CreditsHistoryResponse,
     MessagesResponse,
     Post,
@@ -727,3 +737,97 @@ class AlephHttpClient(AlephClient):
             resp.raise_for_status()
             result = await resp.json()
             return BalanceResponse.model_validate(result)
+
+    async def get_chain_balances(
+        self,
+        page_size: int = 100,
+        page: int = 1,
+        filter: Optional[ChainBalancesFilter] = None,
+    ) -> ChainBalancesResponse:
+        """
+        Get balances across multiple addresses and chains.
+
+        :param page_size: Number of results per page (default 100)
+        :param page: Page number starting at 1
+        :param filter: Query parameters for filtering by chains and minimum balance
+        :return: Chain balances response with pagination
+        """
+        if not filter:
+            params = {
+                "page": str(page),
+                "pagination": str(page_size),
+            }
+        else:
+            params = filter.as_http_params()
+            params["page"] = str(page)
+            params["pagination"] = str(page_size)
+
+        async with self.http_session.get("/api/v0/balances", params=params) as resp:
+            resp.raise_for_status()
+            result = await resp.json()
+            return ChainBalancesResponse.model_validate(result)
+
+    async def get_address_stats(
+        self,
+        page_size: int = 200,
+        page: int = 1,
+        filter: Optional[AddressesFilter] = None,
+    ) -> AddressStatsResponse:
+        """
+        Get address statistics with optional filtering and sorting.
+
+        :param page_size: Number of results per page
+        :param page: Page number starting at 1
+        :param filter: Query parameters for filtering and sorting
+        :return: Address statistics response with pagination
+        """
+        if not filter:
+            params = {
+                "page": str(page),
+                "pagination": str(page_size),
+            }
+        else:
+            params = filter.as_http_params()
+            params["page"] = str(page)
+            params["pagination"] = str(page_size)
+
+        async with self.http_session.get(
+            "/api/v1/addresses/stats.json", params=params
+        ) as resp:
+            resp.raise_for_status()
+            result = await resp.json()
+            return AddressStatsResponse.model_validate(result)
+
+    async def get_account_files(
+        self,
+        address: str,
+        page_size: int = 100,
+        page: int = 1,
+        filter: Optional[AccountFilesFilter] = None,
+    ) -> AccountFilesResponse:
+        """
+        Get files stored by a specific address.
+
+        :param address: The account address to query files for
+        :param page_size: Number of results per page (default 100)
+        :param page: Page number starting at 1
+        :param filter: Query parameters for filtering and sorting
+        :return: Account files response with pagination
+        :raises aiohttp.ClientResponseError: If the address has no files (HTTP 404)
+        """
+        if not filter:
+            params = {
+                "page": str(page),
+                "pagination": str(page_size),
+            }
+        else:
+            params = filter.as_http_params()
+            params["page"] = str(page)
+            params["pagination"] = str(page_size)
+
+        async with self.http_session.get(
+            f"/api/v0/addresses/{address}/files", params=params
+        ) as resp:
+            resp.raise_for_status()
+            result = await resp.json()
+            return AccountFilesResponse.model_validate(result)
