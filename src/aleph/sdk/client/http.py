@@ -52,8 +52,9 @@ from ..exceptions import (
     RemovedMessageError,
     ResourceNotFoundError,
 )
-from ..query.filters import BalanceFilter, MessageFilter, PostFilter
+from ..query.filters import AddressesFilter, BalanceFilter, MessageFilter, PostFilter
 from ..query.responses import (
+    AddressStatsResponse,
     BalanceResponse,
     CreditsHistoryResponse,
     MessagesResponse,
@@ -727,3 +728,34 @@ class AlephHttpClient(AlephClient):
             resp.raise_for_status()
             result = await resp.json()
             return BalanceResponse.model_validate(result)
+
+    async def get_address_stats(
+        self,
+        page_size: int = 200,
+        page: int = 1,
+        filter: Optional[AddressesFilter] = None,
+    ) -> AddressStatsResponse:
+        """
+        Get address statistics with optional filtering and sorting.
+
+        :param page_size: Number of results per page
+        :param page: Page number starting at 1
+        :param filter: Query parameters for filtering and sorting
+        :return: Address statistics response with pagination
+        """
+        if not filter:
+            params = {
+                "page": str(page),
+                "pagination": str(page_size),
+            }
+        else:
+            params = filter.as_http_params()
+            params["page"] = str(page)
+            params["pagination"] = str(page_size)
+
+        async with self.http_session.get(
+            "/api/v1/addresses/stats.json", params=params
+        ) as resp:
+            resp.raise_for_status()
+            result = await resp.json()
+            return AddressStatsResponse.model_validate(result)

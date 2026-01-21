@@ -114,3 +114,28 @@ class BalanceResponse(BaseModel):
     details: Optional[Dict[str, Decimal]] = None
     locked_amount: Decimal
     credit_balance: int = 0
+
+
+class AddressStats(BaseModel):
+    """
+    Statistics for a single address showing message counts by type.
+    """
+
+    messages: int = Field(description="Total number of messages")
+    post: int = Field(description="Number of POST messages")
+    aggregate: int = Field(description="Number of AGGREGATE messages")
+    store: int = Field(description="Number of STORE messages")
+    forget: int = Field(description="Number of FORGET messages")
+    program: int = Field(description="Number of PROGRAM messages")
+    instance: int = Field(description="Number of INSTANCE messages")
+
+    model_config = ConfigDict(extra="forbid")
+
+
+class AddressStatsResponse(PaginationResponse):
+    """Response from an aleph.im node API on the path /api/v1/addresses/stats.json"""
+
+    data: Dict[str, AddressStats] = Field(
+        description="Dictionary mapping addresses to their statistics"
+    )
+    pagination_item: str = "addresses"

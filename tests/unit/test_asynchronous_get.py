@@ -5,8 +5,14 @@ import pytest
 from aleph_message.models import MessagesResponse, MessageType
 
 from aleph.sdk.exceptions import ForgottenMessageError
-from aleph.sdk.query.filters import MessageFilter, PostFilter
-from aleph.sdk.query.responses import PostsResponse
+from aleph.sdk.query.filters import (
+    AddressesFilter,
+    MessageFilter,
+    PostFilter,
+    SortByMessageType,
+    SortOrder,
+)
+from aleph.sdk.query.responses import AddressStatsResponse, PostsResponse
 from tests.unit.conftest import make_mock_get_session
 
 
@@ -122,6 +128,54 @@ async def test_get_message_error(rejected_message):
         assert error
         assert error["error_code"] == rejected_message["error_code"]
         assert error["details"] == rejected_message["details"]
+
+
+@pytest.mark.asyncio
+async def test_get_address_stats(raw_address_stats_response, address_stats_data):
+    mock_session = make_mock_get_session(raw_address_stats_response(1))
+    async with mock_session as session:
+        response: AddressStatsResponse = await session.get_address_stats(
+            page_size=20,
+            page=1,
+            filter=AddressesFilter(
+                address_contains="0xa1",
+                sort_by=SortByMessageType.TOTAL,
+                sort_order=SortOrder.DESCENDING,
+            ),
+        )
+
+        address_stats = response.data
+        assert len(address_stats) == 2
+
+        # Get the first address from the stats data
+        first_address = address_stats_data[0]["address"]
+        assert first_address in address_stats
+        assert address_stats[first_address].messages == address_stats_data[0]["total"]
+        assert address_stats[first_address].post == address_stats_data[0]["post"]
+        assert (
+            address_stats[first_address].aggregate == address_stats_data[0]["aggregate"]
+        )
+        assert address_stats[first_address].store == address_stats_data[0]["store"]
+        assert address_stats[first_address].forget == address_stats_data[0]["forget"]
+        assert address_stats[first_address].program == address_stats_data[0]["program"]
+        assert (
+            address_stats[first_address].instance == address_stats_data[0]["instance"]
+        )
+
+
+@pytest.mark.asyncio
+async def test_get_address_stats_without_filter(raw_address_stats_response):
+    mock_session = make_mock_get_session(raw_address_stats_response(1))
+    async with mock_session as session:
+        response: AddressStatsResponse = await session.get_address_stats(
+            page_size=20,
+            page=1,
+        )
+
+        address_stats = response.data
+        assert len(address_stats) == 2
+        assert response.pagination_page == 1
+        assert response.pagination_item == "addresses"
 
 
 if __name__ == "__main __":
