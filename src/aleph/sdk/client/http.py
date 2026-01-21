@@ -60,6 +60,7 @@ from ..query.filters import (
 >>>>>>> ceda020 (feature: new method in AlephHttpClient `get_account_files`)
     AddressesFilter,
     BalanceFilter,
+    ChainBalancesFilter,
     MessageFilter,
     PostFilter,
 <<<<<<< HEAD
@@ -72,6 +73,7 @@ from ..query.responses import (
     AddressStatsResponse,
     AggregatesResponse,
     BalanceResponse,
+    ChainBalancesResponse,
     CreditsHistoryResponse,
     CursorMessagesResponse,
     CursorPostsResponse,
@@ -895,6 +897,35 @@ class AlephHttpClient(AlephClient):
             resp.raise_for_status()
             result = await resp.json()
             return BalanceResponse.model_validate(result)
+
+    async def get_chain_balances(
+        self,
+        page_size: int = 100,
+        page: int = 1,
+        filter: Optional[ChainBalancesFilter] = None,
+    ) -> ChainBalancesResponse:
+        """
+        Get balances across multiple addresses and chains.
+
+        :param page_size: Number of results per page (default 100)
+        :param page: Page number starting at 1
+        :param filter: Query parameters for filtering by chains and minimum balance
+        :return: Chain balances response with pagination
+        """
+        if not filter:
+            params = {
+                "page": str(page),
+                "pagination": str(page_size),
+            }
+        else:
+            params = filter.as_http_params()
+            params["page"] = str(page)
+            params["pagination"] = str(page_size)
+
+        async with self.http_session.get("/api/v0/balances", params=params) as resp:
+            resp.raise_for_status()
+            result = await resp.json()
+            return ChainBalancesResponse.model_validate(result)
 
     async def get_address_stats(
         self,
