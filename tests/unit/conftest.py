@@ -211,6 +211,34 @@ def raw_address_stats_response(
     }
 
 
+@pytest.fixture
+def address_files_data() -> Dict[str, Any]:
+    return {
+        "address": "0xd463495a6FEaC9921FD0C3a595B81E7B2C02B24d",
+        "total_size": 2048000,
+        "files": [
+            {
+                "file_hash": "QmX1a2b3c4d5e6f7g8h9i0j1k2l3m4n5o6p7q8r9s0t1",
+                "size": 1024000,
+                "type": "file",
+                "created": "2024-01-15T10:30:00.000000",
+                "item_hash": "abc123def456",
+            },
+            {
+                "file_hash": "QmY9z8y7x6w5v4u3t2s1r0q9p8o7n6m5l4k3j2i1h0g9",
+                "size": 1024000,
+                "type": "directory",
+                "created": "2024-01-16T14:45:00.000000",
+                "item_hash": "xyz789uvw012",
+            },
+        ],
+        "pagination_page": 1,
+        "pagination_total": 2,
+        "pagination_per_page": 100,
+        "pagination_item": "files",
+    }
+
+
 class MockResponse:
     def __init__(self, sync: bool):
         self.sync = sync

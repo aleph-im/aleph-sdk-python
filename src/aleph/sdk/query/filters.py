@@ -33,6 +33,13 @@ class SortByMessageType(str, Enum):
     TOTAL = "total"
 
 
+class FileType(str, Enum):
+    """Supported file types"""
+
+    FILE = "file"
+    DIRECTORY = "directory"
+
+
 class MessageFilter:
     """
     A collection of filters that can be applied on message queries.
@@ -274,6 +281,42 @@ class AddressesFilter:
             "addressContains": self.address_contains,
             "sortBy": enum_as_str(self.sort_by),
             "sortOrder": enum_as_str(self.sort_order),
+        }
+
+        # Ensure all values are strings.
+        result: Dict[str, str] = {}
+
+        # Drop empty values
+        for key, value in partial_result.items():
+            if value:
+                assert isinstance(value, str), f"Value must be a string: `{value}`"
+                result[key] = value
+
+        return result
+
+
+class AccountFilesFilter:
+    """
+    A collection of query parameters for account files queries.
+
+    :param sort_order: Sort order (ascending or descending by creation date)
+    """
+
+    sort_order: Optional[SortOrder]
+
+    def __init__(
+        self,
+        sort_order: Optional[SortOrder] = None,
+    ):
+        self.sort_order = sort_order
+
+    def as_http_params(self) -> Dict[str, str]:
+        """Convert the filters into a dict that can be used by an `aiohttp` client
+        as `params` to build the HTTP query string.
+        """
+
+        partial_result = {
+            "sort_order": enum_as_str(self.sort_order),
         }
 
         # Ensure all values are strings.
