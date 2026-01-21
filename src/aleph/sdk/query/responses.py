@@ -13,6 +13,8 @@ from aleph_message.models import (
 )
 from pydantic import BaseModel, ConfigDict, Field
 
+from aleph.sdk.query.filters import FileType
+
 
 class Post(BaseModel):
     """
@@ -139,3 +141,30 @@ class AddressStatsResponse(PaginationResponse):
         description="Dictionary mapping addresses to their statistics"
     )
     pagination_item: str = "addresses"
+
+
+class AccountFilesResponseItem(BaseModel):
+    """
+    A single file entry in an account's file list.
+    """
+
+    file_hash: str = Field(description="Hash of the file content")
+    size: int = Field(description="Size of the file in bytes")
+    type: FileType = Field(description="Type of the file (FILE or DIRECTORY)")
+    created: dt.datetime = Field(description="Timestamp when the file was created")
+    item_hash: str = Field(description="Hash of the message that created this file")
+
+    model_config = ConfigDict(extra="forbid")
+
+
+class AccountFilesResponse(PaginationResponse):
+    """Response from an aleph.im node API on the path /api/v0/addresses/{address}/files"""
+
+    address: str = Field(description="The account address")
+    total_size: int = Field(description="Total size of all files in bytes")
+    files: List[AccountFilesResponseItem] = Field(
+        description="List of files owned by the address"
+    )
+    pagination_item: str = "files"
+
+    model_config = ConfigDict(extra="forbid")

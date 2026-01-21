@@ -6,13 +6,18 @@ from aleph_message.models import MessagesResponse, MessageType
 
 from aleph.sdk.exceptions import ForgottenMessageError
 from aleph.sdk.query.filters import (
+    AccountFilesFilter,
     AddressesFilter,
     MessageFilter,
     PostFilter,
     SortByMessageType,
     SortOrder,
 )
-from aleph.sdk.query.responses import AddressStatsResponse, PostsResponse
+from aleph.sdk.query.responses import (
+    AccountFilesResponse,
+    AddressStatsResponse,
+    PostsResponse,
+)
 from tests.unit.conftest import make_mock_get_session
 
 
@@ -176,6 +181,58 @@ async def test_get_address_stats_without_filter(raw_address_stats_response):
         assert len(address_stats) == 2
         assert response.pagination_page == 1
         assert response.pagination_item == "addresses"
+
+
+@pytest.mark.asyncio
+async def test_get_account_files(address_files_data):
+    mock_session = make_mock_get_session(address_files_data)
+    async with mock_session as session:
+        response: AccountFilesResponse = await session.get_account_files(
+            address="0xd463495a6FEaC9921FD0C3a595B81E7B2C02B24d",
+            page_size=100,
+            page=1,
+            filter=AccountFilesFilter(sort_order=SortOrder.DESCENDING),
+        )
+
+        files = response.files
+        assert len(files) >= 1
+        assert response.address
+        assert response.total_size >= 0
+        assert response.pagination_item == "files"
+
+
+@pytest.mark.asyncio
+async def test_get_account_files_without_filter():
+    address = "0xd463495a6FEaC9921FD0C3a595B81E7B2C02B24d"
+    files_data = {
+        "address": address,
+        "total_size": 1024000,
+        "files": [
+            {
+                "file_hash": "QmTest",
+                "size": 1024000,
+                "type": "file",
+                "created": "2024-01-15T10:30:00",
+                "item_hash": "testitem",
+            }
+        ],
+        "pagination_page": 1,
+        "pagination_total": 1,
+        "pagination_per_page": 100,
+        "pagination_item": "files",
+    }
+
+    mock_session = make_mock_get_session(files_data)
+    async with mock_session as session:
+        response: AccountFilesResponse = await session.get_account_files(
+            address=address,
+            page_size=100,
+            page=1,
+        )
+
+        assert len(response.files) == 1
+        assert response.pagination_page == 1
+        assert response.pagination_item == "files"
 
 
 if __name__ == "__main __":
