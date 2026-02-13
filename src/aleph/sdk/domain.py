@@ -5,6 +5,7 @@ from typing import Any, AsyncIterable, Dict, Iterable, List, NewType, Optional, 
 from urllib.parse import urlparse
 
 import aiodns
+import tldextract
 from pydantic import BaseModel, HttpUrl
 
 from .conf import settings
@@ -318,5 +319,7 @@ class DomainValidator:
 
         return dns_rules
 
-    def is_root_domain(self, hostname: Hostname) -> bool:
-        return len(hostname.split(".")) == 2
+    @staticmethod
+    def is_root_domain(hostname: Hostname) -> bool:
+        extracted = tldextract.extract(hostname)
+        return bool(extracted.domain) and not extracted.subdomain
