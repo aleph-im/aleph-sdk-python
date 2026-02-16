@@ -388,6 +388,7 @@ class AuthenticatedAlephClient(AlephClient):
         extra_fields: Optional[dict] = None,
         channel: Optional[str] = settings.DEFAULT_CHANNEL,
         sync: bool = False,
+        payment: Optional[Payment] = None,
     ) -> Tuple[AlephMessage, MessageStatus]:
         """
         Create a STORE message to store a file on the aleph.im network.
@@ -404,6 +405,7 @@ class AuthenticatedAlephClient(AlephClient):
         :param extra_fields: Extra fields to add to the STORE message (Default: None)
         :param channel: Channel to post the message to (Default: "TEST")
         :param sync: If true, waits for the message to be processed by the API server (Default: False)
+        :param payment: Payment method used to pay for storage (Default: hold on ETH)
         """
         raise NotImplementedError(
             "Did you mean to import `AuthenticatedAlephHttpClient`?"
