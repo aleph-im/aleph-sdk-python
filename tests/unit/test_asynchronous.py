@@ -293,3 +293,72 @@ async def test_create_instance_insufficient_funds_error(
                     receiver=None,
                 ),
             )
+
+
+@pytest.mark.asyncio
+async def test_create_instance_with_credit_payment(mock_session_with_post_success):
+    """Test that an instance can be created with credit payment."""
+    async with mock_session_with_post_success as session:
+        instance_message, message_status = await session.create_instance(
+            rootfs="cafecafecafecafecafecafecafecafecafecafecafecafecafecafecafecafe",
+            rootfs_size=1,
+            channel="TEST",
+            metadata={"tags": ["test"]},
+            payment=Payment(
+                chain=Chain.ETH,
+                receiver=None,
+                type=PaymentType.credit,
+            ),
+        )
+
+    assert instance_message.content.payment.type == PaymentType.credit
+    assert instance_message.content.payment.chain == Chain.ETH
+    assert instance_message.content.payment.receiver is None
+
+    assert mock_session_with_post_success.http_session.post.assert_called_once
+    assert isinstance(instance_message, InstanceMessage)
+
+
+@pytest.mark.asyncio
+async def test_create_store_with_credit_payment(mock_session_with_post_success):
+    """Test that a store message can be created with credit payment."""
+    mock_ipfs_push_file = AsyncMock()
+    mock_ipfs_push_file.return_value = "QmRTV3h1jLcACW4FRfdisokkQAk4E4qDhUzGpgdrd4JAFy"
+
+    mock_session_with_post_success.ipfs_push_file = mock_ipfs_push_file
+
+    async with mock_session_with_post_success as session:
+        store_message, message_status = await session.create_store(
+            file_content=b"HELLO",
+            channel="TEST",
+            storage_engine=StorageEnum.ipfs,
+            payment=Payment(
+                chain=Chain.ETH,
+                receiver=None,
+                type=PaymentType.credit,
+            ),
+        )
+
+    assert store_message.content.payment.type == PaymentType.credit
+    assert store_message.content.payment.chain == Chain.ETH
+    assert isinstance(store_message, StoreMessage)
+
+
+@pytest.mark.asyncio
+async def test_create_store_default_payment(mock_session_with_post_success):
+    """Test that a store message defaults to hold payment on ETH."""
+    mock_ipfs_push_file = AsyncMock()
+    mock_ipfs_push_file.return_value = "QmRTV3h1jLcACW4FRfdisokkQAk4E4qDhUzGpgdrd4JAFy"
+
+    mock_session_with_post_success.ipfs_push_file = mock_ipfs_push_file
+
+    async with mock_session_with_post_success as session:
+        store_message, message_status = await session.create_store(
+            file_content=b"HELLO",
+            channel="TEST",
+            storage_engine=StorageEnum.ipfs,
+        )
+
+    assert store_message.content.payment.type == PaymentType.hold
+    assert store_message.content.payment.chain == Chain.ETH
+    assert isinstance(store_message, StoreMessage)
