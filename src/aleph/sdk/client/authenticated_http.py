@@ -12,6 +12,7 @@ from aleph_message.models import (
     AggregateContent,
     AggregateMessage,
     AlephMessage,
+    Chain,
     ForgetContent,
     ForgetMessage,
     InstanceMessage,
@@ -24,7 +25,7 @@ from aleph_message.models import (
     StoreContent,
     StoreMessage,
 )
-from aleph_message.models.execution.base import Encoding, Payment
+from aleph_message.models.execution.base import Encoding, Payment, PaymentType
 from aleph_message.models.execution.environment import (
     HostRequirements,
     HypervisorType,
@@ -350,8 +351,12 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
         extra_fields: Optional[dict] = None,
         channel: Optional[str] = settings.DEFAULT_CHANNEL,
         sync: bool = False,
+        payment: Optional[Payment] = None,
     ) -> Tuple[StoreMessage, MessageStatus]:
         address = address or settings.ADDRESS_TO_USE or self.account.get_address()
+        payment = payment or Payment(
+            chain=Chain.ETH, type=PaymentType.hold, receiver=None
+        )
 
         extra_fields = extra_fields or {}
 
@@ -374,6 +379,7 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
                     extra_fields=extra_fields,
                     channel=channel,
                     sync=sync,
+                    payment=payment,
                 )
             elif storage_engine == StorageEnum.ipfs:
                 # We do not support authenticated upload for IPFS yet. Use the legacy method
@@ -397,6 +403,7 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
             "item_type": storage_engine,
             "item_hash": file_hash,
             "time": time.time(),
+            "payment": payment,
         }
         if extra_fields is not None:
             values.update(extra_fields)
@@ -660,6 +667,7 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
         extra_fields: Optional[dict] = None,
         channel: Optional[str] = settings.DEFAULT_CHANNEL,
         sync: bool = False,
+        payment: Optional[Payment] = None,
     ) -> Tuple[StoreMessage, MessageStatus]:
         file_hash = hashlib.sha256(file_content).hexdigest()
         if magic and guess_mime_type:
@@ -674,6 +682,7 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
             item_hash=ItemHash(file_hash),
             mime_type=mime_type,  # type: ignore
             time=time.time(),
+            payment=payment,
             **(extra_fields or {}),
         )
         message, _ = await self._storage_push_file_with_message(
