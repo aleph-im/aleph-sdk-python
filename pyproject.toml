@@ -42,7 +42,7 @@ dependencies = [
   "ledgereth>=0.10",
   "pydantic>=2,<3",
   "pydantic-settings>=2",
-  "pynacl==1.5",                           # Needed now as default with _load_account changement
+  "pynacl==1.6.1",                           # Needed now as default with _load_account changement
   "python-magic",
   "typing-extensions",
   "web3>=7.10",
