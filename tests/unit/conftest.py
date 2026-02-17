@@ -157,6 +157,125 @@ def raw_posts_response(json_post) -> Callable[[int], Dict[str, Any]]:
     }
 
 
+@pytest.fixture
+def address_stats_data() -> List[Dict[str, Any]]:
+    return [
+        {
+            "address": "0xa1B3bb7d2332383D96b7796B908fB7f7F3c2Be10",
+            "post": 10,
+            "aggregate": 5,
+            "store": 3,
+            "forget": 0,
+            "program": 2,
+            "instance": 1,
+            "total": 21,
+        },
+        {
+            "address": "0x51A58800b26AA1451aaA803d1746687cB88E0501",
+            "post": 15,
+            "aggregate": 8,
+            "store": 6,
+            "forget": 1,
+            "program": 3,
+            "instance": 2,
+            "total": 35,
+        },
+    ]
+
+
+@pytest.fixture
+def raw_address_stats_response(
+    address_stats_data,
+) -> Callable[[int], Dict[str, Any]]:
+    # Convert list of address stats to dict format as returned by API
+    data_dict = {}
+    if int(1) == 1:  # page 1
+        for item in address_stats_data:
+            address = item["address"]
+            data_dict[address] = {
+                "messages": item["total"],
+                "post": item["post"],
+                "aggregate": item["aggregate"],
+                "store": item["store"],
+                "forget": item["forget"],
+                "program": item["program"],
+                "instance": item["instance"],
+            }
+
+    return lambda page: {
+        "data": data_dict if int(page) == 1 else {},
+        "pagination_item": "addresses",
+        "pagination_page": int(page),
+        "pagination_per_page": max(len(address_stats_data), 20),
+        "pagination_total": len(address_stats_data) if page == 1 else 0,
+    }
+
+
+@pytest.fixture
+def address_files_data() -> Dict[str, Any]:
+    return {
+        "address": "0xd463495a6FEaC9921FD0C3a595B81E7B2C02B24d",
+        "total_size": 2048000,
+        "files": [
+            {
+                "file_hash": "QmX1a2b3c4d5e6f7g8h9i0j1k2l3m4n5o6p7q8r9s0t1",
+                "size": 1024000,
+                "type": "file",
+                "created": "2024-01-15T10:30:00.000000",
+                "item_hash": "abc123def456",
+            },
+            {
+                "file_hash": "QmY9z8y7x6w5v4u3t2s1r0q9p8o7n6m5l4k3j2i1h0g9",
+                "size": 1024000,
+                "type": "directory",
+                "created": "2024-01-16T14:45:00.000000",
+                "item_hash": "xyz789uvw012",
+            },
+        ],
+        "pagination_page": 1,
+        "pagination_total": 2,
+        "pagination_per_page": 100,
+        "pagination_item": "files",
+    }
+
+
+@pytest.fixture
+def chain_balances_data() -> List[Dict[str, Any]]:
+    """Return mock data representing chain balances."""
+    return [
+        {
+            "address": "0x1234567890123456789012345678901234567890",
+            "balance": 1000.5,
+            "chain": "ETH",
+        },
+        {
+            "address": "0xabcdefabcdefabcdefabcdefabcdefabcdefabcd",
+            "balance": 2500.75,
+            "chain": "ETH",
+        },
+        {
+            "address": "0x9876543210987654321098765432109876543210",
+            "balance": 500.0,
+            "chain": "AVAX",
+        },
+    ]
+
+
+@pytest.fixture
+def raw_chain_balances_response(
+    chain_balances_data: List[Dict[str, Any]],
+) -> Callable[[int], Dict[str, Any]]:
+    """Return a function that generates paginated chain balances API responses."""
+
+    return lambda page: {
+        "balances": chain_balances_data if int(page) == 1 else [],
+        "pagination_item": "balances",
+        "pagination_page": int(page),
+        "pagination_per_page": 100,
+        "pagination_total": len(chain_balances_data) if page == 1 else 0,
+    }
+
+
 class MockResponse:
     def __init__(self, sync: bool):
         self.sync = sync
