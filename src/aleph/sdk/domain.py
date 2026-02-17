@@ -5,6 +5,7 @@ from typing import Any, AsyncIterable, Dict, Iterable, List, NewType, Optional, 
 from urllib.parse import urlparse
 
 import aiodns
+import tldextract
 from pydantic import BaseModel, HttpUrl
 
 from .conf import settings
@@ -198,6 +199,13 @@ class DomainValidator:
             record_type = dns_rule.dns["type"]
             record_value = dns_rule.dns["value"]
 
+            if record_type == "alias":
+                # ALIAS records cannot be reliably validated via DNS since the
+                # provider resolves them to A records asynchronously. Consider
+                # the rule as valid and trust the user's configuration.
+                status[dns_rule.name] = True
+                continue
+
             try:
                 entries = await resolver.query(record_name, record_type.upper())
             except aiodns.error.DNSError:
@@ -249,19 +257,35 @@ class DomainValidator:
         elif target == TargetType.INSTANCE:
             cname_value = f"{hostname}.{settings.DNS_INSTANCE_DOMAIN}"
 
-        # cname rule
-        dns_rules.append(
-            DNSRule(
-                name="cname",
-                dns={
-                    "type": "cname",
-                    "name": hostname,
-                    "value": cname_value,
-                },
-                info=f"Create a CNAME record for {hostname} with value {cname_value}",
-                on_error=f"CNAME record not found: {hostname}",
+        # cname or alias rule
+        if self.is_root_domain(hostname):
+            record_type = "alias"
+            dns_rules.append(
+                DNSRule(
+                    name=record_type,
+                    dns={
+                        "type": record_type,
+                        "name": hostname,
+                        "value": cname_value,
+                    },
+                    info=f"Create an ALIAS record for {hostname} with value {cname_value}",
+                    on_error=f"ALIAS record not found: {hostname}",
+                )
             )
-        )
+        else:
+            record_type = "cname"
+            dns_rules.append(
+                DNSRule(
+                    name=record_type,
+                    dns={
+                        "type": record_type,
+                        "name": hostname,
+                        "value": cname_value,
+                    },
+                    info=f"Create a CNAME record for {hostname} with value {cname_value}",
+                    on_error=f"CNAME record not found: {hostname}",
+                )
+            )
 
         if target == TargetType.IPFS:
             # ipfs rule
@@ -294,3 +318,8 @@ class DomainValidator:
             )
 
         return dns_rules
+
+    @staticmethod
+    def is_root_domain(hostname: Hostname) -> bool:
+        extracted = tldextract.extract(hostname)
+        return bool(extracted.domain) and not extracted.subdomain
