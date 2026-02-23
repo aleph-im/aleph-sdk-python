@@ -123,9 +123,12 @@ class VmClient:
         )
 
         try:
-            async with self.session.request(
-                method=method, url=url, headers=header, params=params
-            ) as response:
+            request_kwargs: Dict[str, Any] = {
+                "method": method, "url": url, "headers": header,
+            }
+            if params:
+                request_kwargs["params"] = params
+            async with self.session.request(**request_kwargs) as response:
                 response_text = await response.text()
                 return response.status, response_text
 
