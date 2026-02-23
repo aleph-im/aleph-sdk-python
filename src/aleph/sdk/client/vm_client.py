@@ -124,7 +124,9 @@ class VmClient:
 
         try:
             request_kwargs: Dict[str, Any] = {
-                "method": method, "url": url, "headers": header,
+                "method": method,
+                "url": url,
+                "headers": header,
             }
             if params:
                 request_kwargs["params"] = params
