@@ -1,3 +1,4 @@
+import re
 from urllib.parse import urlparse
 
 import aiohttp
@@ -8,7 +9,7 @@ from aleph_message.models import ItemHash
 from yarl import URL
 
 from aleph.sdk.chains.ethereum import ETHAccount
-from aleph.sdk.client.vm_client import VmClient
+from aleph.sdk.client.vm_client import VmClient, VmOperation
 
 from .aleph_vm_authentication import (
     SignedOperation,
@@ -295,3 +296,236 @@ async def test_vm_client_generate_correct_authentication_headers():
     address = verify_signed_operation(signed_operation, signed_pubkey)
 
     assert vm_client.account.get_address() == address
+
+
+@pytest.mark.asyncio
+async def test_reinstall_instance():
+    account = ETHAccount(private_key=b"0x" + b"1" * 30)
+    vm_id = ItemHash("cafecafecafecafecafecafecafecafecafecafecafecafecafecafecafecafe")
+
+    with aioresponses() as m:
+        vm_client = VmClient(
+            account=account,
+            node_url="http://localhost",
+            session=aiohttp.ClientSession(),
+        )
+        m.post(
+            f"http://localhost/control/machine/{vm_id}/reinstall",
+            status=200,
+            payload="ok",
+        )
+
+        status, response_text = await vm_client.reinstall_instance(vm_id)
+        assert status == 200
+        await vm_client.session.close()
+
+
+@pytest.mark.asyncio
+async def test_reinstall_instance_keep_volumes():
+    account = ETHAccount(private_key=b"0x" + b"1" * 30)
+    vm_id = ItemHash("cafecafecafecafecafecafecafecafecafecafecafecafecafecafecafecafe")
+
+    with aioresponses() as m:
+        vm_client = VmClient(
+            account=account,
+            node_url="http://localhost",
+            session=aiohttp.ClientSession(),
+        )
+        m.post(
+            re.compile(rf"http://localhost/control/machine/{vm_id}/reinstall"),
+            status=200,
+            payload="ok",
+        )
+
+        status, _ = await vm_client.reinstall_instance(vm_id, erase_volumes=False)
+        assert status == 200
+        await vm_client.session.close()
+
+
+@pytest.mark.asyncio
+async def test_create_backup():
+    account = ETHAccount(private_key=b"0x" + b"1" * 30)
+    vm_id = ItemHash("cafecafecafecafecafecafecafecafecafecafecafecafecafecafecafecafe")
+
+    with aioresponses() as m:
+        vm_client = VmClient(
+            account=account,
+            node_url="http://localhost",
+            session=aiohttp.ClientSession(),
+        )
+        m.post(
+            f"http://localhost/control/machine/{vm_id}/backup",
+            status=200,
+            payload="backup_created",
+        )
+
+        status, response_text = await vm_client.create_backup(vm_id)
+        assert status == 200
+        await vm_client.session.close()
+
+
+@pytest.mark.asyncio
+async def test_create_backup_with_options():
+    account = ETHAccount(private_key=b"0x" + b"1" * 30)
+    vm_id = ItemHash("cafecafecafecafecafecafecafecafecafecafecafecafecafecafecafecafe")
+
+    with aioresponses() as m:
+        vm_client = VmClient(
+            account=account,
+            node_url="http://localhost",
+            session=aiohttp.ClientSession(),
+        )
+        m.post(
+            re.compile(rf"http://localhost/control/machine/{vm_id}/backup"),
+            status=200,
+            payload="backup_created",
+        )
+
+        status, _ = await vm_client.create_backup(
+            vm_id, include_volumes=True, skip_fsfreeze=True
+        )
+        assert status == 200
+        await vm_client.session.close()
+
+
+@pytest.mark.asyncio
+async def test_get_backup():
+    account = ETHAccount(private_key=b"0x" + b"1" * 30)
+    vm_id = ItemHash("cafecafecafecafecafecafecafecafecafecafecafecafecafecafecafecafe")
+
+    with aioresponses() as m:
+        vm_client = VmClient(
+            account=account,
+            node_url="http://localhost",
+            session=aiohttp.ClientSession(),
+        )
+        m.get(
+            f"http://localhost/control/machine/{vm_id}/backup",
+            status=200,
+            payload={"backups": []},
+        )
+
+        status, response_text = await vm_client.get_backup(vm_id)
+        assert status == 200
+        await vm_client.session.close()
+
+
+@pytest.mark.asyncio
+async def test_delete_backup():
+    account = ETHAccount(private_key=b"0x" + b"1" * 30)
+    vm_id = ItemHash("cafecafecafecafecafecafecafecafecafecafecafecafecafecafecafecafe")
+    backup_id = "abc123"
+
+    with aioresponses() as m:
+        vm_client = VmClient(
+            account=account,
+            node_url="http://localhost",
+            session=aiohttp.ClientSession(),
+        )
+        m.delete(
+            f"http://localhost/control/machine/{vm_id}/backup/{backup_id}",
+            status=200,
+            payload="deleted",
+        )
+
+        status, response_text = await vm_client.delete_backup(vm_id, backup_id)
+        assert status == 200
+        await vm_client.session.close()
+
+
+@pytest.mark.asyncio
+async def test_delete_backup_invalid_id():
+    account = ETHAccount(private_key=b"0x" + b"1" * 30)
+    vm_id = ItemHash("cafecafecafecafecafecafecafecafecafecafecafecafecafecafecafecafe")
+
+    vm_client = VmClient(
+        account=account,
+        node_url="http://localhost",
+        session=aiohttp.ClientSession(),
+    )
+
+    with pytest.raises(ValueError, match="Invalid backup_id"):
+        await vm_client.delete_backup(vm_id, "../etc/passwd")
+
+    with pytest.raises(ValueError, match="Invalid backup_id"):
+        await vm_client.delete_backup(vm_id, "id/with/slashes")
+
+    await vm_client.session.close()
+
+
+@pytest.mark.asyncio
+async def test_get_restore_endpoint():
+    account = ETHAccount(private_key=b"0x" + b"1" * 30)
+    vm_id = ItemHash("cafecafecafecafecafecafecafecafecafecafecafecafecafecafecafecafe")
+
+    vm_client = VmClient(
+        account=account,
+        node_url="http://localhost",
+        session=aiohttp.ClientSession(),
+    )
+
+    url, headers = await vm_client.get_restore_endpoint(vm_id)
+    assert f"/control/machine/{vm_id}/restore" in url
+    assert "X-SignedPubKey" in headers
+    assert "X-SignedOperation" in headers
+    await vm_client.session.close()
+
+
+@pytest.mark.asyncio
+async def test_restore_from_volume():
+    account = ETHAccount(private_key=b"0x" + b"1" * 30)
+    vm_id = ItemHash("cafecafecafecafecafecafecafecafecafecafecafecafecafecafecafecafe")
+
+    with aioresponses() as m:
+        vm_client = VmClient(
+            account=account,
+            node_url="http://localhost",
+            session=aiohttp.ClientSession(),
+        )
+        m.post(
+            f"http://localhost/control/machine/{vm_id}/restore",
+            status=200,
+            payload="restored",
+        )
+
+        status, response_text = await vm_client.restore_from_volume(
+            vm_id, "volume_hash_abc123"
+        )
+        assert status == 200
+        await vm_client.session.close()
+
+
+@pytest.mark.asyncio
+async def test_restore_from_file(tmp_path):
+    account = ETHAccount(private_key=b"0x" + b"1" * 30)
+    vm_id = ItemHash("cafecafecafecafecafecafecafecafecafecafecafecafecafecafecafecafe")
+
+    rootfs = tmp_path / "rootfs.img"
+    rootfs.write_bytes(b"fake rootfs content")
+
+    with aioresponses() as m:
+        vm_client = VmClient(
+            account=account,
+            node_url="http://localhost",
+            session=aiohttp.ClientSession(),
+        )
+        m.post(
+            f"http://localhost/control/machine/{vm_id}/restore",
+            status=200,
+            payload="restored",
+        )
+
+        status, response_text = await vm_client.restore_from_file(vm_id, rootfs)
+        assert status == 200
+        await vm_client.session.close()
+
+
+def test_vm_operation_enum_values():
+    assert VmOperation.STOP == "stop"
+    assert VmOperation.REBOOT == "reboot"
+    assert VmOperation.ERASE == "erase"
+    assert VmOperation.BACKUP == "backup"
+    assert VmOperation.RESTORE == "restore"
+    assert VmOperation.REINSTALL == "reinstall"
+    assert VmOperation.EXPIRE == "expire"
+    assert VmOperation.STREAM_LOGS == "stream_logs"

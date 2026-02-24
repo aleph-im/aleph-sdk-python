@@ -1,8 +1,10 @@
 import datetime
 import json
 import logging
+import re
+from enum import Enum
 from pathlib import Path
-from typing import Any, AsyncGenerator, Dict, List, Optional, Tuple
+from typing import Any, AsyncGenerator, Dict, List, Optional, Tuple, Union
 from urllib.parse import urlparse
 
 import aiohttp
@@ -20,6 +22,22 @@ from aleph.sdk.utils import (
 )
 
 logger = logging.getLogger(__name__)
+
+_BACKUP_ID_RE = re.compile(r"^[a-zA-Z0-9_-]+$")
+
+
+class VmOperation(str, Enum):
+    STOP = "stop"
+    REBOOT = "reboot"
+    ERASE = "erase"
+    BACKUP = "backup"
+    RESTORE = "restore"
+    REINSTALL = "reinstall"
+    EXPIRE = "expire"
+    STREAM_LOGS = "stream_logs"
+
+    def __str__(self) -> str:
+        return self.value
 
 
 class VmClient:
@@ -112,12 +130,8 @@ class VmClient:
         operation: str,
         method: str = "POST",
         params: Optional[Dict[str, str]] = None,
+        json_data: Optional[Dict[str, Any]] = None,
     ) -> Tuple[Optional[int], str]:
-        if not self.pubkey_signature_header:
-            self.pubkey_signature_header = (
-                await self._generate_pubkey_signature_header()
-            )
-
         url, header = await self._generate_header(
             vm_id=vm_id, operation=operation, method=method
         )
@@ -130,6 +144,8 @@ class VmClient:
             }
             if params:
                 request_kwargs["params"] = params
+            if json_data is not None:
+                request_kwargs["json"] = json_data
             async with self.session.request(**request_kwargs) as response:
                 response_text = await response.text()
                 return response.status, response_text
@@ -149,11 +165,6 @@ class VmClient:
         """
 
         async def authenticated_request():
-            if not self.pubkey_signature_header:
-                self.pubkey_signature_header = (
-                    await self._generate_pubkey_signature_header()
-                )
-
             url, header = await self._generate_header(
                 vm_id=vm_id, operation=operation, method=method
             )
@@ -171,7 +182,7 @@ class VmClient:
             )
 
         payload = create_vm_control_payload(
-            vm_id, "stream_logs", method="get", domain=self.node_domain
+            vm_id, VmOperation.STREAM_LOGS, method="get", domain=self.node_domain
         )
         signed_operation = sign_vm_control_payload(payload, self.ephemeral_key)
         path = payload["path"]
@@ -196,92 +207,87 @@ class VmClient:
         return await self.notify_allocation(vm_id)
 
     async def stop_instance(self, vm_id: ItemHash) -> Tuple[Optional[int], str]:
-        return await self.perform_operation(vm_id, "stop")
+        return await self.perform_operation(vm_id, VmOperation.STOP)
 
     async def reboot_instance(self, vm_id: ItemHash) -> Tuple[Optional[int], str]:
-        return await self.perform_operation(vm_id, "reboot")
+        return await self.perform_operation(vm_id, VmOperation.REBOOT)
 
     async def erase_instance(self, vm_id: ItemHash) -> Tuple[Optional[int], str]:
-        return await self.perform_operation(vm_id, "erase")
+        return await self.perform_operation(vm_id, VmOperation.ERASE)
 
     async def reinstall_instance(
         self, vm_id: ItemHash, erase_volumes: bool = True
     ) -> Tuple[Optional[int], str]:
         params = None if erase_volumes else {"erase_volumes": "false"}
-        return await self.perform_operation(vm_id, "reinstall", params=params)
+        return await self.perform_operation(
+            vm_id, VmOperation.REINSTALL, params=params
+        )
 
     async def create_backup(
         self,
         vm_id: ItemHash,
         include_volumes: bool = False,
         skip_fsfreeze: bool = False,
-        run_async: bool = False,
     ) -> Tuple[Optional[int], str]:
         params: Dict[str, str] = {}
-        if run_async:
-            params["async"] = "true"
         if include_volumes:
             params["include_volumes"] = "true"
         if skip_fsfreeze:
             params["skip_fsfreeze"] = "true"
-        return await self.perform_operation(vm_id, "backup", params=params or None)
+        return await self.perform_operation(
+            vm_id, VmOperation.BACKUP, params=params
+        )
 
     async def get_backup(self, vm_id: ItemHash) -> Tuple[Optional[int], str]:
-        return await self.perform_operation(vm_id, "backup", method="GET")
+        return await self.perform_operation(
+            vm_id, VmOperation.BACKUP, method="GET"
+        )
 
     async def delete_backup(
         self, vm_id: ItemHash, backup_id: str
     ) -> Tuple[Optional[int], str]:
-        if not self.pubkey_signature_header:
-            self.pubkey_signature_header = (
-                await self._generate_pubkey_signature_header()
+        if not _BACKUP_ID_RE.match(backup_id):
+            raise ValueError(
+                f"Invalid backup_id {backup_id!r}: "
+                "must contain only alphanumeric characters, hyphens, or underscores"
             )
-        url, header = await self._generate_header(
-            vm_id=vm_id, operation=f"backup/{backup_id}", method="DELETE"
+        return await self.perform_operation(
+            vm_id, f"backup/{backup_id}", method="DELETE"
         )
-        try:
-            async with self.session.delete(url, headers=header) as response:
-                text = await response.text()
-                return response.status, text
-        except aiohttp.ClientError as e:
-            logger.error(f"HTTP error during backup delete: {str(e)}")
-            return None, str(e)
 
-    async def get_restore_endpoint(self, vm_id: ItemHash) -> Tuple[str, Dict[str, str]]:
+    async def get_restore_endpoint(
+        self, vm_id: ItemHash
+    ) -> Tuple[str, Dict[str, str]]:
         """Return authenticated (url, headers) for a restore POST.
 
         Use this when you need control over the upload (e.g. progress
         tracking). For a simple restore, use restore_from_file instead.
         """
-        if not self.pubkey_signature_header:
-            self.pubkey_signature_header = (
-                await self._generate_pubkey_signature_header()
-            )
         return await self._generate_header(
-            vm_id=vm_id, operation="restore", method="POST"
+            vm_id=vm_id, operation=VmOperation.RESTORE, method="POST"
         )
 
     async def restore_from_file(
-        self, vm_id: ItemHash, rootfs_path: str
+        self, vm_id: ItemHash, rootfs_path: Union[str, Path]
     ) -> Tuple[Optional[int], str]:
-        if not self.pubkey_signature_header:
-            self.pubkey_signature_header = (
-                await self._generate_pubkey_signature_header()
-            )
         url, header = await self._generate_header(
-            vm_id=vm_id, operation="restore", method="POST"
+            vm_id=vm_id, operation=VmOperation.RESTORE, method="POST"
         )
-        data = aiohttp.FormData()
-        data.add_field(
-            "rootfs",
-            open(rootfs_path, "rb"),
-            filename=Path(rootfs_path).name,
-            content_type="application/octet-stream",
-        )
+        rootfs_path = Path(rootfs_path)
         try:
-            async with self.session.post(url, headers=header, data=data) as response:
-                text = await response.text()
-                return response.status, text
+            with open(rootfs_path, "rb") as f:
+                data = aiohttp.FormData()
+                data.add_field(
+                    "rootfs",
+                    f,
+                    filename=rootfs_path.name,
+                    content_type="application/octet-stream",
+                )
+                async with self.session.post(
+                    url, headers=header, data=data
+                ) as response:
+                    text = await response.text()
+                    return response.status, text
         except aiohttp.ClientError as e:
             logger.error(f"HTTP error during restore: {str(e)}")
             return None, str(e)
@@ -289,26 +295,14 @@ class VmClient:
     async def restore_from_volume(
         self, vm_id: ItemHash, volume_ref: str
     ) -> Tuple[Optional[int], str]:
-        if not self.pubkey_signature_header:
-            self.pubkey_signature_header = (
-                await self._generate_pubkey_signature_header()
-            )
-        url, header = await self._generate_header(
-            vm_id=vm_id, operation="restore", method="POST"
+        return await self.perform_operation(
+            vm_id,
+            VmOperation.RESTORE,
+            json_data={"volume_ref": volume_ref},
         )
-        header["Content-Type"] = "application/json"
-        try:
-            async with self.session.post(
-                url, headers=header, json={"volume_ref": volume_ref}
-            ) as response:
-                text = await response.text()
-                return response.status, text
-        except aiohttp.ClientError as e:
-            logger.error(f"HTTP error during restore: {str(e)}")
-            return None, str(e)
 
     async def expire_instance(self, vm_id: ItemHash) -> Tuple[Optional[int], str]:
-        return await self.perform_operation(vm_id, "expire")
+        return await self.perform_operation(vm_id, VmOperation.EXPIRE)
 
     async def notify_allocation(self, vm_id: ItemHash) -> Tuple[int, str]:
         json_data = {"instance": vm_id}
