@@ -13,6 +13,8 @@ from aleph_message.models import (
 )
 from pydantic import BaseModel, ConfigDict, Field
 
+from aleph.sdk.query.filters import FileType
+
 
 class Post(BaseModel):
     """
@@ -114,3 +116,78 @@ class BalanceResponse(BaseModel):
     details: Optional[Dict[str, Decimal]] = None
     locked_amount: Decimal
     credit_balance: int = 0
+
+
+class AddressStats(BaseModel):
+    """
+    Statistics for a single address showing message counts by type.
+    """
+
+    messages: int = Field(description="Total number of messages")
+    post: int = Field(description="Number of POST messages")
+    aggregate: int = Field(description="Number of AGGREGATE messages")
+    store: int = Field(description="Number of STORE messages")
+    forget: int = Field(description="Number of FORGET messages")
+    program: int = Field(description="Number of PROGRAM messages")
+    instance: int = Field(description="Number of INSTANCE messages")
+
+    model_config = ConfigDict(extra="forbid")
+
+
+class AddressStatsResponse(PaginationResponse):
+    """Response from an aleph.im node API on the path /api/v1/addresses/stats.json"""
+
+    data: Dict[str, AddressStats] = Field(
+        description="Dictionary mapping addresses to their statistics"
+    )
+    pagination_item: str = "addresses"
+
+
+class AccountFilesResponseItem(BaseModel):
+    """
+    A single file entry in an account's file list.
+    """
+
+    file_hash: str = Field(description="Hash of the file content")
+    size: int = Field(description="Size of the file in bytes")
+    type: FileType = Field(description="Type of the file (FILE or DIRECTORY)")
+    created: dt.datetime = Field(description="Timestamp when the file was created")
+    item_hash: str = Field(description="Hash of the message that created this file")
+
+    model_config = ConfigDict(extra="forbid")
+
+
+class AccountFilesResponse(PaginationResponse):
+    """Response from an aleph.im node API on the path /api/v0/addresses/{address}/files"""
+
+    address: str = Field(description="The account address")
+    total_size: int = Field(description="Total size of all files in bytes")
+    files: List[AccountFilesResponseItem] = Field(
+        description="List of files owned by the address"
+    )
+    pagination_item: str = "files"
+
+    model_config = ConfigDict(extra="forbid")
+
+
+class AddressBalanceResponseItem(BaseModel):
+    """
+    A single balance entry for an address on a specific chain.
+    """
+
+    address: str = Field(description="The account address")
+    balance: Decimal = Field(description="Balance amount")
+    chain: Chain = Field(description="Blockchain the balance is on")
+
+    model_config = ConfigDict(extra="forbid")
+
+
+class ChainBalancesResponse(PaginationResponse):
+    """Response from an aleph.im node API on the path /api/v0/balances"""
+
+    balances: List[AddressBalanceResponseItem] = Field(
+        description="List of address balances across different chains"
+    )
+    pagination_item: str = "balances"
+
+    model_config = ConfigDict(extra="forbid")
