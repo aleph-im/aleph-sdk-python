@@ -13,7 +13,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.9", "3.10", "3.11", "3.12"]
+        python-version: ["3.10", "3.11", "3.12", "3.13"]
         os: [ubuntu-22.04, ubuntu-24.04, macos-14, macos-15]
     runs-on: ${{ matrix.os }}
 
@@ -34,18 +34,10 @@ jobs:
           echo "DYLD_LIBRARY_PATH=$(brew --prefix libsodium)/lib" >> $GITHUB_ENV
         if: runner.os == 'macOS'
 
-      # Workaround to avoid building pyobjc-core on macOS14 + Python 3.9. Support for Python 3.9 will be dropped
-      # once we support a more recent version of Python on functions.
-      - name: Avoid building pyobjc-core on macOS+Py3.9
-        if: runner.os == 'macOS' && matrix.python-version == '3.9'
-        run: |
-          echo "pyobjc-core<12" > /tmp/constraints.txt
-          echo "PIP_CONSTRAINT=/tmp/constraints.txt" >> $GITHUB_ENV
-
       - name: "Install Hatch"
         run: |
           python3 -m venv /tmp/venv
-          /tmp/venv/bin/python -m pip install --upgrade pip hatch coverage
+          /tmp/venv/bin/python -m pip install --upgrade pip "hatch>=1.16.5" coverage
 
       - name: "Run Tests"
         run: |
