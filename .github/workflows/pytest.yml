@@ -45,7 +45,7 @@ jobs:
       - name: "Install Hatch"
         run: |
           python3 -m venv /tmp/venv
-          /tmp/venv/bin/python -m pip install --upgrade pip hatch coverage
+          /tmp/venv/bin/python -m pip install --upgrade pip "hatch>=1.16.5" coverage
 
       - name: "Run Tests"
         run: |
