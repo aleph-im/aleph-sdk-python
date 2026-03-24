@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING, Dict, List, Optional, Union
 import aiohttp
 from aiohttp.client_exceptions import ClientResponseError
 from aleph_message.models import ItemHash
+from packaging.version import InvalidVersion, Version
 from pydantic import BaseModel, NonNegativeInt, PositiveInt
 
 from aleph.sdk.conf import settings
@@ -179,9 +180,13 @@ class CrnList(DictLikeModel):
 
         filtered_crn: list[CRN] = []
         for crn in self.crns:
-            # Check crn version
-            if crn_version and (crn.version or "0.0.0") < crn_version:
-                continue
+            # Check crn version (semantic comparison, not lexicographic)
+            if crn_version:
+                try:
+                    if Version(crn.version or "0.0.0") < Version(crn_version):
+                        continue
+                except InvalidVersion:
+                    continue
 
             # Filter with ipv6 check
             if ipv6:
