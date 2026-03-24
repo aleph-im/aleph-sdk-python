@@ -310,13 +310,14 @@ async def test_reinstall_instance():
             session=aiohttp.ClientSession(),
         )
         m.post(
-            f"http://localhost/control/machine/{vm_id}/reinstall",
+            re.compile(rf"http://localhost/control/machine/{vm_id}/reinstall"),
             status=200,
             payload="ok",
         )
 
         status, response_text = await vm_client.reinstall_instance(vm_id)
         assert status == 200
+        assert any("erase_volumes=true" in str(k[1]) for k in m.requests)
         await vm_client.session.close()
 
 
@@ -339,6 +340,7 @@ async def test_reinstall_instance_keep_volumes():
 
         status, _ = await vm_client.reinstall_instance(vm_id, erase_volumes=False)
         assert status == 200
+        assert any("erase_volumes=false" in str(k[1]) for k in m.requests)
         await vm_client.session.close()
 
 
@@ -518,6 +520,25 @@ async def test_restore_from_file(tmp_path):
         status, response_text = await vm_client.restore_from_file(vm_id, rootfs)
         assert status == 200
         await vm_client.session.close()
+
+
+@pytest.mark.asyncio
+async def test_restore_from_file_not_found():
+    account = ETHAccount(private_key=b"0x" + b"1" * 30)
+    vm_id = ItemHash("cafecafecafecafecafecafecafecafecafecafecafecafecafecafecafecafe")
+
+    vm_client = VmClient(
+        account=account,
+        node_url="http://localhost",
+        session=aiohttp.ClientSession(),
+    )
+
+    status, error_text = await vm_client.restore_from_file(
+        vm_id, "/nonexistent/rootfs.img"
+    )
+    assert status is None
+    assert "No such file or directory" in error_text
+    await vm_client.session.close()
 
 
 def test_vm_operation_enum_values():

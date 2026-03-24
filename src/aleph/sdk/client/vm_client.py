@@ -218,9 +218,10 @@ class VmClient:
     async def reinstall_instance(
         self, vm_id: ItemHash, erase_volumes: bool = True
     ) -> Tuple[Optional[int], str]:
-        params = None if erase_volumes else {"erase_volumes": "false"}
         return await self.perform_operation(
-            vm_id, VmOperation.REINSTALL, params=params
+            vm_id,
+            VmOperation.REINSTALL,
+            params={"erase_volumes": str(erase_volumes).lower()},
         )
 
     async def create_backup(
@@ -229,19 +230,17 @@ class VmClient:
         include_volumes: bool = False,
         skip_fsfreeze: bool = False,
     ) -> Tuple[Optional[int], str]:
-        params: Dict[str, str] = {}
-        if include_volumes:
-            params["include_volumes"] = "true"
-        if skip_fsfreeze:
-            params["skip_fsfreeze"] = "true"
-        return await self.perform_operation(
-            vm_id, VmOperation.BACKUP, params=params
-        )
+        params: Optional[Dict[str, str]] = None
+        if include_volumes or skip_fsfreeze:
+            params = {}
+            if include_volumes:
+                params["include_volumes"] = "true"
+            if skip_fsfreeze:
+                params["skip_fsfreeze"] = "true"
+        return await self.perform_operation(vm_id, VmOperation.BACKUP, params=params)
 
     async def get_backup(self, vm_id: ItemHash) -> Tuple[Optional[int], str]:
-        return await self.perform_operation(
-            vm_id, VmOperation.BACKUP, method="GET"
-        )
+        return await self.perform_operation(vm_id, VmOperation.BACKUP, method="GET")
 
     async def delete_backup(
         self, vm_id: ItemHash, backup_id: str
@@ -255,9 +254,7 @@ class VmClient:
             vm_id, f"backup/{backup_id}", method="DELETE"
         )
 
-    async def get_restore_endpoint(
-        self, vm_id: ItemHash
-    ) -> Tuple[str, Dict[str, str]]:
+    async def get_restore_endpoint(self, vm_id: ItemHash) -> Tuple[str, Dict[str, str]]:
         """Return authenticated (url, headers) for a restore POST.
 
         Use this when you need control over the upload (e.g. progress
@@ -288,8 +285,8 @@ class VmClient:
                 ) as response:
                     text = await response.text()
                     return response.status, text
-        except aiohttp.ClientError as e:
-            logger.error(f"HTTP error during restore: {str(e)}")
+        except (aiohttp.ClientError, OSError) as e:
+            logger.error(f"Error during restore: {e}")
             return None, str(e)
 
     async def restore_from_volume(
