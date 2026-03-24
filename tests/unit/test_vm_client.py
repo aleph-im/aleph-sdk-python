@@ -387,6 +387,8 @@ async def test_create_backup_with_options():
             vm_id, include_volumes=True, skip_fsfreeze=True
         )
         assert status == 200
+        assert any("include_volumes=true" in str(k[1]) for k in m.requests)
+        assert any("skip_fsfreeze=true" in str(k[1]) for k in m.requests)
         await vm_client.session.close()
 
 

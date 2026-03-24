@@ -312,7 +312,7 @@ class VmClient:
             return session.status, form_response_text
 
     async def manage_instance(
-        self, vm_id: ItemHash, operations: List[str]
+        self, vm_id: ItemHash, operations: List[Union[VmOperation, str]]
     ) -> Tuple[int, str]:
         for operation in operations:
             status, response = await self.perform_operation(vm_id, operation)
