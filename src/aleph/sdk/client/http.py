@@ -52,10 +52,12 @@ from ..exceptions import (
     RemovedMessageError,
     ResourceNotFoundError,
 )
-from ..query.filters import BalanceFilter, MessageFilter, PostFilter
+from ..query.filters import BalanceFilter, MessageFilter, PostFilter, SortBy
 from ..query.responses import (
     BalanceResponse,
     CreditsHistoryResponse,
+    CursorMessagesResponse,
+    CursorPostsResponse,
     MessagesResponse,
     Post,
     PostsResponse,
@@ -260,6 +262,56 @@ class AlephHttpClient(AlephClient):
                 pagination_item=response_json["pagination_item"],
             )
 
+    async def get_posts_cursor(
+        self,
+        page_size: int = 200,
+        cursor: str = "",
+        post_filter: Optional[PostFilter] = None,
+        ignore_invalid_messages: Optional[bool] = True,
+        invalid_messages_log_level: Optional[int] = logging.NOTSET,
+    ) -> CursorPostsResponse:
+        ignore_invalid_messages = (
+            True if ignore_invalid_messages is None else ignore_invalid_messages
+        )
+        invalid_messages_log_level = (
+            logging.NOTSET
+            if invalid_messages_log_level is None
+            else invalid_messages_log_level
+        )
+
+        if post_filter and post_filter.sort_by == SortBy.TX_TIME:
+            raise ValueError(
+                "sortBy=tx-time is not compatible with cursor-based pagination"
+            )
+
+        page_size = min(page_size, 200)
+
+        params: Dict[str, str] = {}
+        if post_filter:
+            params = post_filter.as_http_params()
+        params["cursor"] = cursor
+        params["pagination"] = str(page_size)
+
+        async with self.http_session.get("/api/v0/posts.json", params=params) as resp:
+            resp.raise_for_status()
+            response_json = await resp.json()
+            posts_raw = response_json["posts"]
+
+            posts: List[Post] = []
+            for post_raw in posts_raw:
+                try:
+                    posts.append(Post.model_validate(post_raw))
+                except ValidationError as e:
+                    if not ignore_invalid_messages:
+                        raise e
+                    if invalid_messages_log_level:
+                        logger.log(level=invalid_messages_log_level, msg=e)
+            return CursorPostsResponse(
+                posts=posts,
+                pagination_per_page=response_json["pagination_per_page"],
+                next_cursor=response_json.get("next_cursor"),
+            )
+
     async def download_file_to_buffer(
         self,
         file_hash: str,
@@ -423,6 +475,67 @@ class AlephHttpClient(AlephClient):
                 pagination_total=response_json["pagination_total"],
                 pagination_per_page=response_json["pagination_per_page"],
                 pagination_item=response_json["pagination_item"],
+            )
+
+    async def get_messages_cursor(
+        self,
+        page_size: int = 200,
+        cursor: str = "",
+        message_filter: Optional[MessageFilter] = None,
+        ignore_invalid_messages: Optional[bool] = True,
+        invalid_messages_log_level: Optional[int] = logging.NOTSET,
+    ) -> CursorMessagesResponse:
+        ignore_invalid_messages = (
+            True if ignore_invalid_messages is None else ignore_invalid_messages
+        )
+        invalid_messages_log_level = (
+            logging.NOTSET
+            if invalid_messages_log_level is None
+            else invalid_messages_log_level
+        )
+
+        if message_filter and message_filter.sort_by == SortBy.TX_TIME:
+            raise ValueError(
+                "sortBy=tx-time is not compatible with cursor-based pagination"
+            )
+
+        page_size = min(page_size, 200)
+
+        params: Dict[str, str] = {}
+        if message_filter:
+            params = message_filter.as_http_params()
+        params["cursor"] = cursor
+        params["pagination"] = str(page_size)
+
+        async with self.http_session.get(
+            "/api/v0/messages.json", params=params
+        ) as resp:
+            resp.raise_for_status()
+            response_json = await resp.json()
+            messages_raw = response_json["messages"]
+
+            messages: List[AlephMessage] = []
+            for message_raw in messages_raw:
+                try:
+                    message = parse_message(message_raw)
+                    messages.append(message)
+                except KeyError as e:
+                    if not ignore_invalid_messages:
+                        raise e
+                    logger.log(
+                        level=invalid_messages_log_level,
+                        msg=f"KeyError: Field '{e.args[0]}' not found",
+                    )
+                except ValidationError as e:
+                    if not ignore_invalid_messages:
+                        raise e
+                    if invalid_messages_log_level:
+                        logger.log(level=invalid_messages_log_level, msg=e)
+
+            return CursorMessagesResponse(
+                messages=messages,
+                pagination_per_page=response_json["pagination_per_page"],
+                next_cursor=response_json.get("next_cursor"),
             )
 
     @overload

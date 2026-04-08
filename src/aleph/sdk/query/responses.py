@@ -76,6 +76,23 @@ class MessagesResponse(PaginationResponse):
     pagination_item: str = "messages"
 
 
+class CursorPaginationResponse(BaseModel):
+    pagination_per_page: int
+    next_cursor: Optional[str] = None
+
+
+class CursorPostsResponse(CursorPaginationResponse):
+    """Cursor-paginated response from /api/v0/posts.json"""
+
+    posts: List[Post]
+
+
+class CursorMessagesResponse(CursorPaginationResponse):
+    """Cursor-paginated response from /api/v0/messages.json"""
+
+    messages: List[AlephMessage]
+
+
 class PriceResponse(BaseModel):
     """Response from an aleph.im node API on the path /api/v0/price/{item_hash}"""
 
