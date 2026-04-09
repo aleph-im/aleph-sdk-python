@@ -143,6 +143,12 @@ class MockAlephClient(AuthenticatedAlephClient):
     async def get_messages(self, *args, **kwargs):
         raise NotImplementedError
 
+    async def get_posts_cursor(self, *args, **kwargs):
+        raise NotImplementedError
+
+    async def get_messages_cursor(self, *args, **kwargs):
+        raise NotImplementedError
+
     async def get_message(self, *args, **kwargs):
         raise NotImplementedError
 

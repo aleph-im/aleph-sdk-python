@@ -42,7 +42,13 @@ from aleph.sdk.types import Account, Authorization, SecurityAggregateContent
 from aleph.sdk.utils import extended_json_encoder
 
 from ..query.filters import MessageFilter, PostFilter
-from ..query.responses import MessagesResponse, PostsResponse, PriceResponse
+from ..query.responses import (
+    CursorMessagesResponse,
+    CursorPostsResponse,
+    MessagesResponse,
+    PostsResponse,
+    PriceResponse,
+)
 from ..types import GenericMessage, StorageEnum
 from ..utils import Writable, compute_sha256
 
@@ -120,26 +126,47 @@ class AlephClient(ABC):
         """
         raise NotImplementedError("Did you mean to import `AlephHttpClient`?")
 
+    @abstractmethod
+    async def get_posts_cursor(
+        self,
+        page_size: int = DEFAULT_PAGE_SIZE,
+        cursor: str = "",
+        post_filter: Optional[PostFilter] = None,
+        ignore_invalid_messages: Optional[bool] = True,
+        invalid_messages_log_level: Optional[int] = logging.NOTSET,
+    ) -> CursorPostsResponse:
+        """
+        Fetch a list of posts from the network using cursor-based pagination.
+
+        :param page_size: Number of items to fetch, max 200 (Default: 200)
+        :param cursor: Opaque cursor from a previous response's next_cursor. Empty string starts from the beginning.
+        :param post_filter: Filter to apply to the posts (Default: None)
+        :param ignore_invalid_messages: Ignore invalid messages (Default: True)
+        :param invalid_messages_log_level: Log level to use for invalid messages (Default: logging.NOTSET)
+        """
+        raise NotImplementedError("Did you mean to import `AlephHttpClient`?")
+
     async def get_posts_iterator(
         self,
         post_filter: Optional[PostFilter] = None,
     ) -> AsyncIterable[PostMessage]:
         """
-        Fetch all filtered posts, returning an async iterator and fetching them page by page. Might return duplicates
-        but will always return all posts.
+        Fetch all filtered posts, returning an async iterator and fetching them
+        using cursor-based pagination. Does not return duplicates.
 
         :param post_filter: Filter to apply to the posts (Default: None)
         """
-        page = 1
-        resp = None
-        while resp is None or len(resp.posts) > 0:
-            resp = await self.get_posts(
-                page=page,
+        cursor: str = ""
+        while True:
+            resp = await self.get_posts_cursor(
+                cursor=cursor,
                 post_filter=post_filter,
             )
-            page += 1
             for post in resp.posts:
                 yield post  # type: ignore
+            if resp.next_cursor is None:
+                break
+            cursor = resp.next_cursor
 
     @abstractmethod
     async def download_file(self, file_hash: str) -> bytes:
@@ -224,26 +251,47 @@ class AlephClient(ABC):
         """
         raise NotImplementedError("Did you mean to import `AlephHttpClient`?")
 
+    @abstractmethod
+    async def get_messages_cursor(
+        self,
+        page_size: int = DEFAULT_PAGE_SIZE,
+        cursor: str = "",
+        message_filter: Optional[MessageFilter] = None,
+        ignore_invalid_messages: Optional[bool] = True,
+        invalid_messages_log_level: Optional[int] = logging.NOTSET,
+    ) -> CursorMessagesResponse:
+        """
+        Fetch a list of messages from the network using cursor-based pagination.
+
+        :param page_size: Number of items to fetch, max 200 (Default: 200)
+        :param cursor: Opaque cursor from a previous response's next_cursor. Empty string starts from the beginning.
+        :param message_filter: Filter to apply to the messages
+        :param ignore_invalid_messages: Ignore invalid messages (Default: True)
+        :param invalid_messages_log_level: Log level to use for invalid messages (Default: logging.NOTSET)
+        """
+        raise NotImplementedError("Did you mean to import `AlephHttpClient`?")
+
     async def get_messages_iterator(
         self,
         message_filter: Optional[MessageFilter] = None,
     ) -> AsyncIterable[AlephMessage]:
         """
-        Fetch all filtered messages, returning an async iterator and fetching them page by page. Might return duplicates
-        but will always return all messages.
+        Fetch all filtered messages, returning an async iterator and fetching
+        them using cursor-based pagination. Does not return duplicates.
 
         :param message_filter: Filter to apply to the messages
         """
-        page = 1
-        resp = None
-        while resp is None or len(resp.messages) > 0:
-            resp = await self.get_messages(
-                page=page,
+        cursor: str = ""
+        while True:
+            resp = await self.get_messages_cursor(
+                cursor=cursor,
                 message_filter=message_filter,
             )
-            page += 1
             for message in resp.messages:
                 yield message
+            if resp.next_cursor is None:
+                break
+            cursor = resp.next_cursor
 
     @abstractmethod
     async def get_message(
