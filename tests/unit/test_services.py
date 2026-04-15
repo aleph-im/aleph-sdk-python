@@ -8,7 +8,7 @@ from aleph.sdk.client.services.authenticated_port_forwarder import (
     AuthenticatedPortForwarder,
     PortForwarder,
 )
-from aleph.sdk.client.services.crn import Crn
+from aleph.sdk.client.services.crn import CRN, Crn, CrnList
 from aleph.sdk.client.services.dns import DNS
 from aleph.sdk.client.services.instance import Instance
 from aleph.sdk.client.services.scheduler import Scheduler
@@ -41,8 +41,9 @@ async def test_aleph_http_client_services_loading():
             client.instance = Instance(client)
             return client
 
-        with patch.object(client, "__aenter__", mocked_aenter), patch.object(
-            client, "__aexit__", AsyncMock()
+        with (
+            patch.object(client, "__aenter__", mocked_aenter),
+            patch.object(client, "__aexit__", AsyncMock()),
         ):
             async with client:
                 assert isinstance(client.dns, DNS)
@@ -78,8 +79,9 @@ async def test_authenticated_http_client_services_loading(ethereum_account):
             client.instance = Instance(client)
             return client
 
-        with patch.object(client, "__aenter__", mocked_aenter), patch.object(
-            client, "__aexit__", AsyncMock()
+        with (
+            patch.object(client, "__aenter__", mocked_aenter),
+            patch.object(client, "__aexit__", AsyncMock()),
         ):
             async with client:
                 assert isinstance(client.dns, DNS)
@@ -443,3 +445,94 @@ async def test_utils_service_get_instances():
 
     # Check result
     assert result == mock_messages
+
+
+def _make_crn(version: str, name: str = "test") -> CRN:
+    return CRN(
+        hash="abc123",
+        name=name,
+        address="0x1234",
+        version=version,
+        payment_receiver_address=None,
+    )
+
+
+def test_crn_version_filter_semantic_comparison():
+    """Versions are compared semantically, not lexicographically.
+
+    Lexicographic: "0.9.0" > "0.10.0" (wrong)
+    Semantic: 0.10.0 > 0.9.0 (correct)
+    """
+    crn_list = CrnList(
+        crns=[
+            _make_crn("0.9.0", name="old"),
+            _make_crn("0.10.0", name="new"),
+            _make_crn("1.0.0", name="latest"),
+        ]
+    )
+
+    result = crn_list.filter_crn(crn_version="0.10.0")
+    names = [crn.name for crn in result]
+    assert "old" not in names
+    assert "new" in names
+    assert "latest" in names
+
+
+def test_crn_version_filter_excludes_below_threshold():
+    crn_list = CrnList(
+        crns=[
+            _make_crn("1.0.0", name="v1"),
+            _make_crn("2.0.0", name="v2"),
+            _make_crn("3.0.0", name="v3"),
+        ]
+    )
+
+    result = crn_list.filter_crn(crn_version="2.0.0")
+    names = [crn.name for crn in result]
+    assert names == ["v2", "v3"]
+
+
+def test_crn_version_filter_invalid_version_skipped():
+    """CRNs with unparseable versions are excluded."""
+    crn_list = CrnList(
+        crns=[
+            _make_crn("not-a-version", name="bad"),
+            _make_crn("1.0.0", name="good"),
+        ]
+    )
+
+    result = crn_list.filter_crn(crn_version="0.1.0")
+    names = [crn.name for crn in result]
+    assert "bad" not in names
+    assert "good" in names
+
+
+def test_crn_version_filter_none_version_treated_as_zero():
+    """CRNs with version=None are treated as 0.0.0."""
+    crn_list = CrnList(crns=[_make_crn("1.0.0", name="has_version")])
+    crn_list.crns.append(
+        CRN(
+            hash="abc",
+            name="no_version",
+            address="0x1",
+            version=None,
+            payment_receiver_address=None,
+        )
+    )
+
+    result = crn_list.filter_crn(crn_version="0.1.0")
+    names = [crn.name for crn in result]
+    assert "has_version" in names
+    assert "no_version" not in names
+
+
+def test_crn_version_filter_no_filter_returns_all():
+    crn_list = CrnList(
+        crns=[
+            _make_crn("0.1.0", name="a"),
+            _make_crn("1.0.0", name="b"),
+        ]
+    )
+
+    result = crn_list.filter_crn()
+    assert len(result) == 2

@@ -1,5 +1,6 @@
 import asyncio
 import base64
+from abc import abstractmethod
 from decimal import Decimal
 from pathlib import Path
 from typing import Awaitable, Dict, Optional, Union
@@ -36,65 +37,30 @@ from ..utils import bytes_from_hex
 from .common import BaseAccount, get_fallback_private_key, get_public_key
 
 
-class ETHAccount(BaseAccount):
-    """Interact with an Ethereum address or key pair on EVM blockchains"""
+class BaseEthAccount(BaseAccount):
+    """Base logic to interact with EVM blockchains"""
 
     CHAIN = "ETH"
     CURVE = "secp256k1"
-    _account: LocalAccount
+
     _provider: Optional[Web3]
     chain: Optional[Chain]
     chain_id: Optional[int]
     rpc: Optional[str]
     superfluid_connector: Optional[Superfluid]
 
-    def __init__(
-        self,
-        private_key: bytes,
-        chain: Optional[Chain] = None,
-    ):
-        self.private_key = private_key
-        self._account: LocalAccount = Account.from_key(self.private_key)
+    def __init__(self, chain: Optional[Chain] = None):
+        self.chain = chain
         self.connect_chain(chain=chain)
 
-    @staticmethod
-    def from_mnemonic(mnemonic: str, chain: Optional[Chain] = None) -> "ETHAccount":
-        Account.enable_unaudited_hdwallet_features()
-        return ETHAccount(
-            private_key=Account.from_mnemonic(mnemonic=mnemonic).key, chain=chain
-        )
-
-    def export_private_key(self) -> str:
-        """Export the private key using standard format."""
-        return f"0x{base64.b16encode(self.private_key).decode().lower()}"
-
-    def get_address(self) -> str:
-        return self._account.address
-
-    def get_public_key(self) -> str:
-        return "0x" + get_public_key(private_key=self._account.key).hex()
-
-    async def sign_raw(self, buffer: bytes) -> bytes:
-        """Sign a raw buffer."""
-        msghash = encode_defunct(text=buffer.decode("utf-8"))
-        sig = self._account.sign_message(msghash)
-        return sig["signature"]
-
-    async def sign_message(self, message: Dict) -> Dict:
+    @abstractmethod
+    async def _sign_and_send_transaction(self, tx_params: TxParams) -> str:
         """
-        Returns a signed message from an aleph.im message.
-        Args:
-            message: Message to sign
-        Returns:
-            Dict: Signed message
+        Sign and broadcast a transaction using the provided ETHAccount
+        @param tx_params - Transaction parameters
+        @returns - str - Transaction hash
         """
-        signed_message = await super().sign_message(message)
-
-        # Apply that fix as seems that sometimes the .hex() method doesn't add the 0x str at the beginning
-        if not str(signed_message["signature"]).startswith("0x"):
-            signed_message["signature"] = "0x" + signed_message["signature"]
-
-        return signed_message
+        raise NotImplementedError
 
     def connect_chain(self, chain: Optional[Chain] = None):
         self.chain = chain
@@ -150,36 +116,13 @@ class ETHAccount(BaseAccount):
             )
         return valid
 
-    async def _sign_and_send_transaction(self, tx_params: TxParams) -> str:
-        """
-        Sign and broadcast a transaction using the provided ETHAccount
-        @param tx_params - Transaction parameters
-        @returns - str - Transaction hash
-        """
-
-        def sign_and_send() -> TxReceipt:
-            if self._provider is None:
-                raise ValueError("Provider not connected")
-            signed_tx = self._provider.eth.account.sign_transaction(
-                tx_params, self._account.key
-            )
-
-            tx_hash = self._provider.eth.send_raw_transaction(signed_tx.raw_transaction)
-            tx_receipt = self._provider.eth.wait_for_transaction_receipt(
-                tx_hash, settings.TX_TIMEOUT
-            )
-            return tx_receipt
-
-        loop = asyncio.get_running_loop()
-        tx_receipt = await loop.run_in_executor(None, sign_and_send)
-        return tx_receipt["transactionHash"].hex()
-
     def get_eth_balance(self) -> Decimal:
-        return Decimal(
-            self._provider.eth.get_balance(self._account.address)
-            if self._provider
-            else 0
-        )
+        if not self._provider:
+            raise ValueError(
+                "Provider not set. Please configure a provider before checking balance."
+            )
+
+        return Decimal(self._provider.eth.get_balance(self.get_address()))
 
     def get_token_balance(self) -> Decimal:
         if self.chain and self._provider:
@@ -245,6 +188,84 @@ class ETHAccount(BaseAccount):
         return self.superfluid_connector.manage_flow(
             receiver=receiver, flow=flow, update_type=update_type
         )
+
+
+class ETHAccount(BaseEthAccount):
+    """Interact with an Ethereum address or key pair on EVM blockchains"""
+
+    _account: LocalAccount
+
+    def __init__(
+        self,
+        private_key: bytes,
+        chain: Optional[Chain] = None,
+    ):
+        self.private_key = private_key
+        self._account = Account.from_key(self.private_key)
+        super().__init__(chain=chain)
+
+    @staticmethod
+    def from_mnemonic(mnemonic: str, chain: Optional[Chain] = None) -> "ETHAccount":
+        Account.enable_unaudited_hdwallet_features()
+        return ETHAccount(
+            private_key=Account.from_mnemonic(mnemonic=mnemonic).key, chain=chain
+        )
+
+    def export_private_key(self) -> str:
+        """Export the private key using standard format."""
+        return f"0x{base64.b16encode(self.private_key).decode().lower()}"
+
+    def get_address(self) -> str:
+        return self._account.address
+
+    def get_public_key(self) -> str:
+        return "0x" + get_public_key(private_key=self._account.key).hex()
+
+    async def sign_raw(self, buffer: bytes) -> bytes:
+        """Sign a raw buffer."""
+        msghash = encode_defunct(text=buffer.decode("utf-8"))
+        sig = self._account.sign_message(msghash)
+        return sig["signature"]
+
+    async def sign_message(self, message: Dict) -> Dict:
+        """
+        Returns a signed message from an aleph Cloud message.
+        Args:
+            message: Message to sign
+        Returns:
+            Dict: Signed message
+        """
+        signed_message = await super().sign_message(message)
+
+        # Apply that fix as seems that sometimes the .hex() method doesn't add the 0x str at the beginning
+        if not str(signed_message["signature"]).startswith("0x"):
+            signed_message["signature"] = "0x" + signed_message["signature"]
+
+        return signed_message
+
+    async def _sign_and_send_transaction(self, tx_params: TxParams) -> str:
+        """
+        Sign and broadcast a transaction using the provided ETHAccount
+        @param tx_params - Transaction parameters
+        @returns - str - Transaction hash
+        """
+
+        def sign_and_send() -> TxReceipt:
+            if self._provider is None:
+                raise ValueError("Provider not connected")
+            signed_tx = self._provider.eth.account.sign_transaction(
+                tx_params, self._account.key
+            )
+
+            tx_hash = self._provider.eth.send_raw_transaction(signed_tx.raw_transaction)
+            tx_receipt = self._provider.eth.wait_for_transaction_receipt(
+                tx_hash, settings.TX_TIMEOUT
+            )
+            return tx_receipt
+
+        loop = asyncio.get_running_loop()
+        tx_receipt = await loop.run_in_executor(None, sign_and_send)
+        return tx_receipt["transactionHash"].hex()
 
 
 def get_fallback_account(

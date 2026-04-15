@@ -13,7 +13,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-13, macos-14, ubuntu-22.04, ubuntu-24.04]
+        os: [macos-14, ubuntu-22.04, ubuntu-24.04]
     runs-on: ${{ matrix.os }}
 
     steps:
@@ -53,7 +53,7 @@ jobs:
       - name: Install Hatch
         run: |
           python3 -m venv /tmp/venv
-          /tmp/venv/bin/python3 -m pip install --upgrade hatch
+          /tmp/venv/bin/python3 -m pip install --upgrade "hatch>=1.16.5"
 
       - name: Build source and wheel packages
         run: |

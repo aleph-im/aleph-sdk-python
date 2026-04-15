@@ -21,7 +21,7 @@ class DummyService(BaseService[DummyModel]):
 async def test_get_config_with_data():
     mock_client = AsyncMock()
     mock_data = {"foo": "hello", "bar": 123}
-    mock_client.fetch_aggregate.return_value = mock_data
+    mock_client.get_aggregate.return_value = mock_data
 
     service = DummyService(mock_client)
 
@@ -37,7 +37,7 @@ async def test_get_config_with_data():
 @pytest.mark.asyncio
 async def test_get_config_with_no_data():
     mock_client = AsyncMock()
-    mock_client.fetch_aggregate.return_value = None
+    mock_client.get_aggregate.return_value = None
 
     service = DummyService(mock_client)
     result = await service.get_config("0xSOME_ADDRESS")

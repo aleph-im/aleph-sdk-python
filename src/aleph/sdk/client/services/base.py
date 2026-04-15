@@ -29,7 +29,7 @@ class BaseService(ABC, Generic[T]):
 
     async def get_config(self, address: str):
 
-        aggregate_data = await self._client.fetch_aggregate(
+        aggregate_data = await self._client.get_aggregate(
             address=address, key=self.aggregate_key
         )
 

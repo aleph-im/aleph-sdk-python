@@ -4,6 +4,7 @@ from enum import Enum
 from typing import TYPE_CHECKING, Dict, List, Optional, Union
 
 from aleph.sdk.client.services.base import BaseService
+from aleph.sdk.conf import settings
 
 if TYPE_CHECKING:
     pass
@@ -205,9 +206,7 @@ class Pricing(BaseService[PricingModel]):
     async def get_pricing_aggregate(
         self,
     ) -> PricingModel:
-        result = await self.get_config(
-            address="0xFba561a84A537fCaa567bb7A2257e7142701ae2A"
-        )
+        result = await self.get_config(address=settings.ALEPH_AGGREGATE_ADDRESS)
         return result.data[0]
 
     async def get_pricing_for_services(

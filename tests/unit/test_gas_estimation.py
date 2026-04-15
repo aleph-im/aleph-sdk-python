@@ -36,8 +36,8 @@ def mock_superfluid(mock_eth_account):
     superfluid = Superfluid(mock_eth_account)
     superfluid.cfaV1Instance = MagicMock()
     superfluid.cfaV1Instance.create_flow = MagicMock()
-    superfluid.super_token = "0xsupertokenaddress"
-    superfluid.normalized_address = "0xsenderaddress"
+    superfluid.super_token = "0x0000000000000000000000000000000000000000"
+    superfluid.normalized_address = "0x0000000000000000000000000000000000000000"
 
     # Mock the operation
     operation = MagicMock()
@@ -109,16 +109,20 @@ class TestSuperfluidFlowEstimation:
     async def test_simulate_create_tx_flow_success(
         self, mock_superfluid, mock_eth_account
     ):
-        # Patch the can_transact method to simulate a successful transaction
-        with patch.object(mock_eth_account, "can_transact", return_value=True):
-            result = mock_superfluid._simulate_create_tx_flow(Decimal("0.00000005"))
-            assert result is True
+        # Patch both the _get_populated_transaction_request and can_transact methods
+        mock_tx = {"value": 0, "gas": 100000, "gasPrice": 20_000_000_000}
+        with patch.object(
+            mock_superfluid, "_get_populated_transaction_request", return_value=mock_tx
+        ):
+            with patch.object(mock_eth_account, "can_transact", return_value=True):
+                result = mock_superfluid._simulate_create_tx_flow(Decimal("0.00000005"))
+                assert result is True
 
-            # Verify the flow was correctly simulated but not executed
-            mock_superfluid.cfaV1Instance.create_flow.assert_called_once()
-            assert "0x0000000000000000000000000000000000000001" in str(
-                mock_superfluid.cfaV1Instance.create_flow.call_args
-            )
+                # Verify the flow was correctly simulated but not executed
+                mock_superfluid.cfaV1Instance.create_flow.assert_called_once()
+                assert "0x0000000000000000000000000000000000000001" in str(
+                    mock_superfluid.cfaV1Instance.create_flow.call_args
+                )
 
     @pytest.mark.asyncio
     async def test_simulate_create_tx_flow_contract_error(
@@ -128,17 +132,22 @@ class TestSuperfluidFlowEstimation:
         error = ContractCustomError("Insufficient deposit")
         error.data = "0xea76c9b3"  # This is the specific error code checked in the code
 
-        # Mock can_transact to throw the error
-        with patch.object(mock_eth_account, "can_transact", side_effect=error):
-            # Also mock get_super_token_balance for the error case
-            with patch.object(
-                mock_eth_account, "get_super_token_balance", return_value=0
-            ):
-                # Should raise InsufficientFundsError for ALEPH token
-                with pytest.raises(InsufficientFundsError) as exc_info:
-                    mock_superfluid._simulate_create_tx_flow(Decimal("0.00000005"))
+        # Mock _get_populated_transaction_request and can_transact
+        mock_tx = {"value": 0, "gas": 100000, "gasPrice": 20_000_000_000}
+        with patch.object(
+            mock_superfluid, "_get_populated_transaction_request", return_value=mock_tx
+        ):
+            # Mock can_transact to throw the error
+            with patch.object(mock_eth_account, "can_transact", side_effect=error):
+                # Also mock get_super_token_balance for the error case
+                with patch.object(
+                    mock_eth_account, "get_super_token_balance", return_value=0
+                ):
+                    # Should raise InsufficientFundsError for ALEPH token
+                    with pytest.raises(InsufficientFundsError) as exc_info:
+                        mock_superfluid._simulate_create_tx_flow(Decimal("0.00000005"))
 
-                assert exc_info.value.token_type == TokenType.ALEPH
+                    assert exc_info.value.token_type == TokenType.ALEPH
 
     @pytest.mark.asyncio
     async def test_simulate_create_tx_flow_other_error(
@@ -148,11 +157,16 @@ class TestSuperfluidFlowEstimation:
         error = ContractCustomError("Other error")
         error.data = "0xsomeothercode"
 
-        # Mock can_transact to throw the error
-        with patch.object(mock_eth_account, "can_transact", side_effect=error):
-            # Should return False for other errors
-            result = mock_superfluid._simulate_create_tx_flow(Decimal("0.00000005"))
-            assert result is False
+        # Mock _get_populated_transaction_request and can_transact
+        mock_tx = {"value": 0, "gas": 100000, "gasPrice": 20_000_000_000}
+        with patch.object(
+            mock_superfluid, "_get_populated_transaction_request", return_value=mock_tx
+        ):
+            # Mock can_transact to throw the error
+            with patch.object(mock_eth_account, "can_transact", side_effect=error):
+                # Should return False for other errors
+                result = mock_superfluid._simulate_create_tx_flow(Decimal("0.00000005"))
+                assert result is False
 
     @pytest.mark.asyncio
     async def test_can_start_flow_uses_simulation(self, mock_superfluid):

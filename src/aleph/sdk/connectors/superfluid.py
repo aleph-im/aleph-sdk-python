@@ -3,8 +3,8 @@ from __future__ import annotations
 from decimal import Decimal
 from typing import TYPE_CHECKING, Optional
 
-from eth_utils import to_normalized_address
 from superfluid import CFA_V1, Operation, Web3FlowInfo
+from web3 import Web3
 from web3.exceptions import ContractCustomError
 
 from aleph.sdk.evm_utils import (
@@ -17,7 +17,7 @@ from aleph.sdk.exceptions import InsufficientFundsError
 from aleph.sdk.types import TokenType
 
 if TYPE_CHECKING:
-    from aleph.sdk.chains.ethereum import ETHAccount
+    from aleph.sdk.chains.ethereum import BaseEthAccount
 
 
 class Superfluid:
@@ -25,32 +25,61 @@ class Superfluid:
     Wrapper around the Superfluid APIs in order to CRUD Superfluid flows between two accounts.
     """
 
-    account: ETHAccount
+    account: BaseEthAccount
     normalized_address: str
     super_token: str
     cfaV1Instance: CFA_V1
     MIN_4_HOURS = 60 * 60 * 4
 
-    def __init__(self, account: ETHAccount):
+    def __init__(self, account: BaseEthAccount):
         self.account = account
-        self.normalized_address = to_normalized_address(account.get_address())
+        self.normalized_address = Web3.to_checksum_address(account.get_address())
         if account.chain:
             self.super_token = str(get_super_token_address(account.chain))
             self.cfaV1Instance = CFA_V1(account.rpc, account.chain_id)
+
+    # Helpers Functions
+    def _get_populated_transaction_request(self, operation, rpc: str):
+        """
+        Prepares the transaction to be signed by either imported / hardware wallets
+        @param operation - on chain operations
+        @param rpc - RPC URL
+        @param address - address from Ledger account
+        @returns - TxParams - The transaction object
+        """
+
+        call = (
+            operation.forwarder_call
+            if operation.forwarder_call is not None
+            else operation.agreement_call
+        )
+        populated_transaction = call.build_transaction(
+            {"from": self.normalized_address}
+        )
+
+        web3 = Web3(Web3.HTTPProvider(rpc))
+        nonce = web3.eth.get_transaction_count(self.normalized_address)
+
+        populated_transaction["nonce"] = nonce
+        return populated_transaction
 
     def _simulate_create_tx_flow(self, flow: Decimal, block=True) -> bool:
         try:
             operation = self.cfaV1Instance.create_flow(
                 sender=self.normalized_address,
-                receiver=to_normalized_address(
+                receiver=Web3.to_checksum_address(
                     "0x0000000000000000000000000000000000000001"
                 ),  # Fake Address we do not sign/send this transactions
                 super_token=self.super_token,
                 flow_rate=int(to_wei_token(flow)),
             )
-
-            populated_transaction = operation._get_populated_transaction_request(
-                self.account.rpc, self.account._account.key
+            if not self.account.rpc:
+                raise ValueError(
+                    f"RPC endpoint is required but not set for this chain {self.account.chain}."
+                )
+            populated_transaction = self._get_populated_transaction_request(
+                operation=operation,
+                rpc=self.account.rpc,
             )
             return self.account.can_transact(tx=populated_transaction, block=block)
         except ContractCustomError as e:
@@ -66,12 +95,17 @@ class Superfluid:
 
     async def _execute_operation_with_account(self, operation: Operation) -> str:
         """
-        Execute an operation using the provided ETHAccount
+        Execute an operation using the provided account
         @param operation - Operation instance from the library
         @returns - str - Transaction hash
         """
-        populated_transaction = operation._get_populated_transaction_request(
-            self.account.rpc, self.account._account.key
+        if not self.account.rpc:
+            raise ValueError(
+                f"RPC endpoint is required but not set for this chain {self.account.chain}."
+            )
+
+        populated_transaction = self._get_populated_transaction_request(
+            operation=operation, rpc=self.account.rpc
         )
         self.account.can_transact(tx=populated_transaction)
 
@@ -86,7 +120,7 @@ class Superfluid:
         return await self._execute_operation_with_account(
             operation=self.cfaV1Instance.create_flow(
                 sender=self.normalized_address,
-                receiver=to_normalized_address(receiver),
+                receiver=Web3.to_checksum_address(receiver),
                 super_token=self.super_token,
                 flow_rate=int(to_wei_token(flow)),
             ),
@@ -95,8 +129,8 @@ class Superfluid:
     async def get_flow(self, sender: str, receiver: str) -> Web3FlowInfo:
         """Fetch information about the Superfluid flow between two addresses."""
         return self.cfaV1Instance.get_flow(
-            sender=to_normalized_address(sender),
-            receiver=to_normalized_address(receiver),
+            sender=Web3.to_checksum_address(sender),
+            receiver=Web3.to_checksum_address(receiver),
             super_token=self.super_token,
         )
 
@@ -105,7 +139,7 @@ class Superfluid:
         return await self._execute_operation_with_account(
             operation=self.cfaV1Instance.delete_flow(
                 sender=self.normalized_address,
-                receiver=to_normalized_address(receiver),
+                receiver=Web3.to_checksum_address(receiver),
                 super_token=self.super_token,
             ),
         )
@@ -115,7 +149,7 @@ class Superfluid:
         return await self._execute_operation_with_account(
             operation=self.cfaV1Instance.update_flow(
                 sender=self.normalized_address,
-                receiver=to_normalized_address(receiver),
+                receiver=Web3.to_checksum_address(receiver),
                 super_token=self.super_token,
                 flow_rate=int(to_wei_token(flow)),
             ),

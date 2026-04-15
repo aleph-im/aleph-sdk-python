@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING, Any, List, Optional, Tuple, Union
 from aleph_message.models import InstanceMessage, ItemHash, MessageType, PaymentType
 from aleph_message.status import MessageStatus
 
+from aleph.sdk.client.services.crn import CrnList
 from aleph.sdk.query.filters import MessageFilter
 from aleph.sdk.query.responses import MessagesResponse
 
@@ -47,7 +48,7 @@ class Instance:
             return None
 
     async def get_instance_allocation_info(
-        self, msg: InstanceMessage, crn_list: dict
+        self, msg: InstanceMessage, crn_list: CrnList
     ) -> Tuple[InstanceMessage, Union[InstanceManual, InstanceWithScheduler]]:
         vm_hash = msg.item_hash
         payment_type = safe_getattr(msg, "content.payment.type.value")
@@ -62,12 +63,8 @@ class Instance:
             info = InstanceWithScheduler(source="scheduler", allocations=alloc)
         else:
             crn_hash = safe_getattr(msg, "content.requirements.node.node_hash")
-            if isinstance(crn_list, list):
-                node = next((n for n in crn_list if n.get("hash") == crn_hash), None)
-                url = sanitize_url(node.get("address")) if node else ""
-            else:
-                node = crn_list.get(crn_hash)
-                url = sanitize_url(node.get("address")) if node else ""
+            node = crn_list.find_crn_by_hash(crn_hash)
+            url = sanitize_url(node.address) if node else ""
 
             info = InstanceManual(source="manual", crn_url=url)
         return msg, info
@@ -84,8 +81,7 @@ class Instance:
         return resp.messages
 
     async def get_instances_allocations(self, messages_list, only_processed=True):
-        crn_list_response = await self._client.crn.get_crns_list()
-        crn_list = crn_list_response.get("crns", {})
+        crn_list = await self._client.crn.get_crns_list(only_active=False)
 
         tasks = []
         for msg in messages_list:

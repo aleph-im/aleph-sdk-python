@@ -35,13 +35,20 @@ from aleph_message.models.execution.environment import (
 )
 from aleph_message.models.execution.program import Encoding
 from aleph_message.status import MessageStatus
+from typing_extensions import deprecated
 
 from aleph.sdk.conf import settings
-from aleph.sdk.types import Account
+from aleph.sdk.types import Account, Authorization, SecurityAggregateContent
 from aleph.sdk.utils import extended_json_encoder
 
 from ..query.filters import MessageFilter, PostFilter
-from ..query.responses import MessagesResponse, PostsResponse, PriceResponse
+from ..query.responses import (
+    CursorMessagesResponse,
+    CursorPostsResponse,
+    MessagesResponse,
+    PostsResponse,
+    PriceResponse,
+)
 from ..types import GenericMessage, StorageEnum
 from ..utils import Writable, compute_sha256
 
@@ -49,7 +56,32 @@ DEFAULT_PAGE_SIZE = 200
 
 
 class AlephClient(ABC):
+    async def get_aggregate(self, address: str, key: str) -> Optional[Dict[str, Dict]]:
+        """
+        Get a value from the aggregate store by owner address and item key.
+        Returns None if no aggregate was found.
+
+        :param address: Address of the owner of the aggregate
+        :param key: Key of the aggregate
+        """
+        raise NotImplementedError("Did you mean to import `AlephHttpClient`?")
+
+    async def get_aggregates(
+        self, address: str, keys: Optional[Iterable[str]] = None
+    ) -> Optional[Dict[str, Dict]]:
+        """
+        Get key-value pairs from the aggregate store by owner address.
+        Returns None if no aggregate was found.
+
+        :param address: Address of the owner of the aggregate
+        :param keys: Keys of the aggregates to fetch (Default: all items)
+        """
+        raise NotImplementedError("Did you mean to import `AlephHttpClient`?")
+
     @abstractmethod
+    @deprecated(
+        "This method is deprecated and will be removed in upcoming versions. Use get_aggregate instead."
+    )
     async def fetch_aggregate(self, address: str, key: str) -> Dict[str, Dict]:
         """
         Fetch a value from the aggregate store by owner address and item key.
@@ -60,6 +92,9 @@ class AlephClient(ABC):
         raise NotImplementedError("Did you mean to import `AlephHttpClient`?")
 
     @abstractmethod
+    @deprecated(
+        "This method is deprecated and will be removed in upcoming versions. Use get_aggregates instead."
+    )
     async def fetch_aggregates(
         self, address: str, keys: Optional[Iterable[str]] = None
     ) -> Dict[str, Dict]:
@@ -91,26 +126,47 @@ class AlephClient(ABC):
         """
         raise NotImplementedError("Did you mean to import `AlephHttpClient`?")
 
+    @abstractmethod
+    async def get_posts_cursor(
+        self,
+        page_size: int = DEFAULT_PAGE_SIZE,
+        cursor: str = "",
+        post_filter: Optional[PostFilter] = None,
+        ignore_invalid_messages: Optional[bool] = True,
+        invalid_messages_log_level: Optional[int] = logging.NOTSET,
+    ) -> CursorPostsResponse:
+        """
+        Fetch a list of posts from the network using cursor-based pagination.
+
+        :param page_size: Number of items to fetch, max 200 (Default: 200)
+        :param cursor: Opaque cursor from a previous response's next_cursor. Empty string starts from the beginning.
+        :param post_filter: Filter to apply to the posts (Default: None)
+        :param ignore_invalid_messages: Ignore invalid messages (Default: True)
+        :param invalid_messages_log_level: Log level to use for invalid messages (Default: logging.NOTSET)
+        """
+        raise NotImplementedError("Did you mean to import `AlephHttpClient`?")
+
     async def get_posts_iterator(
         self,
         post_filter: Optional[PostFilter] = None,
     ) -> AsyncIterable[PostMessage]:
         """
-        Fetch all filtered posts, returning an async iterator and fetching them page by page. Might return duplicates
-        but will always return all posts.
+        Fetch all filtered posts, returning an async iterator and fetching them
+        using cursor-based pagination. Does not return duplicates.
 
         :param post_filter: Filter to apply to the posts (Default: None)
         """
-        page = 1
-        resp = None
-        while resp is None or len(resp.posts) > 0:
-            resp = await self.get_posts(
-                page=page,
+        cursor: str = ""
+        while True:
+            resp = await self.get_posts_cursor(
+                cursor=cursor,
                 post_filter=post_filter,
             )
-            page += 1
             for post in resp.posts:
                 yield post  # type: ignore
+            if resp.next_cursor is None:
+                break
+            cursor = resp.next_cursor
 
     @abstractmethod
     async def download_file(self, file_hash: str) -> bytes:
@@ -195,26 +251,47 @@ class AlephClient(ABC):
         """
         raise NotImplementedError("Did you mean to import `AlephHttpClient`?")
 
+    @abstractmethod
+    async def get_messages_cursor(
+        self,
+        page_size: int = DEFAULT_PAGE_SIZE,
+        cursor: str = "",
+        message_filter: Optional[MessageFilter] = None,
+        ignore_invalid_messages: Optional[bool] = True,
+        invalid_messages_log_level: Optional[int] = logging.NOTSET,
+    ) -> CursorMessagesResponse:
+        """
+        Fetch a list of messages from the network using cursor-based pagination.
+
+        :param page_size: Number of items to fetch, max 200 (Default: 200)
+        :param cursor: Opaque cursor from a previous response's next_cursor. Empty string starts from the beginning.
+        :param message_filter: Filter to apply to the messages
+        :param ignore_invalid_messages: Ignore invalid messages (Default: True)
+        :param invalid_messages_log_level: Log level to use for invalid messages (Default: logging.NOTSET)
+        """
+        raise NotImplementedError("Did you mean to import `AlephHttpClient`?")
+
     async def get_messages_iterator(
         self,
         message_filter: Optional[MessageFilter] = None,
     ) -> AsyncIterable[AlephMessage]:
         """
-        Fetch all filtered messages, returning an async iterator and fetching them page by page. Might return duplicates
-        but will always return all messages.
+        Fetch all filtered messages, returning an async iterator and fetching
+        them using cursor-based pagination. Does not return duplicates.
 
         :param message_filter: Filter to apply to the messages
         """
-        page = 1
-        resp = None
-        while resp is None or len(resp.messages) > 0:
-            resp = await self.get_messages(
-                page=page,
+        cursor: str = ""
+        while True:
+            resp = await self.get_messages_cursor(
+                cursor=cursor,
                 message_filter=message_filter,
             )
-            page += 1
             for message in resp.messages:
                 yield message
+            if resp.next_cursor is None:
+                break
+            cursor = resp.next_cursor
 
     @abstractmethod
     async def get_message(
@@ -265,6 +342,30 @@ class AlephClient(ABC):
         :param item_hash: item_hash of executable message
         """
         raise NotImplementedError("Did you mean to import `AlephHttpClient`?")
+
+    async def get_authorizations(self, address: str) -> list[Authorization]:
+        """
+        Retrieves all authorizations for a specific address.
+        """
+        # TODO: update this implementation to use `get_aggregate()` once
+        #  https://github.com/aleph-im/aleph-sdk-python/pull/273 is merged.
+        # There's currently no way to detect a nonexistent aggregate in generic code just yet.
+        # fetch_aggregate() throws an implementation-specific ClientResponseError in case of 404.
+        import aiohttp
+
+        try:
+            security_aggregate_dict = await self.fetch_aggregate(
+                address=address, key="security"
+            )
+        except aiohttp.ClientResponseError as e:
+            if e.status == 404:
+                return []
+            raise
+
+        security_aggregate = SecurityAggregateContent.model_validate(
+            security_aggregate_dict
+        )
+        return security_aggregate.authorizations
 
 
 class AuthenticatedAlephClient(AlephClient):
@@ -335,6 +436,7 @@ class AuthenticatedAlephClient(AlephClient):
         extra_fields: Optional[dict] = None,
         channel: Optional[str] = settings.DEFAULT_CHANNEL,
         sync: bool = False,
+        payment: Optional[Payment] = None,
     ) -> Tuple[AlephMessage, MessageStatus]:
         """
         Create a STORE message to store a file on the aleph.im network.
@@ -351,6 +453,7 @@ class AuthenticatedAlephClient(AlephClient):
         :param extra_fields: Extra fields to add to the STORE message (Default: None)
         :param channel: Channel to post the message to (Default: "TEST")
         :param sync: If true, waits for the message to be processed by the API server (Default: False)
+        :param payment: Payment method used to pay for storage (Default: hold on ETH)
         """
         raise NotImplementedError(
             "Did you mean to import `AuthenticatedAlephHttpClient`?"
@@ -588,3 +691,35 @@ class AuthenticatedAlephClient(AlephClient):
         :param content: The dict-like content to upload
         """
         raise NotImplementedError()
+
+    async def update_all_authorizations(self, authorizations: list[Authorization]):
+        """
+        Updates all authorizations for the current account.
+        Danger! This will replace all authorizations for the account. Use with care.
+
+        :param authorizations: List of authorizations to set. These authorizations will replace the existing ones.
+        """
+        security_aggregate = SecurityAggregateContent(authorizations=authorizations)
+        await self.create_aggregate(
+            key="security", content=security_aggregate.model_dump()
+        )
+
+    async def add_authorization(self, authorization: Authorization):
+        """
+        Adds a specific authorization for the current account.
+        """
+        authorizations = await self.get_authorizations(self.account.get_address())
+        authorizations.append(authorization)
+        await self.update_all_authorizations(authorizations)
+
+    async def revoke_all_authorizations(self, address: str):
+        """
+        Revokes all authorizations for a specific address.
+        """
+        authorizations = await self.get_authorizations(self.account.get_address())
+        filtered_authorizations = [
+            authorization
+            for authorization in authorizations
+            if authorization.address != address
+        ]
+        await self.update_all_authorizations(filtered_authorizations)
