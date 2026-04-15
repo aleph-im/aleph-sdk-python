@@ -39,6 +39,7 @@ from aleph.sdk.client.services.dns import DNS
 from aleph.sdk.client.services.instance import Instance
 from aleph.sdk.client.services.port_forwarder import PortForwarder
 from aleph.sdk.client.services.pricing import Pricing
+from aleph.sdk.client.services.runtimes import Runtimes
 from aleph.sdk.client.services.scheduler import Scheduler
 from aleph.sdk.client.services.settings import Settings as NetworkSettingsService
 from aleph.sdk.client.services.voucher import Vouchers
@@ -149,6 +150,7 @@ class AlephHttpClient(AlephClient):
         self.scheduler = Scheduler(self)
         self.instance = Instance(self)
         self.pricing = Pricing(self)
+        self.runtimes = Runtimes(self)
         self.voucher = Vouchers(self)
         self.network_settings = NetworkSettingsService(self)
         return self
