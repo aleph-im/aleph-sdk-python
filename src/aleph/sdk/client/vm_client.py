@@ -315,9 +315,9 @@ class VmClient:
         return await self.perform_operation(vm_id, VmOperation.EXPIRE)
 
     async def enter_rescue(
-        self, vm_id: ItemHash, runtime_id: Optional[str] = None
+        self, vm_id: ItemHash, item_hash: Optional[str] = None
     ) -> Tuple[Optional[int], str]:
-        params = {"runtime_id": runtime_id} if runtime_id else None
+        params = {"item_hash": item_hash} if item_hash else None
         return await self.perform_operation(
             vm_id, VmOperation.RESCUE, params=params
         )
