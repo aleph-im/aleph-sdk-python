@@ -45,7 +45,7 @@ class Runtimes:
 
     async def get_runtimes_aggregate(self) -> RuntimesAggregate:
         """Fetch the full runtimes aggregate."""
-        aggregate_data = await self._client.fetch_aggregate(
+        aggregate_data = await self._client.get_aggregate(
             address=settings.ALEPH_AGGREGATE_ADDRESS,
             key="runtimes",
         )
