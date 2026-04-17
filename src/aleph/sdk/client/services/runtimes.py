@@ -54,9 +54,7 @@ class Runtimes:
             return aggregate.entries
         return [r for r in aggregate.runtimes if r.type == runtime_type]
 
-    async def get_default_runtime(
-        self, runtime_type: str
-    ) -> Optional[RuntimeEntry]:
+    async def get_default_runtime(self, runtime_type: str) -> Optional[RuntimeEntry]:
         """Get the default entry for a given type.
 
         Args:
