@@ -5,9 +5,9 @@ import pytest
 from aleph.sdk.client.http import AlephHttpClient
 from aleph.sdk.client.services.runtimes import (
     RuntimeEntry,
+    Runtimes,
     RuntimesAggregate,
     RuntimeType,
-    Runtimes,
 )
 
 MOCK_AGGREGATE = {
