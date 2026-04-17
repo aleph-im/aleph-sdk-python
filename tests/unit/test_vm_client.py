@@ -551,4 +551,5 @@ def test_vm_operation_enum_values():
     assert VmOperation.RESTORE == "restore"
     assert VmOperation.REINSTALL == "reinstall"
     assert VmOperation.EXPIRE == "expire"
+    assert VmOperation.RESCUE == "rescue"
     assert VmOperation.STREAM_LOGS == "stream_logs"

@@ -1,3 +1,4 @@
+import logging
 from enum import Enum
 from typing import TYPE_CHECKING, List, Optional
 
@@ -7,6 +8,8 @@ from aleph.sdk.conf import settings
 
 if TYPE_CHECKING:
     from aleph.sdk.client.http import AlephHttpClient
+
+logger = logging.getLogger(__name__)
 
 
 class RuntimeType(str, Enum):
@@ -46,6 +49,9 @@ class Runtimes:
             address=settings.ALEPH_AGGREGATE_ADDRESS,
             key="runtimes",
         )
+        if not aggregate_data:
+            logger.warning("Runtimes aggregate is empty or not found")
+            return RuntimesAggregate()
         return RuntimesAggregate.model_validate(aggregate_data)
 
     async def get_runtimes(
