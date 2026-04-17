@@ -67,6 +67,9 @@ class MockAlephClient(AuthenticatedAlephClient):
             return self._aggregates[address]
         return {k: v for k, v in self._aggregates[address].items() if k in keys}
 
+    async def list_aggregates(self, **kwargs):
+        raise NotImplementedError
+
     async def create_aggregate(
         self,
         key: str,
