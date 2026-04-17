@@ -1,3 +1,4 @@
+from enum import Enum
 from typing import TYPE_CHECKING, List, Optional
 
 from pydantic import BaseModel
@@ -8,12 +9,19 @@ if TYPE_CHECKING:
     from aleph.sdk.client.http import AlephHttpClient
 
 
+class RuntimeType(str, Enum):
+    PROGRAM = "program"
+    INSTANCE = "instance"
+    RESCUE = "rescue"
+    FIRMWARE = "firmware"
+
+
 class RuntimeEntry(BaseModel):
     """A single runtime entry from the runtimes aggregate."""
 
     id: str
     name: str
-    type: str  # "program", "instance", "rescue", "firmware"
+    type: RuntimeType
     item_hash: str
     default: bool = False
     sha256: Optional[str] = None
@@ -41,20 +49,21 @@ class Runtimes:
         return RuntimesAggregate.model_validate(aggregate_data)
 
     async def get_runtimes(
-        self, runtime_type: Optional[str] = None
+        self, runtime_type: Optional[RuntimeType] = None
     ) -> List[RuntimeEntry]:
         """Get runtime entries, optionally filtered by type.
 
         Args:
-            runtime_type: Filter by type (program, instance, rescue, firmware).
-                If None, returns all entries.
+            runtime_type: Filter by RuntimeType. If None, returns all entries.
         """
         aggregate = await self.get_runtimes_aggregate()
         if runtime_type is None:
             return aggregate.entries
-        return [r for r in aggregate.runtimes if r.type == runtime_type]
+        return [r for r in aggregate.entries if r.type == runtime_type]
 
-    async def get_default_runtime(self, runtime_type: str) -> Optional[RuntimeEntry]:
+    async def get_default_runtime(
+        self, runtime_type: RuntimeType
+    ) -> Optional[RuntimeEntry]:
         """Get the default entry for a given type.
 
         Args:
