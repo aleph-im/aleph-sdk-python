@@ -55,6 +55,7 @@ from ..exceptions import (
 )
 from ..query.filters import BalanceFilter, MessageFilter, PostFilter, SortBy
 from ..query.responses import (
+    AggregatesResponse,
     BalanceResponse,
     CreditsHistoryResponse,
     CursorMessagesResponse,
@@ -217,26 +218,15 @@ class AlephHttpClient(AlephClient):
 
     async def list_aggregates(
         self,
-        keys: Optional[str] = None,
-        addresses: Optional[str] = None,
+        keys: Optional[Iterable[str]] = None,
+        addresses: Optional[Iterable[str]] = None,
         sort_by: str = "last_modified",
         sort_order: int = -1,
         pagination: int = 20,
         page: int = 1,
-    ) -> Dict[str, Any]:
-        """List aggregates across all addresses with filtering and pagination.
+    ) -> "AggregatesResponse":
+        pagination = max(1, min(pagination, 500))
 
-        Args:
-            keys: Comma-separated aggregate keys to filter (e.g. "domains,runtimes").
-            addresses: Comma-separated addresses to filter.
-            sort_by: Sort field (only "last_modified" supported).
-            sort_order: Sort direction: -1 (desc) or 1 (asc).
-            pagination: Items per page (1-500).
-            page: Page number (starts at 1).
-
-        Returns:
-            Dict with "aggregates", "pagination_page", "pagination_total", etc.
-        """
         params: Dict[str, Any] = {
             "sortBy": sort_by,
             "sortOrder": sort_order,
@@ -244,13 +234,13 @@ class AlephHttpClient(AlephClient):
             "page": page,
         }
         if keys:
-            params["keys"] = keys
+            params["keys"] = ",".join(keys)
         if addresses:
-            params["addresses"] = addresses
+            params["addresses"] = ",".join(addresses)
 
         async with self.http_session.get("/api/v0/aggregates", params=params) as resp:
             resp.raise_for_status()
-            return await resp.json()
+            return AggregatesResponse.model_validate(await resp.json())
 
     async def get_posts(
         self,

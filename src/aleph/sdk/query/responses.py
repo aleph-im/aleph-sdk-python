@@ -101,6 +101,13 @@ class PriceResponse(BaseModel):
     payment_type: str
 
 
+class AggregatesResponse(PaginationResponse):
+    """Response from an aleph.im node API on the path /api/v0/aggregates"""
+
+    aggregates: List[Dict[str, Any]]
+    pagination_item: str = "aggregates"
+
+
 class CreditsHistoryResponse(PaginationResponse):
     """Response from an aleph.im node API on the path /api/v0/credits"""
 
