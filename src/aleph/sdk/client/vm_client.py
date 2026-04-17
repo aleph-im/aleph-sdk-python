@@ -188,7 +188,11 @@ class VmClient:
         path = payload["path"]
         ws_url = f"{self.node_url}{path}"
 
-        async with self.session.ws_connect(ws_url) as ws:
+        async with self.session.ws_connect(
+            ws_url,
+            heartbeat=30,
+            timeout=aiohttp.ClientWSTimeout(ws_close=10),
+        ) as ws:
             auth_message = {
                 "auth": {
                     "X-SignedPubKey": json.loads(self.pubkey_signature_header),
@@ -197,10 +201,18 @@ class VmClient:
             }
             await ws.send_json(auth_message)
 
-            async for msg in ws:  # msg is of type aiohttp.WSMessage
+            async for msg in ws:
                 if msg.type == aiohttp.WSMsgType.TEXT:
                     yield msg.data
                 elif msg.type == aiohttp.WSMsgType.ERROR:
+                    logger.error("WebSocket error: %s", ws.exception() or "unknown")
+                    break
+                elif msg.type in (
+                    aiohttp.WSMsgType.CLOSE,
+                    aiohttp.WSMsgType.CLOSING,
+                    aiohttp.WSMsgType.CLOSED,
+                ):
+                    logger.warning("WebSocket closed by server")
                     break
 
     async def start_instance(self, vm_id: ItemHash) -> Tuple[int, str]:
