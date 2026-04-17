@@ -189,7 +189,7 @@ async def test_enter_rescue_with_item_hash():
             session=aiohttp.ClientSession(),
         )
         m.post(
-            f"http://localhost/control/machine/{vm_id}/rescue",
+            f"http://localhost/control/machine/{vm_id}/rescue?item_hash=abc123",
             status=200,
             payload={"status": "rescue"},
         )
