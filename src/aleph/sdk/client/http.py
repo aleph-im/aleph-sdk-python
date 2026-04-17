@@ -623,9 +623,12 @@ class AlephHttpClient(AlephClient):
         params = message_filter.as_http_params()
 
         async with self.http_session.ws_connect(
-            "/api/ws0/messages", params=params
+            "/api/ws0/messages",
+            params=params,
+            heartbeat=30,
+            timeout=aiohttp.ClientWSTimeout(ws_close=10),
         ) as ws:
-            logger.debug("Websocket connected")
+            logger.info("WebSocket connected on /api/ws0/messages")
             async for msg in ws:
                 if msg.type == aiohttp.WSMsgType.TEXT:
                     if msg.data == "close cmd":
@@ -635,6 +638,14 @@ class AlephHttpClient(AlephClient):
                         data = json.loads(msg.data)
                         yield parse_message(data)
                 elif msg.type == aiohttp.WSMsgType.ERROR:
+                    logger.error("WebSocket error: %s", ws.exception() or "unknown")
+                    break
+                elif msg.type in (
+                    aiohttp.WSMsgType.CLOSE,
+                    aiohttp.WSMsgType.CLOSING,
+                    aiohttp.WSMsgType.CLOSED,
+                ):
+                    logger.warning("WebSocket closed by server")
                     break
 
     async def get_store_estimated_price(
