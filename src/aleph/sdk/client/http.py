@@ -55,6 +55,7 @@ from ..exceptions import (
 )
 from ..query.filters import BalanceFilter, MessageFilter, PostFilter, SortBy
 from ..query.responses import (
+    AggregatesResponse,
     BalanceResponse,
     CreditsHistoryResponse,
     CursorMessagesResponse,
@@ -214,6 +215,32 @@ class AlephHttpClient(AlephClient):
         self, address: str, keys: Optional[Iterable[str]] = None
     ) -> Dict[str, Dict]:
         return await self._fetch_aggregates(address=address, keys=keys)
+
+    async def list_aggregates(
+        self,
+        keys: Optional[Iterable[str]] = None,
+        addresses: Optional[Iterable[str]] = None,
+        sort_by: str = "last_modified",
+        sort_order: int = -1,
+        pagination: int = 20,
+        page: int = 1,
+    ) -> "AggregatesResponse":
+        pagination = max(1, min(pagination, 500))
+
+        params: Dict[str, Any] = {
+            "sortBy": sort_by,
+            "sortOrder": sort_order,
+            "pagination": pagination,
+            "page": page,
+        }
+        if keys:
+            params["keys"] = ",".join(keys)
+        if addresses:
+            params["addresses"] = ",".join(addresses)
+
+        async with self.http_session.get("/api/v0/aggregates", params=params) as resp:
+            resp.raise_for_status()
+            return AggregatesResponse.model_validate(await resp.json())
 
     async def get_posts(
         self,

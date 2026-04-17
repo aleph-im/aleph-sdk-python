@@ -43,6 +43,7 @@ from aleph.sdk.utils import extended_json_encoder
 
 from ..query.filters import MessageFilter, PostFilter
 from ..query.responses import (
+    AggregatesResponse,
     CursorMessagesResponse,
     CursorPostsResponse,
     MessagesResponse,
@@ -103,6 +104,28 @@ class AlephClient(ABC):
 
         :param address: Address of the owner of the aggregate
         :param keys: Keys of the aggregates to fetch (Default: all items)
+        """
+        raise NotImplementedError("Did you mean to import `AlephHttpClient`?")
+
+    @abstractmethod
+    async def list_aggregates(
+        self,
+        keys: Optional[Iterable[str]] = None,
+        addresses: Optional[Iterable[str]] = None,
+        sort_by: str = "last_modified",
+        sort_order: int = -1,
+        pagination: int = 20,
+        page: int = 1,
+    ) -> "AggregatesResponse":
+        """
+        List aggregates across all addresses with filtering and pagination.
+
+        :param keys: Aggregate keys to filter
+        :param addresses: Addresses to filter
+        :param sort_by: Sort field
+        :param sort_order: Sort direction: -1 (desc) or 1 (asc)
+        :param pagination: Items per page (1-500)
+        :param page: Page number (starts at 1)
         """
         raise NotImplementedError("Did you mean to import `AlephHttpClient`?")
 

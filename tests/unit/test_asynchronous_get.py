@@ -67,6 +67,49 @@ async def test_get_aggregates():
 
 
 @pytest.mark.asyncio
+async def test_list_aggregates():
+    mock_session = make_mock_get_session(
+        {
+            "aggregates": [
+                {
+                    "address": "0xabc",
+                    "key": "domains",
+                    "content": {"example.com": {"type": "ipfs"}},
+                }
+            ],
+            "pagination_page": 1,
+            "pagination_total": 1,
+            "pagination_per_page": 20,
+            "pagination_item": "aggregates",
+        }
+    )
+    async with mock_session:
+        response = await mock_session.list_aggregates(keys=["domains"])
+    assert response.pagination_total == 1
+    assert len(response.aggregates) == 1
+    assert response.aggregates[0]["key"] == "domains"
+
+
+@pytest.mark.asyncio
+async def test_list_aggregates_with_addresses():
+    mock_session = make_mock_get_session(
+        {
+            "aggregates": [],
+            "pagination_page": 1,
+            "pagination_total": 0,
+            "pagination_per_page": 20,
+            "pagination_item": "aggregates",
+        }
+    )
+    async with mock_session:
+        response = await mock_session.list_aggregates(
+            keys=["domains"], addresses=["0xabc", "0xdef"], pagination=100
+        )
+    assert response.pagination_total == 0
+    assert len(response.aggregates) == 0
+
+
+@pytest.mark.asyncio
 async def test_get_posts(raw_posts_response):
     mock_session = make_mock_get_session(raw_posts_response(1))
     post = raw_posts_response(1)["posts"][0]
