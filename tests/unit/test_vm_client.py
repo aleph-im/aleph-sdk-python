@@ -155,6 +155,74 @@ async def test_expire_instance():
 
 
 @pytest.mark.asyncio
+async def test_enter_rescue():
+    account = ETHAccount(private_key=b"0x" + b"1" * 30)
+    vm_id = ItemHash("cafecafecafecafecafecafecafecafecafecafecafecafecafecafecafecafe")
+
+    with aioresponses() as m:
+        vm_client = VmClient(
+            account=account,
+            node_url="http://localhost",
+            session=aiohttp.ClientSession(),
+        )
+        m.post(
+            f"http://localhost/control/machine/{vm_id}/rescue",
+            status=200,
+            payload={"status": "rescue", "message": "Instance booted in rescue mode."},
+        )
+
+        status, response_text = await vm_client.enter_rescue(vm_id)
+        assert status == 200
+        assert "rescue" in response_text
+        await vm_client.session.close()
+
+
+@pytest.mark.asyncio
+async def test_enter_rescue_with_item_hash():
+    account = ETHAccount(private_key=b"0x" + b"1" * 30)
+    vm_id = ItemHash("cafecafecafecafecafecafecafecafecafecafecafecafecafecafecafecafe")
+
+    with aioresponses() as m:
+        vm_client = VmClient(
+            account=account,
+            node_url="http://localhost",
+            session=aiohttp.ClientSession(),
+        )
+        m.post(
+            f"http://localhost/control/machine/{vm_id}/rescue?item_hash=abc123",
+            status=200,
+            payload={"status": "rescue"},
+        )
+
+        status, response_text = await vm_client.enter_rescue(vm_id, item_hash="abc123")
+        assert status == 200
+        await vm_client.session.close()
+
+
+@pytest.mark.asyncio
+async def test_exit_rescue():
+    account = ETHAccount(private_key=b"0x" + b"1" * 30)
+    vm_id = ItemHash("cafecafecafecafecafecafecafecafecafecafecafecafecafecafecafecafe")
+
+    with aioresponses() as m:
+        vm_client = VmClient(
+            account=account,
+            node_url="http://localhost",
+            session=aiohttp.ClientSession(),
+        )
+        m.delete(
+            f"http://localhost/control/machine/{vm_id}/rescue",
+            status=200,
+            payload={"status": "normal", "message": "Instance restored."},
+        )
+
+        status, response_text = await vm_client.exit_rescue(vm_id)
+        assert status == 200
+        assert "normal" in response_text
+        await vm_client.session.close()
+
+
+@pytest.mark.asyncio
 async def test_get_logs(aiohttp_client):
     account = ETHAccount(private_key=b"0x" + b"1" * 30)
     vm_id = ItemHash("cafecafecafecafecafecafecafecafecafecafecafecafecafecafecafecafe")
@@ -551,4 +619,5 @@ def test_vm_operation_enum_values():
     assert VmOperation.RESTORE == "restore"
     assert VmOperation.REINSTALL == "reinstall"
     assert VmOperation.EXPIRE == "expire"
+    assert VmOperation.RESCUE == "rescue"
     assert VmOperation.STREAM_LOGS == "stream_logs"

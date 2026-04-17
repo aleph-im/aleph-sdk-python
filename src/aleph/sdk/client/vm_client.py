@@ -34,6 +34,7 @@ class VmOperation(str, Enum):
     RESTORE = "restore"
     REINSTALL = "reinstall"
     EXPIRE = "expire"
+    RESCUE = "rescue"
     STREAM_LOGS = "stream_logs"
 
     def __str__(self) -> str:
@@ -312,6 +313,15 @@ class VmClient:
 
     async def expire_instance(self, vm_id: ItemHash) -> Tuple[Optional[int], str]:
         return await self.perform_operation(vm_id, VmOperation.EXPIRE)
+
+    async def enter_rescue(
+        self, vm_id: ItemHash, item_hash: Optional[str] = None
+    ) -> Tuple[Optional[int], str]:
+        params = {"item_hash": item_hash} if item_hash else None
+        return await self.perform_operation(vm_id, VmOperation.RESCUE, params=params)
+
+    async def exit_rescue(self, vm_id: ItemHash) -> Tuple[Optional[int], str]:
+        return await self.perform_operation(vm_id, VmOperation.RESCUE, method="DELETE")
 
     async def notify_allocation(self, vm_id: ItemHash) -> Tuple[int, str]:
         json_data = {"instance": vm_id}
