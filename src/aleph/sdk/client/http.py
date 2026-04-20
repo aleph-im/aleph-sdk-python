@@ -54,19 +54,13 @@ from ..exceptions import (
     ResourceNotFoundError,
 )
 from ..query.filters import (
-<<<<<<< HEAD
-=======
     AccountFilesFilter,
->>>>>>> ceda020 (feature: new method in AlephHttpClient `get_account_files`)
     AddressesFilter,
     BalanceFilter,
     ChainBalancesFilter,
     MessageFilter,
     PostFilter,
-<<<<<<< HEAD
     SortBy,
-=======
->>>>>>> ceda020 (feature: new method in AlephHttpClient `get_account_files`)
 )
 from ..query.responses import (
     AccountFilesResponse,
@@ -898,6 +892,18 @@ class AlephHttpClient(AlephClient):
             result = await resp.json()
             return BalanceResponse.model_validate(result)
 
+    @staticmethod
+    def _paginated_params(
+        page: int,
+        page_size: int,
+        filter: Optional[Any] = None,
+    ) -> Dict[str, str]:
+        """Build query params dict combining filter params and pagination."""
+        params = filter.as_http_params() if filter else {}
+        params["page"] = str(page)
+        params["pagination"] = str(page_size)
+        return params
+
     async def get_chain_balances(
         self,
         page_size: int = 100,
@@ -912,15 +918,7 @@ class AlephHttpClient(AlephClient):
         :param filter: Query parameters for filtering by chains and minimum balance
         :return: Chain balances response with pagination
         """
-        if not filter:
-            params = {
-                "page": str(page),
-                "pagination": str(page_size),
-            }
-        else:
-            params = filter.as_http_params()
-            params["page"] = str(page)
-            params["pagination"] = str(page_size)
+        params = self._paginated_params(page, page_size, filter)
 
         async with self.http_session.get("/api/v0/balances", params=params) as resp:
             resp.raise_for_status()
@@ -929,27 +927,19 @@ class AlephHttpClient(AlephClient):
 
     async def get_address_stats(
         self,
-        page_size: int = 200,
+        page_size: int = 100,
         page: int = 1,
         filter: Optional[AddressesFilter] = None,
     ) -> AddressStatsResponse:
         """
         Get address statistics with optional filtering and sorting.
 
-        :param page_size: Number of results per page
+        :param page_size: Number of results per page (default 100)
         :param page: Page number starting at 1
         :param filter: Query parameters for filtering and sorting
         :return: Address statistics response with pagination
         """
-        if not filter:
-            params = {
-                "page": str(page),
-                "pagination": str(page_size),
-            }
-        else:
-            params = filter.as_http_params()
-            params["page"] = str(page)
-            params["pagination"] = str(page_size)
+        params = self._paginated_params(page, page_size, filter)
 
         async with self.http_session.get(
             "/api/v1/addresses/stats.json", params=params
@@ -973,17 +963,13 @@ class AlephHttpClient(AlephClient):
         :param page: Page number starting at 1
         :param filter: Query parameters for filtering and sorting
         :return: Account files response with pagination
+        :raises ValueError: If the address contains path separators or traversal characters
         :raises aiohttp.ClientResponseError: If the address has no files (HTTP 404)
         """
-        if not filter:
-            params = {
-                "page": str(page),
-                "pagination": str(page_size),
-            }
-        else:
-            params = filter.as_http_params()
-            params["page"] = str(page)
-            params["pagination"] = str(page_size)
+        if "/" in address or "\\" in address or ".." in address:
+            raise ValueError(f"Invalid address: {address!r}")
+
+        params = self._paginated_params(page, page_size, filter)
 
         async with self.http_session.get(
             f"/api/v0/addresses/{address}/files", params=params

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import datetime as dt
 from decimal import Decimal
+from enum import Enum
 from typing import Any, Dict, List, Optional, Union
 
 from aleph_message.models import (
@@ -13,7 +14,12 @@ from aleph_message.models import (
 )
 from pydantic import BaseModel, ConfigDict, Field
 
-from aleph.sdk.query.filters import FileType
+
+class FileType(str, Enum):
+    """Supported file types returned by the account-files endpoint."""
+
+    FILE = "file"
+    DIRECTORY = "directory"
 
 
 class Post(BaseModel):
@@ -159,7 +165,11 @@ class AddressStats(BaseModel):
 
 
 class AddressStatsResponse(PaginationResponse):
-    """Response from an aleph.im node API on the path /api/v1/addresses/stats.json"""
+    """Response from an aleph.im node API on the path /api/v1/addresses/stats.json.
+
+    Note: ``data`` is a mapping rather than a list, keyed by address string.
+    Iteration order is not guaranteed across pages.
+    """
 
     data: Dict[str, AddressStats] = Field(
         description="Dictionary mapping addresses to their statistics"
@@ -191,8 +201,6 @@ class AccountFilesResponse(PaginationResponse):
     )
     pagination_item: str = "files"
 
-    model_config = ConfigDict(extra="forbid")
-
 
 class AddressBalanceResponseItem(BaseModel):
     """
@@ -213,5 +221,3 @@ class ChainBalancesResponse(PaginationResponse):
         description="List of address balances across different chains"
     )
     pagination_item: str = "balances"
-
-    model_config = ConfigDict(extra="forbid")

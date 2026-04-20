@@ -188,26 +188,25 @@ def raw_address_stats_response(
     address_stats_data,
 ) -> Callable[[int], Dict[str, Any]]:
     # Convert list of address stats to dict format as returned by API
-    data_dict = {}
-    if int(1) == 1:  # page 1
-        for item in address_stats_data:
-            address = item["address"]
-            data_dict[address] = {
-                "messages": item["total"],
-                "post": item["post"],
-                "aggregate": item["aggregate"],
-                "store": item["store"],
-                "forget": item["forget"],
-                "program": item["program"],
-                "instance": item["instance"],
-            }
+    data_dict = {
+        item["address"]: {
+            "messages": item["total"],
+            "post": item["post"],
+            "aggregate": item["aggregate"],
+            "store": item["store"],
+            "forget": item["forget"],
+            "program": item["program"],
+            "instance": item["instance"],
+        }
+        for item in address_stats_data
+    }
 
     return lambda page: {
         "data": data_dict if int(page) == 1 else {},
         "pagination_item": "addresses",
         "pagination_page": int(page),
         "pagination_per_page": max(len(address_stats_data), 20),
-        "pagination_total": len(address_stats_data) if page == 1 else 0,
+        "pagination_total": len(address_stats_data) if int(page) == 1 else 0,
     }
 
 

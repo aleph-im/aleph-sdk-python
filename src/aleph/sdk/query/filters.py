@@ -33,13 +33,6 @@ class SortByMessageType(str, Enum):
     TOTAL = "total"
 
 
-class FileType(str, Enum):
-    """Supported file types"""
-
-    FILE = "file"
-    DIRECTORY = "directory"
-
-
 class MessageFilter:
     """
     A collection of filters that can be applied on message queries.
@@ -249,6 +242,11 @@ class BalanceFilter:
         return result
 
 
+def _drop_empty(partial: Dict[str, Optional[str]]) -> Dict[str, str]:
+    """Drop keys whose value is None or an empty string."""
+    return {key: value for key, value in partial.items() if value}
+
+
 class AddressesFilter:
     """
     A collection of query parameters for address stats queries.
@@ -276,23 +274,13 @@ class AddressesFilter:
         """Convert the filters into a dict that can be used by an `aiohttp` client
         as `params` to build the HTTP query string.
         """
-
-        partial_result = {
-            "addressContains": self.address_contains,
-            "sortBy": enum_as_str(self.sort_by),
-            "sortOrder": enum_as_str(self.sort_order),
-        }
-
-        # Ensure all values are strings.
-        result: Dict[str, str] = {}
-
-        # Drop empty values
-        for key, value in partial_result.items():
-            if value:
-                assert isinstance(value, str), f"Value must be a string: `{value}`"
-                result[key] = value
-
-        return result
+        return _drop_empty(
+            {
+                "addressContains": self.address_contains,
+                "sortBy": enum_as_str(self.sort_by),
+                "sortOrder": enum_as_str(self.sort_order),
+            }
+        )
 
 
 class AccountFilesFilter:
@@ -314,21 +302,7 @@ class AccountFilesFilter:
         """Convert the filters into a dict that can be used by an `aiohttp` client
         as `params` to build the HTTP query string.
         """
-
-        partial_result = {
-            "sort_order": enum_as_str(self.sort_order),
-        }
-
-        # Ensure all values are strings.
-        result: Dict[str, str] = {}
-
-        # Drop empty values
-        for key, value in partial_result.items():
-            if value:
-                assert isinstance(value, str), f"Value must be a string: `{value}`"
-                result[key] = value
-
-        return result
+        return _drop_empty({"sortOrder": enum_as_str(self.sort_order)})
 
 
 class ChainBalancesFilter:
@@ -337,6 +311,7 @@ class ChainBalancesFilter:
 
     :param chains: Filter by specific blockchain chains
     :param min_balance: Minimum balance required (must be >= 1)
+    :raises ValueError: If min_balance is provided and is less than 1
     """
 
     chains: Optional[Iterable[Chain]]
@@ -347,6 +322,8 @@ class ChainBalancesFilter:
         chains: Optional[Iterable[Chain]] = None,
         min_balance: Optional[int] = None,
     ):
+        if min_balance is not None and min_balance < 1:
+            raise ValueError(f"min_balance must be >= 1, got {min_balance}")
         self.chains = chains
         self.min_balance = min_balance
 
@@ -354,23 +331,13 @@ class ChainBalancesFilter:
         """Convert the filters into a dict that can be used by an `aiohttp` client
         as `params` to build the HTTP query string.
         """
-
-        partial_result = {
-            "chains": serialize_list(
-                [chain.value for chain in self.chains] if self.chains else None
-            ),
-            "min_balance": (
-                str(self.min_balance) if self.min_balance is not None else None
-            ),
-        }
-
-        # Ensure all values are strings.
-        result: Dict[str, str] = {}
-
-        # Drop empty values
-        for key, value in partial_result.items():
-            if value:
-                assert isinstance(value, str), f"Value must be a string: `{value}`"
-                result[key] = value
-
-        return result
+        return _drop_empty(
+            {
+                "chains": serialize_list(
+                    [chain.value for chain in self.chains] if self.chains else None
+                ),
+                "minBalance": (
+                    str(self.min_balance) if self.min_balance is not None else None
+                ),
+            }
+        )

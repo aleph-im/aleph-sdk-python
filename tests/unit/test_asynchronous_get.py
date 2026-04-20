@@ -319,5 +319,60 @@ async def test_get_chain_balances_without_filter(raw_chain_balances_response):
         assert response.pagination_item == "balances"
 
 
+def test_addresses_filter_as_http_params():
+    f = AddressesFilter(
+        address_contains="0xabc",
+        sort_by=SortByMessageType.TOTAL,
+        sort_order=SortOrder.DESCENDING,
+    )
+    params = f.as_http_params()
+    assert params == {
+        "addressContains": "0xabc",
+        "sortBy": "total",
+        "sortOrder": "-1",
+    }
+
+
+def test_addresses_filter_drops_none_values():
+    assert AddressesFilter().as_http_params() == {}
+    assert AddressesFilter(address_contains="x").as_http_params() == {
+        "addressContains": "x"
+    }
+
+
+def test_account_files_filter_uses_camel_case():
+    f = AccountFilesFilter(sort_order=SortOrder.ASCENDING)
+    params = f.as_http_params()
+    assert params == {"sortOrder": "1"}
+
+
+def test_chain_balances_filter_as_http_params():
+    f = ChainBalancesFilter(chains=[Chain.ETH, Chain.AVAX], min_balance=10)
+    params = f.as_http_params()
+    assert params == {"chains": "ETH,AVAX", "minBalance": "10"}
+
+
+def test_chain_balances_filter_rejects_invalid_min_balance():
+    with pytest.raises(ValueError, match="min_balance must be >= 1"):
+        ChainBalancesFilter(min_balance=0)
+    with pytest.raises(ValueError, match="min_balance must be >= 1"):
+        ChainBalancesFilter(min_balance=-5)
+
+
+def test_chain_balances_filter_accepts_min_balance_one():
+    f = ChainBalancesFilter(min_balance=1)
+    assert f.as_http_params() == {"minBalance": "1"}
+
+
+@pytest.mark.asyncio
+async def test_get_account_files_rejects_path_traversal():
+    """address with path separators or .. must raise ValueError before any HTTP call."""
+    mock_session = make_mock_get_session({})
+    async with mock_session as session:
+        for bad_address in ["../etc/passwd", "foo/bar", "a\\b", "..foo"]:
+            with pytest.raises(ValueError, match="Invalid address"):
+                await session.get_account_files(address=bad_address)
+
+
 if __name__ == "__main __":
     unittest.main()
