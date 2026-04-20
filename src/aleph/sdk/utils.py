@@ -241,13 +241,16 @@ def create_vm_control_payload(
     vm_id: ItemHash, operation: str, domain: str, method: str
 ) -> Dict[str, str]:
     path = f"/control/machine/{vm_id}/{operation}"
-    payload = {
+    return create_control_payload(path=path, domain=domain, method=method)
+
+
+def create_control_payload(path: str, domain: str, method: str) -> Dict[str, str]:
+    return {
         "time": datetime.utcnow().isoformat() + "Z",
         "method": method.upper(),
         "path": path,
         "domain": domain,
     }
-    return payload
 
 
 def sign_vm_control_payload(payload: Dict[str, str], ephemeral_key) -> str:
