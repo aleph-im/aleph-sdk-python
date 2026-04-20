@@ -16,6 +16,7 @@ from jwcrypto import jwk
 from aleph.sdk.chains.solana import SOLAccount
 from aleph.sdk.types import Account
 from aleph.sdk.utils import (
+    create_control_payload,
     create_vm_control_payload,
     sign_vm_control_payload,
     to_0x_hex,
@@ -332,6 +333,40 @@ class VmClient:
             form_response_text = await session.text()
 
             return session.status, form_response_text
+
+    async def reserve_resources(
+        self, instance_content: Dict[str, Any]
+    ) -> Tuple[Optional[int], str]:
+        """Pre-check CRN capacity for an instance before creating it.
+
+        Sends the instance content to the CRN for admission control.
+        Returns 200 with {"status": "reserved", "expires": ...} if resources
+        are available, 503 if the CRN cannot fit the request.
+        """
+        path = "/control/reserve_resources"
+        payload = create_control_payload(
+            path=path, domain=self.node_domain, method="POST"
+        )
+        signed_operation = sign_vm_control_payload(payload, self.ephemeral_key)
+
+        if not self.pubkey_signature_header:
+            self.pubkey_signature_header = (
+                await self._generate_pubkey_signature_header()
+            )
+
+        headers = {
+            "X-SignedPubKey": self.pubkey_signature_header,
+            "X-SignedOperation": signed_operation,
+        }
+
+        try:
+            async with self.session.post(
+                f"{self.node_url}{path}", headers=headers, json=instance_content
+            ) as resp:
+                return resp.status, await resp.text()
+        except aiohttp.ClientError as e:
+            logger.error("HTTP error during reserve_resources: %s", str(e))
+            return None, str(e)
 
     async def manage_instance(
         self, vm_id: ItemHash, operations: List[Union[VmOperation, str]]

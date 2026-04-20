@@ -223,6 +223,53 @@ async def test_exit_rescue():
 
 
 @pytest.mark.asyncio
+async def test_reserve_resources_success():
+    account = ETHAccount(private_key=b"0x" + b"1" * 30)
+    instance_content = {"address": "0xabc", "time": 1700000000.0}
+
+    with aioresponses() as m:
+        vm_client = VmClient(
+            account=account,
+            node_url="http://localhost",
+            session=aiohttp.ClientSession(),
+        )
+        m.post(
+            "http://localhost/control/reserve_resources",
+            status=200,
+            payload={"status": "reserved", "expires": "2026-01-01T00:00:00Z"},
+        )
+
+        status, response_text = await vm_client.reserve_resources(instance_content)
+        assert status == 200
+        assert "reserved" in response_text
+        assert ("POST", URL("http://localhost/control/reserve_resources")) in m.requests
+        await vm_client.session.close()
+
+
+@pytest.mark.asyncio
+async def test_reserve_resources_insufficient_capacity():
+    account = ETHAccount(private_key=b"0x" + b"1" * 30)
+    instance_content = {"address": "0xabc", "time": 1700000000.0}
+
+    with aioresponses() as m:
+        vm_client = VmClient(
+            account=account,
+            node_url="http://localhost",
+            session=aiohttp.ClientSession(),
+        )
+        m.post(
+            "http://localhost/control/reserve_resources",
+            status=503,
+            body="This CRN cannot reserve the requested resources at this time.",
+        )
+
+        status, response_text = await vm_client.reserve_resources(instance_content)
+        assert status == 503
+        assert "cannot reserve" in response_text
+        await vm_client.session.close()
+
+
+@pytest.mark.asyncio
 async def test_get_logs(aiohttp_client):
     account = ETHAccount(private_key=b"0x" + b"1" * 30)
     vm_id = ItemHash("cafecafecafecafecafecafecafecafecafecafecafecafecafecafecafecafe")
