@@ -365,7 +365,7 @@ class VmClient:
             ) as resp:
                 return resp.status, await resp.text()
         except aiohttp.ClientError as e:
-            logger.error("HTTP error during reserve_resources: %s", e)
+            logger.error("HTTP error during reserve_resources: %s", str(e))
             return None, str(e)
 
     async def manage_instance(
