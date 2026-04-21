@@ -21,6 +21,18 @@ class SortOrder(str, Enum):
     DESCENDING = "-1"
 
 
+class SortByMessageType(str, Enum):
+    """Supported SortByMessageType types for address stats"""
+
+    AGGREGATE = "aggregate"
+    FORGET = "forget"
+    INSTANCE = "instance"
+    POST = "post"
+    PROGRAM = "program"
+    STORE = "store"
+    TOTAL = "total"
+
+
 class MessageFilter:
     """
     A collection of filters that can be applied on message queries.
@@ -228,3 +240,104 @@ class BalanceFilter:
                 result[key] = value
 
         return result
+
+
+def _drop_empty(partial: Dict[str, Optional[str]]) -> Dict[str, str]:
+    """Drop keys whose value is None or an empty string."""
+    return {key: value for key, value in partial.items() if value}
+
+
+class AddressesFilter:
+    """
+    A collection of query parameters for address stats queries.
+
+    :param address_contains: Case-insensitive substring to filter addresses
+    :param sort_by: Message type to sort by (aggregate, forget, instance, post, program, store, total)
+    :param sort_order: Sort order (ascending or descending)
+    """
+
+    address_contains: Optional[str]
+    sort_by: Optional[SortByMessageType]
+    sort_order: Optional[SortOrder]
+
+    def __init__(
+        self,
+        address_contains: Optional[str] = None,
+        sort_by: Optional[SortByMessageType] = None,
+        sort_order: Optional[SortOrder] = None,
+    ):
+        self.address_contains = address_contains
+        self.sort_by = sort_by
+        self.sort_order = sort_order
+
+    def as_http_params(self) -> Dict[str, str]:
+        """Convert the filters into a dict that can be used by an `aiohttp` client
+        as `params` to build the HTTP query string.
+        """
+        return _drop_empty(
+            {
+                "addressContains": self.address_contains,
+                "sortBy": enum_as_str(self.sort_by),
+                "sortOrder": enum_as_str(self.sort_order),
+            }
+        )
+
+
+class AccountFilesFilter:
+    """
+    A collection of query parameters for account files queries.
+
+    :param sort_order: Sort order (ascending or descending by creation date)
+    """
+
+    sort_order: Optional[SortOrder]
+
+    def __init__(
+        self,
+        sort_order: Optional[SortOrder] = None,
+    ):
+        self.sort_order = sort_order
+
+    def as_http_params(self) -> Dict[str, str]:
+        """Convert the filters into a dict that can be used by an `aiohttp` client
+        as `params` to build the HTTP query string.
+        """
+        return _drop_empty({"sortOrder": enum_as_str(self.sort_order)})
+
+
+class ChainBalancesFilter:
+    """
+    A collection of query parameters for chain balances queries.
+
+    :param chains: Filter by specific blockchain chains
+    :param min_balance: Minimum balance required (must be >= 1)
+    :raises ValueError: If min_balance is provided and is less than 1
+    """
+
+    chains: Optional[Iterable[Chain]]
+    min_balance: Optional[int]
+
+    def __init__(
+        self,
+        chains: Optional[Iterable[Chain]] = None,
+        min_balance: Optional[int] = None,
+    ):
+        if min_balance is not None and min_balance < 1:
+            raise ValueError(f"min_balance must be >= 1, got {min_balance}")
+        self.chains = chains
+        self.min_balance = min_balance
+
+    def as_http_params(self) -> Dict[str, str]:
+        """Convert the filters into a dict that can be used by an `aiohttp` client
+        as `params` to build the HTTP query string.
+        """
+        return _drop_empty(
+            {
+                "chains": serialize_list(
+                    [chain.value for chain in self.chains] if self.chains else None
+                ),
+                "minBalance": (
+                    str(self.min_balance) if self.min_balance is not None else None
+                ),
+            }
+        )
