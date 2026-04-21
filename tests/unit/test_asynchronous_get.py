@@ -200,7 +200,9 @@ async def test_get_address_stats(raw_address_stats_response, address_stats_data)
         # Get the first address from the stats data
         first_address = address_stats_data[0]["address"]
         assert first_address in address_stats
-        assert address_stats[first_address].messages == address_stats_data[0]["total"]
+        assert (
+            address_stats[first_address].messages == address_stats_data[0]["messages"]
+        )
         assert address_stats[first_address].post == address_stats_data[0]["post"]
         assert (
             address_stats[first_address].aggregate == address_stats_data[0]["aggregate"]
@@ -369,8 +371,23 @@ async def test_get_account_files_rejects_path_traversal():
     """address with path separators or .. must raise ValueError before any HTTP call."""
     mock_session = make_mock_get_session({})
     async with mock_session as session:
-        for bad_address in ["../etc/passwd", "foo/bar", "a\\b", "..foo"]:
+        for bad_address in [
+            "../etc/passwd",
+            "./etc/passwd",
+            "foo/bar",
+            "a\\b",
+            "..foo",
+        ]:
             with pytest.raises(ValueError, match="Invalid address"):
+                await session.get_account_files(address=bad_address)
+
+
+@pytest.mark.asyncio
+async def test_get_account_files_rejects_empty_address():
+    mock_session = make_mock_get_session({})
+    async with mock_session as session:
+        for bad_address in ["", "   ", "\t", "\n"]:
+            with pytest.raises(ValueError, match="must not be empty"):
                 await session.get_account_files(address=bad_address)
 
 

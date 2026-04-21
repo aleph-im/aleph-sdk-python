@@ -963,10 +963,18 @@ class AlephHttpClient(AlephClient):
         :param page: Page number starting at 1
         :param filter: Query parameters for filtering and sorting
         :return: Account files response with pagination
-        :raises ValueError: If the address contains path separators or traversal characters
+        :raises ValueError: If the address is empty, whitespace-only, or contains
+            path separators or traversal characters
         :raises aiohttp.ClientResponseError: If the address has no files (HTTP 404)
         """
-        if "/" in address or "\\" in address or ".." in address:
+        if not address or not address.strip():
+            raise ValueError("address must not be empty or whitespace")
+        if (
+            "/" in address
+            or "\\" in address
+            or ".." in address
+            or address.startswith("./")
+        ):
             raise ValueError(f"Invalid address: {address!r}")
 
         params = self._paginated_params(page, page_size, filter)
