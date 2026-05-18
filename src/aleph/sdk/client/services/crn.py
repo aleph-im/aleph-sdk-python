@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime
 from typing import TYPE_CHECKING, Dict, List, Optional, Union
 
@@ -5,7 +6,7 @@ import aiohttp
 from aiohttp.client_exceptions import ClientResponseError
 from aleph_message.models import ItemHash
 from packaging.version import InvalidVersion, Version
-from pydantic import BaseModel, NonNegativeInt, PositiveInt
+from pydantic import BaseModel, NonNegativeInt, PositiveInt, ValidationError
 
 from aleph.sdk.conf import settings
 from aleph.sdk.exceptions import MethodNotAvailableOnCRN, VmNotFoundOnHost
@@ -21,6 +22,8 @@ from aleph.sdk.utils import extract_valid_eth_address, sanitize_url
 
 if TYPE_CHECKING:
     from aleph.sdk.client.http import AlephHttpClient
+
+logger = logging.getLogger(__name__)
 
 
 class CpuLoad(BaseModel):
@@ -120,10 +123,23 @@ class CrnList(DictLikeModel):
     @classmethod
     def from_api(cls, payload: dict) -> "CrnList":
         raw_list = payload.get("crns", [])
-        crn_list = [
-            CRN.model_validate(item) if not isinstance(item, CRN) else item
-            for item in raw_list
-        ]
+        crn_list: List[CRN] = []
+        for item in raw_list:
+            if isinstance(item, CRN):
+                crn_list.append(item)
+                continue
+            try:
+                crn_list.append(CRN.model_validate(item))
+            except ValidationError as exc:
+                identifier = "<unknown>"
+                if isinstance(item, dict):
+                    identifier = (
+                        item.get("hash")
+                        or item.get("name")
+                        or item.get("address")
+                        or identifier
+                    )
+                logger.warning("Skipping malformed CRN %s: %s", identifier, exc)
         return cls(crns=crn_list)
 
     def find_gpu_on_network(self):

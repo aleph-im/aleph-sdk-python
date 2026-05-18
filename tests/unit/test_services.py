@@ -536,3 +536,57 @@ def test_crn_version_filter_no_filter_returns_all():
 
     result = crn_list.filter_crn()
     assert len(result) == 2
+
+
+def test_crn_list_from_api_skips_malformed_entries(caplog):
+    """One malformed CRN must not crash the whole list (availability hardening)."""
+    payload = {
+        "crns": [
+            {
+                "hash": "good-crn",
+                "name": "good",
+                "address": "0xgood",
+                "version": "1.0.0",
+                "payment_receiver_address": None,
+            },
+            {
+                "hash": "bad-crn",
+                "name": "bad",
+                "address": "0xbad",
+                "version": "1.0.0",
+                "payment_receiver_address": None,
+                "system_usage": {
+                    "cpu": {
+                        "count": 1,
+                        "load_average": {"load1": 0, "load5": 0, "load15": 0},
+                        "core_frequencies": {"min": 0, "max": 0},
+                    },
+                    "mem": {"total_kB": 1, "available_kB": 0},
+                    "disk": {"total_kB": 1, "available_kB": 0},
+                    "period": {
+                        "start_timestamp": "2026-01-01T00:00:00",
+                        "duration_seconds": 0,
+                    },
+                    "properties": {
+                        "cpu": {"architecture": "x86_64", "vendor": "intel"}
+                    },
+                    "gpu": {"devices": [{"vendor": "NVIDIA"}], "available_devices": []},
+                    "active": True,
+                },
+            },
+            "not-a-dict",
+            None,
+        ]
+    }
+
+    with caplog.at_level("WARNING"):
+        result = CrnList.from_api(payload)
+
+    assert len(result.crns) == 1
+    assert result.crns[0].hash == "good-crn"
+    assert any("bad-crn" in record.message for record in caplog.records)
+
+
+def test_crn_list_from_api_empty_payload():
+    assert CrnList.from_api({}).crns == []
+    assert CrnList.from_api({"crns": []}).crns == []
