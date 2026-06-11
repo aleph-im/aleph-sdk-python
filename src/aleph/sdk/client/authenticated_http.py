@@ -1,13 +1,16 @@
+import asyncio
 import hashlib
 import json
 import logging
 import ssl
+import tempfile
 import time
 from io import BytesIO
 from pathlib import Path
 from typing import Any, Dict, Mapping, NoReturn, Optional, Tuple, Union
 
 import aiohttp
+import aleph_cid
 from aleph_message.models import (
     AggregateContent,
     AggregateMessage,
@@ -382,9 +385,18 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
                     payment=payment,
                 )
             elif storage_engine == StorageEnum.ipfs:
-                # We do not support authenticated upload for IPFS yet. Use the legacy method
-                # of uploading the file first then publishing the message using POST /messages.
-                file_hash = await self.ipfs_push_file(file_content=file_content)
+                # Compute the CID locally and upload the file and message all
+                # at once using authenticated upload.
+                return await self._upload_file_ipfs(
+                    address=address,
+                    file_content=file_content,
+                    guess_mime_type=guess_mime_type,
+                    ref=ref,
+                    extra_fields=extra_fields,
+                    channel=channel,
+                    sync=sync,
+                    payment=payment,
+                )
             else:
                 raise ValueError(f"Unknown storage engine: '{storage_engine}'")
 
@@ -620,14 +632,18 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
         )
         return message, message_status, response
 
-    async def _storage_push_file_with_message(
+    async def _push_file_with_message(
         self,
+        url: str,
         file_content: bytes,
         store_content: StoreContent,
         channel: Optional[str] = settings.DEFAULT_CHANNEL,
         sync: bool = False,
+        file_name: Optional[str] = None,
+        file_content_type: Optional[str] = None,
     ) -> Tuple[StoreMessage, MessageStatus]:
-        """Push a file to the storage service."""
+        """Sign a STORE message and upload it together with the file in a
+        single authenticated multipart request."""
         data = aiohttp.FormData()
 
         # Prepare the STORE message
@@ -646,9 +662,13 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
             content_type="application/json",
         )
         # Add the file
-        data.add_field("file", BytesIO(file_content))
+        data.add_field(
+            "file",
+            BytesIO(file_content),
+            filename=file_name,
+            content_type=file_content_type,
+        )
 
-        url = "/api/v0/storage/add_file"
         logger.debug(f"Posting file on {url}")
 
         async with self.http_session.post(url, data=data) as resp:
@@ -685,7 +705,8 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
             payment=payment,
             **(extra_fields or {}),
         )
-        message, _ = await self._storage_push_file_with_message(
+        message, _ = await self._push_file_with_message(
+            url="/api/v0/storage/add_file",
             file_content=file_content,
             store_content=store_content,
             channel=channel,
@@ -695,5 +716,118 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
         # Some nodes may not implement authenticated file upload yet. As we cannot detect
         # this easily, broadcast the message a second time to ensure publication on older
         # nodes.
+        _, status = await self._broadcast(message=message, sync=sync)
+        return message, status
+
+    async def _upload_file_ipfs(
+        self,
+        address: str,
+        file_content: bytes,
+        guess_mime_type: bool = False,
+        ref: Optional[str] = None,
+        extra_fields: Optional[dict] = None,
+        channel: Optional[str] = settings.DEFAULT_CHANNEL,
+        sync: bool = False,
+        payment: Optional[Payment] = None,
+    ) -> Tuple[StoreMessage, MessageStatus]:
+        """Authenticated IPFS upload: compute the CID locally (kubo-default
+        CIDv0, matching what the node will assign), then upload the file and
+        the signed STORE message in a single request."""
+        file_hash = aleph_cid.compute_cid(file_content)
+        if magic and guess_mime_type:
+            mime_type = magic.from_buffer(file_content, mime=True)
+        else:
+            mime_type = None
+
+        store_content = StoreContent(
+            address=address,
+            ref=ref,
+            item_type=ItemType.ipfs,
+            item_hash=ItemHash(file_hash),
+            mime_type=mime_type,  # type: ignore
+            time=time.time(),
+            payment=payment,
+            **(extra_fields or {}),
+        )
+        message, _ = await self._push_file_with_message(
+            url="/api/v0/ipfs/add_file",
+            file_content=file_content,
+            store_content=store_content,
+            channel=channel,
+            sync=sync,
+        )
+
+        # Some nodes may not implement authenticated file upload yet. As we cannot detect
+        # this easily, broadcast the message a second time to ensure publication on older
+        # nodes.
+        _, status = await self._broadcast(message=message, sync=sync)
+        return message, status
+
+    async def create_store_folder(
+        self,
+        folder_path: Union[str, Path],
+        address: Optional[str] = None,
+        ref: Optional[str] = None,
+        extra_fields: Optional[dict] = None,
+        channel: Optional[str] = settings.DEFAULT_CHANNEL,
+        sync: bool = False,
+        payment: Optional[Payment] = None,
+    ) -> Tuple[StoreMessage, MessageStatus]:
+        """
+        Upload a folder to IPFS as a UnixFS directory and create a STORE
+        message for its root CID, in a single authenticated request.
+
+        The folder is packed locally into a CARv1 file (with the same root
+        CID that kubo would assign, CIDv1) and posted to
+        /api/v0/ipfs/add_car together with the signed STORE message.
+
+        Requires a node exposing /api/v0/ipfs/add_car.
+
+        :param folder_path: Path to the folder to upload
+        :param address: Address to use or None to use the account address
+        :param ref: A reference to a previous message
+        :param extra_fields: Extra fields to add to the STORE message content
+        :param channel: Channel to use
+        :param sync: If true, waits for the message to be processed by the API server
+        :param payment: Payment method used to pay for the storage
+        """
+        folder_path = Path(folder_path)
+        if not folder_path.is_dir():
+            raise ValueError(f"Not a directory: {folder_path}")
+
+        address = address or settings.ADDRESS_TO_USE or self.account.get_address()
+        payment = payment or Payment(
+            chain=Chain.ETH, type=PaymentType.hold, receiver=None
+        )
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            car_path = Path(tmp_dir) / "upload.car"
+            # CAR packing reads the whole folder; run it off the event loop.
+            root_cid = await asyncio.to_thread(
+                aleph_cid.write_folder_car, folder_path, car_path
+            )
+            car_content = car_path.read_bytes()
+
+        store_content = StoreContent(
+            address=address,
+            ref=ref,
+            item_type=ItemType.ipfs,
+            item_hash=ItemHash(root_cid),
+            time=time.time(),
+            payment=payment,
+            **(extra_fields or {}),
+        )
+        message, status = await self._push_file_with_message(
+            url="/api/v0/ipfs/add_car",
+            file_content=car_content,
+            store_content=store_content,
+            channel=channel,
+            sync=sync,
+            file_name="upload.car",
+            file_content_type="application/vnd.ipld.car",
+        )
+
+        # Mirror the file upload paths: broadcast the message a second time to
+        # ensure publication on nodes that do not process the metadata part.
         _, status = await self._broadcast(message=message, sync=sync)
         return message, status
