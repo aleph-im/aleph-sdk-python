@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any, Dict, Mapping, NoReturn, Optional, Tuple, Union
 
 import aiohttp
+import aleph_cid
 from aleph_message.models import (
     AggregateContent,
     AggregateMessage,
@@ -51,15 +52,6 @@ try:
 except ImportError:
     logger.info("Could not import library 'magic', MIME type detection disabled")
     magic = None  # type:ignore
-
-try:
-    import aleph_cid
-except ImportError:
-    logger.info(
-        "Could not import library 'aleph_cid', "
-        "authenticated IPFS uploads disabled (legacy unauthenticated path used)"
-    )
-    aleph_cid = None  # type:ignore
 
 
 class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
@@ -393,26 +385,18 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
                     payment=payment,
                 )
             elif storage_engine == StorageEnum.ipfs:
-                if aleph_cid is not None:
-                    # Compute the CID locally and upload the file and message
-                    # all at once using authenticated upload.
-                    return await self._upload_file_ipfs(
-                        address=address,
-                        file_content=file_content,
-                        guess_mime_type=guess_mime_type,
-                        ref=ref,
-                        extra_fields=extra_fields,
-                        channel=channel,
-                        sync=sync,
-                        payment=payment,
-                    )
-                # Without aleph-cid we cannot compute the CID client-side. Use
-                # the legacy method of uploading the file first then publishing
-                # the message using POST /messages.
-                logger.warning(
-                    "aleph-cid is not installed, falling back to unauthenticated IPFS upload"
+                # Compute the CID locally and upload the file and message all
+                # at once using authenticated upload.
+                return await self._upload_file_ipfs(
+                    address=address,
+                    file_content=file_content,
+                    guess_mime_type=guess_mime_type,
+                    ref=ref,
+                    extra_fields=extra_fields,
+                    channel=channel,
+                    sync=sync,
+                    payment=payment,
                 )
-                file_hash = await self.ipfs_push_file(file_content=file_content)
             else:
                 raise ValueError(f"Unknown storage engine: '{storage_engine}'")
 
@@ -797,8 +781,7 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
         CID that kubo would assign, CIDv1) and posted to
         /api/v0/ipfs/add_car together with the signed STORE message.
 
-        Requires the `aleph-cid` package and a node exposing
-        /api/v0/ipfs/add_car.
+        Requires a node exposing /api/v0/ipfs/add_car.
 
         :param folder_path: Path to the folder to upload
         :param address: Address to use or None to use the account address
@@ -808,11 +791,6 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
         :param sync: If true, waits for the message to be processed by the API server
         :param payment: Payment method used to pay for the storage
         """
-        if aleph_cid is None:
-            raise RuntimeError(
-                "Folder uploads require the 'aleph-cid' package: pip install aleph-cid"
-            )
-
         folder_path = Path(folder_path)
         if not folder_path.is_dir():
             raise ValueError(f"Not a directory: {folder_path}")

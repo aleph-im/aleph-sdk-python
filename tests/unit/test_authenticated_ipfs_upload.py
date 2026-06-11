@@ -6,7 +6,6 @@ kubo (v0.30.0): the same fixtures must produce the same CIDs here.
 
 import json
 from pathlib import Path
-from unittest.mock import AsyncMock
 
 import aleph_cid
 import pytest
@@ -75,26 +74,6 @@ async def test_create_store_ipfs_authenticated(mock_session_with_post_success):
     assert metadata["sync"] is False
     assert metadata["message"]["signature"] == message.signature
     assert json.loads(metadata["message"]["item_content"])["item_hash"] == expected_cid
-
-
-@pytest.mark.asyncio
-async def test_create_store_ipfs_falls_back_without_aleph_cid(
-    mock_session_with_post_success, monkeypatch
-):
-    monkeypatch.setattr("aleph.sdk.client.authenticated_http.aleph_cid", None)
-    mock_ipfs_push_file = AsyncMock()
-    mock_ipfs_push_file.return_value = GOLDEN_EMPTY_FILE_V0
-    mock_session_with_post_success.ipfs_push_file = mock_ipfs_push_file
-
-    async with mock_session_with_post_success as session:
-        message, _ = await session.create_store(
-            file_content=b"",
-            channel="TEST",
-            storage_engine=StorageEnum.ipfs,
-        )
-
-    mock_ipfs_push_file.assert_called_once()
-    assert message.content.item_hash == GOLDEN_EMPTY_FILE_V0
 
 
 @pytest.mark.asyncio
