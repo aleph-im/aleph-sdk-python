@@ -627,24 +627,7 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
         if status in (MessageStatus.PROCESSED, MessageStatus.PENDING):
             return message, status  # type: ignore
 
-        # get the reason for rejection
-        rejected_message = await self.get_message_error(message.item_hash)
-        assert rejected_message, "No rejected message found"
-        error_code = rejected_message["error_code"]
-        if error_code == 5:
-            # not enough balance
-            details = rejected_message["details"]
-            errors = details["errors"]
-            error = errors[0]
-            account_balance = float(error["account_balance"])
-            required_balance = float(error["required_balance"])
-            raise InsufficientFundsError(
-                token_type=TokenType.ALEPH,
-                required_funds=required_balance,
-                available_funds=account_balance,
-            )
-        else:
-            raise ValueError(f"Unknown error code {error_code}: {rejected_message}")
+        await self._raise_for_rejected_executable(message.item_hash)
 
     async def forget(
         self,

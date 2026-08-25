@@ -585,7 +585,9 @@ class AuthenticatedAlephClient(AlephClient):
         :param channel: Channel to use (Default: "TEST")
         :param storage_engine: Storage engine to use (Default: "storage")
         """
-        raise NotImplementedError
+        raise NotImplementedError(
+            "Did you mean to import `AuthenticatedAlephHttpClient`?"
+        )
 
     @abstractmethod
     async def create_instance(
