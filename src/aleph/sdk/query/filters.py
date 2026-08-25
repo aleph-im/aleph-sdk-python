@@ -30,6 +30,7 @@ class SortByMessageType(str, Enum):
     POST = "post"
     PROGRAM = "program"
     STORE = "store"
+    V_PROGRAM = "v_program"
     TOTAL = "total"
 
 
@@ -252,7 +253,7 @@ class AddressesFilter:
     A collection of query parameters for address stats queries.
 
     :param address_contains: Case-insensitive substring to filter addresses
-    :param sort_by: Message type to sort by (aggregate, forget, instance, post, program, store, total)
+    :param sort_by: Message type to sort by (aggregate, forget, instance, post, program, store, v_program, total)
     :param sort_order: Sort order (ascending or descending)
     """
 
