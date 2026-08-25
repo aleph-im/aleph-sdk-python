@@ -20,6 +20,7 @@ from typing import (
     Mapping,
     Optional,
     Protocol,
+    Sequence,
     Tuple,
     Type,
     TypeVar,
@@ -38,14 +39,17 @@ from aleph_message.models import (
     MachineType,
     MessageType,
     ProgramContent,
+    VerifiableProgramContent,
 )
 from aleph_message.models.execution.base import Payment, PaymentType
 from aleph_message.models.execution.environment import (
+    DEFAULT_SNP_POLICY,
     FunctionEnvironment,
     FunctionTriggers,
     HostRequirements,
     HypervisorType,
     InstanceEnvironment,
+    LaunchMeasurement,
     MachineResources,
     Subscription,
     TrustedExecutionEnvironment,
@@ -62,6 +66,13 @@ from aleph_message.models.execution.volume import (
     PersistentVolumeSizeMib,
     VolumePersistence,
 )
+from aleph_message.models.execution.vprogram import (
+    TeeVerification,
+    VerifiableProgramEnvironment,
+    VerifiableProgramRuntime,
+    VerifiedVolume,
+    VerifiedWorkload,
+)
 from aleph_message.utils import Mebibytes
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
@@ -76,7 +87,7 @@ try:
     import magic
 except ImportError:
     logger.info("Could not import library 'magic', MIME type detection disabled")
-    magic = None  # type:ignore
+    magic = None  # type: ignore
 
 
 def try_open_zip(path: Path) -> None:
@@ -112,6 +123,67 @@ def create_archive(path: Path) -> Tuple[Path, Encoding]:
             return path, Encoding.zip
     else:
         raise FileNotFoundError("No file or directory to create the archive from")
+
+
+def make_verifiable_program_content(
+    runtime: str,
+    workload: Union[VerifiedWorkload, Mapping[str, Any]],
+    measurements: Sequence[Union[LaunchMeasurement, Mapping[str, Any]]],
+    policy: int = DEFAULT_SNP_POLICY,
+    runtime_comment: str = "",
+    metadata: Optional[dict[str, Any]] = None,
+    address: Optional[str] = None,
+    vcpus: Optional[int] = None,
+    memory: Optional[int] = None,
+    timeout_seconds: Optional[float] = None,
+    internet: bool = True,
+    volumes: Optional[Sequence[Union[VerifiedVolume, Mapping[str, Any]]]] = None,
+    requirements: Optional[HostRequirements] = None,
+    payment: Optional[Payment] = None,
+) -> VerifiableProgramContent:
+    """
+    Create VerifiableProgramContent object given the provided fields.
+
+    V-Programs are credit-only and immutable: the payment defaults to
+    credit on ETH and allow_amend is always False. Environment variables and
+    authorized keys are not accepted since they would reach the guest
+    unmeasured; ship them in the verity-bound workload instead.
+    """
+
+    address = address or "0x0000000000000000000000000000000000000000"
+    payment = payment or Payment(chain=Chain.ETH, type=PaymentType.credit)
+    vcpus = vcpus or settings.DEFAULT_VM_VCPUS
+    memory = memory or settings.DEFAULT_VM_MEMORY
+    timeout_seconds = timeout_seconds or settings.DEFAULT_VM_TIMEOUT
+    volumes = volumes if volumes is not None else []
+
+    return VerifiableProgramContent(
+        address=address,
+        allow_amend=False,
+        environment=VerifiableProgramEnvironment(internet=internet),
+        resources=MachineResources(
+            vcpus=vcpus,
+            memory=Mebibytes(memory),
+            seconds=int(timeout_seconds),
+        ),
+        runtime=VerifiableProgramRuntime(
+            ref=ItemHash(runtime), comment=runtime_comment
+        ),
+        workload=VerifiedWorkload.model_validate(workload),
+        verification=TeeVerification(
+            backend="sev_snp",
+            policy=policy,
+            measurements=[
+                LaunchMeasurement.model_validate(measurement)
+                for measurement in measurements
+            ],
+        ),
+        volumes=[VerifiedVolume.model_validate(volume) for volume in volumes],
+        time=datetime.now().timestamp(),
+        metadata=metadata,
+        requirements=requirements,
+        payment=payment,
+    )
 
 
 def get_message_type_value(message_type: Type[GenericMessage]) -> MessageType:

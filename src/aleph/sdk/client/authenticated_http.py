@@ -7,7 +7,7 @@ import tempfile
 import time
 from io import BytesIO
 from pathlib import Path
-from typing import Any, Dict, Mapping, NoReturn, Optional, Tuple, Union
+from typing import Any, Dict, Mapping, NoReturn, Optional, Sequence, Tuple, Union
 
 import aiohttp
 import aleph_cid
@@ -27,19 +27,28 @@ from aleph_message.models import (
     ProgramMessage,
     StoreContent,
     StoreMessage,
+    VerifiableProgramMessage,
 )
 from aleph_message.models.execution.base import Encoding, Payment, PaymentType
 from aleph_message.models.execution.environment import (
+    DEFAULT_SNP_POLICY,
     HostRequirements,
     HypervisorType,
+    LaunchMeasurement,
     TrustedExecutionEnvironment,
 )
+from aleph_message.models.execution.vprogram import VerifiedVolume, VerifiedWorkload
 from aleph_message.status import MessageStatus
 
 from ..conf import settings
 from ..exceptions import BroadcastError, InsufficientFundsError, InvalidMessageError
 from ..types import Account, StorageEnum, TokenType
-from ..utils import extended_json_encoder, make_instance_content, make_program_content
+from ..utils import (
+    extended_json_encoder,
+    make_instance_content,
+    make_program_content,
+    make_verifiable_program_content,
+)
 from .abstract import AuthenticatedAlephClient
 from .http import AlephHttpClient
 from .services.authenticated_port_forwarder import AuthenticatedPortForwarder
@@ -51,7 +60,7 @@ try:
     import magic
 except ImportError:
     logger.info("Could not import library 'magic', MIME type detection disabled")
-    magic = None  # type:ignore
+    magic = None  # type: ignore
 
 
 class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
@@ -487,8 +496,11 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
         if status in (MessageStatus.PROCESSED, MessageStatus.PENDING):
             return message, status  # type: ignore
 
-        # get the reason for rejection
-        rejected_message = await self.get_message_error(message.item_hash)
+        await self._raise_for_rejected_executable(message.item_hash)
+
+    async def _raise_for_rejected_executable(self, item_hash: str) -> NoReturn:
+        """Fetch the rejection reason of an executable message and raise."""
+        rejected_message = await self.get_message_error(item_hash)
         assert rejected_message, "No rejected message found"
         error_code = rejected_message["error_code"]
         if error_code == 5:
@@ -505,6 +517,58 @@ class AuthenticatedAlephHttpClient(AlephHttpClient, AuthenticatedAlephClient):
             )
         else:
             raise ValueError(f"Unknown error code {error_code}: {rejected_message}")
+
+    async def create_verifiable_program(
+        self,
+        runtime: str,
+        workload: Union[VerifiedWorkload, Mapping[str, Any]],
+        measurements: Sequence[Union[LaunchMeasurement, Mapping[str, Any]]],
+        policy: int = DEFAULT_SNP_POLICY,
+        runtime_comment: str = "",
+        metadata: Optional[dict[str, Any]] = None,
+        address: Optional[str] = None,
+        payment: Optional[Payment] = None,
+        vcpus: Optional[int] = None,
+        memory: Optional[int] = None,
+        timeout_seconds: Optional[float] = None,
+        internet: bool = True,
+        volumes: Optional[Sequence[Union[VerifiedVolume, Mapping[str, Any]]]] = None,
+        requirements: Optional[HostRequirements] = None,
+        sync: bool = False,
+        channel: Optional[str] = settings.DEFAULT_CHANNEL,
+        storage_engine: StorageEnum = StorageEnum.storage,
+    ) -> Tuple[VerifiableProgramMessage, MessageStatus]:
+        address = address or settings.ADDRESS_TO_USE or self.account.get_address()
+
+        content = make_verifiable_program_content(
+            runtime=runtime,
+            workload=workload,
+            measurements=measurements,
+            policy=policy,
+            runtime_comment=runtime_comment,
+            metadata=metadata,
+            address=address,
+            vcpus=vcpus,
+            memory=memory,
+            timeout_seconds=timeout_seconds,
+            internet=internet,
+            volumes=volumes,
+            requirements=requirements,
+            payment=payment,
+        )
+
+        message, status, _ = await self.submit(
+            content=content.model_dump(exclude_none=True),
+            message_type=MessageType.v_program,
+            channel=channel,
+            storage_engine=storage_engine,
+            sync=sync,
+            raise_on_rejected=False,
+        )
+        if status in (MessageStatus.PROCESSED, MessageStatus.PENDING):
+            return message, status  # type: ignore
+
+        await self._raise_for_rejected_executable(message.item_hash)
 
     async def create_instance(
         self,

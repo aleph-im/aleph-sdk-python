@@ -125,6 +125,9 @@ class MockAlephClient(AuthenticatedAlephClient):
     async def create_program(self, *args, **kwargs):
         raise NotImplementedError
 
+    async def create_verifiable_program(self, *args, **kwargs):
+        raise NotImplementedError
+
     async def create_instance(self, *args, **kwargs):
         raise NotImplementedError
 
