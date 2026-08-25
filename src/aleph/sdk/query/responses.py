@@ -160,6 +160,7 @@ class AddressStats(BaseModel):
     forget: int = Field(description="Number of FORGET messages")
     program: int = Field(description="Number of PROGRAM messages")
     instance: int = Field(description="Number of INSTANCE messages")
+    v_program: int = Field(default=0, description="Number of V-PROGRAM messages")
 
     model_config = ConfigDict(extra="forbid")
 

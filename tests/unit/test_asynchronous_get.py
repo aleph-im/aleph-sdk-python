@@ -16,6 +16,7 @@ from aleph.sdk.query.filters import (
 )
 from aleph.sdk.query.responses import (
     AccountFilesResponse,
+    AddressStats,
     AddressStatsResponse,
     ChainBalancesResponse,
     PostsResponse,
@@ -393,3 +394,16 @@ async def test_get_account_files_rejects_empty_address():
 
 if __name__ == "__main __":
     unittest.main()
+
+
+def test_addresses_filter_sort_by_v_program():
+    f = AddressesFilter(sort_by=SortByMessageType.V_PROGRAM)
+    assert f.as_http_params() == {"sortBy": "v_program"}
+
+
+def test_address_stats_v_program_defaults_to_zero():
+    stats = AddressStats(
+        messages=1, post=1, aggregate=0, store=0, forget=0, program=0, instance=0
+    )
+    assert stats.v_program == 0
+    assert AddressStats(**{**stats.model_dump(), "v_program": 3}).v_program == 3
