@@ -14,14 +14,17 @@ from aleph_message.models import (
     PostMessage,
     ProgramMessage,
     StoreMessage,
+    VerifiableProgramMessage,
 )
 from aleph_message.models.execution.environment import (
     HostRequirements,
     HypervisorType,
+    LaunchMeasurement,
     MachineResources,
     NodeRequirements,
     TrustedExecutionEnvironment,
 )
+from aleph_message.models.execution.vprogram import VerifiedWorkload
 from aleph_message.status import MessageStatus
 
 from aleph.sdk.exceptions import InsufficientFundsError
@@ -362,3 +365,93 @@ async def test_create_store_default_payment(mock_session_with_post_success):
     assert store_message.content.payment.type == PaymentType.hold
     assert store_message.content.payment.chain == Chain.ETH
     assert isinstance(store_message, StoreMessage)
+
+
+V_PROGRAM_WORKLOAD = {
+    "ref": "cafecafecafecafecafecafecafecafecafecafecafecafecafecafecafecafe",
+    "hash_tree": "beefbeefbeefbeefbeefbeefbeefbeefbeefbeefbeefbeefbeefbeefbeefbeef",
+    "roothash": "d" * 64,
+}
+V_PROGRAM_MEASUREMENTS = [
+    {"platform": "sev_snp", "registers": {"launch": "e" * 96}, "vcpu_type": "EPYC-v4"}
+]
+V_PROGRAM_RUNTIME = "facefacefacefacefacefacefacefacefacefacefacefacefacefacefaceface"
+
+
+@pytest.mark.asyncio
+async def test_create_verifiable_program(mock_session_with_post_success):
+    async with mock_session_with_post_success as session:
+        message, message_status = await session.create_verifiable_program(
+            runtime=V_PROGRAM_RUNTIME,
+            workload=V_PROGRAM_WORKLOAD,
+            measurements=V_PROGRAM_MEASUREMENTS,
+            channel="TEST",
+            metadata={"tags": ["test"]},
+            volumes=[{**V_PROGRAM_WORKLOAD, "comment": "weights"}],
+        )
+
+    mock_session_with_post_success.http_session.post.assert_called_once()
+    assert isinstance(message, VerifiableProgramMessage)
+    assert message.type == MessageType.v_program
+    assert message.content.payment.type == PaymentType.credit
+    assert message.content.allow_amend is False
+    assert message.content.verification.backend == "sev_snp"
+    assert message.content.verification.measurements[0].registers.launch == "e" * 96
+    assert message.content.workload.roothash == "d" * 64
+    assert len(message.content.volumes) == 1
+
+
+@pytest.mark.asyncio
+async def test_create_verifiable_program_rejects_non_credit_payment(
+    mock_session_with_post_success,
+):
+    async with mock_session_with_post_success as session:
+        with pytest.raises(ValueError, match="credit-only"):
+            await session.create_verifiable_program(
+                runtime=V_PROGRAM_RUNTIME,
+                workload=V_PROGRAM_WORKLOAD,
+                measurements=V_PROGRAM_MEASUREMENTS,
+                payment=Payment(chain=Chain.ETH, type=PaymentType.hold),
+            )
+
+
+@pytest.mark.asyncio
+async def test_create_verifiable_program_insufficient_funds(
+    mock_session_with_rejected_message,
+):
+    async with mock_session_with_rejected_message as session:
+        with pytest.raises(InsufficientFundsError):
+            await session.create_verifiable_program(
+                runtime=V_PROGRAM_RUNTIME,
+                workload=V_PROGRAM_WORKLOAD,
+                measurements=V_PROGRAM_MEASUREMENTS,
+            )
+
+
+@pytest.mark.asyncio
+async def test_create_verifiable_program_with_models_and_requirements(
+    mock_session_with_post_success,
+):
+    """Pydantic models are accepted in place of mappings, and host
+    requirements are forwarded to the message content."""
+    node_hash = ItemHash(
+        "beefbeefbeefbeefbeefbeefbeefbeefbeefbeefbeefbeefbeefbeefbeefbeef"
+    )
+    async with mock_session_with_post_success as session:
+        message, _ = await session.create_verifiable_program(
+            runtime=V_PROGRAM_RUNTIME,
+            workload=VerifiedWorkload.model_validate(V_PROGRAM_WORKLOAD),
+            measurements=[LaunchMeasurement.model_validate(V_PROGRAM_MEASUREMENTS[0])],
+            requirements=HostRequirements(node=NodeRequirements(node_hash=node_hash)),
+            runtime_comment="official runtime",
+            internet=False,
+        )
+
+    mock_session_with_post_success.http_session.post.assert_called_once()
+    assert isinstance(message, VerifiableProgramMessage)
+    assert message.content.requirements is not None
+    assert message.content.requirements.node is not None
+    assert message.content.requirements.node.node_hash == node_hash
+    assert message.content.runtime.comment == "official runtime"
+    assert message.content.environment.internet is False
+    assert message.content.verification.measurements[0].vcpu_type == "EPYC-v4"

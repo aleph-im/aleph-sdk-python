@@ -13,6 +13,7 @@ from typing import (
     List,
     Mapping,
     Optional,
+    Sequence,
     Tuple,
     Type,
     Union,
@@ -29,11 +30,14 @@ from aleph_message.models import (
     parse_message,
 )
 from aleph_message.models.execution.environment import (
+    DEFAULT_SNP_POLICY,
     HostRequirements,
     HypervisorType,
+    LaunchMeasurement,
     TrustedExecutionEnvironment,
 )
 from aleph_message.models.execution.program import Encoding
+from aleph_message.models.execution.vprogram import VerifiedVolume, VerifiedWorkload
 from aleph_message.status import MessageStatus
 from typing_extensions import deprecated
 
@@ -528,6 +532,57 @@ class AuthenticatedAlephClient(AlephClient):
         :param subscriptions: Patterns of aleph.im messages to forward to the program's event receiver
         :param sync: If true, waits for the message to be processed by the API server
         :param channel: Channel to use (Default: "ALEPH-CLOUDSOLUTIONS")
+        :param storage_engine: Storage engine to use (Default: "storage")
+        """
+        raise NotImplementedError(
+            "Did you mean to import `AuthenticatedAlephHttpClient`?"
+        )
+
+    @abstractmethod
+    async def create_verifiable_program(
+        self,
+        runtime: str,
+        workload: Union[VerifiedWorkload, Mapping[str, Any]],
+        measurements: Sequence[Union[LaunchMeasurement, Mapping[str, Any]]],
+        policy: int = DEFAULT_SNP_POLICY,
+        runtime_comment: str = "",
+        metadata: Optional[dict[str, Any]] = None,
+        address: Optional[str] = None,
+        payment: Optional[Payment] = None,
+        vcpus: Optional[int] = None,
+        memory: Optional[int] = None,
+        timeout_seconds: Optional[float] = None,
+        internet: bool = True,
+        volumes: Optional[Sequence[Union[VerifiedVolume, Mapping[str, Any]]]] = None,
+        requirements: Optional[HostRequirements] = None,
+        sync: bool = False,
+        channel: Optional[str] = settings.DEFAULT_CHANNEL,
+        storage_engine: StorageEnum = StorageEnum.storage,
+    ) -> Tuple[AlephMessage, MessageStatus]:
+        """
+        Post a (create) V-PROGRAM message: an auto-booting SEV-SNP confidential
+        VM whose full software stack is attestable.
+
+        V-Programs are credit-only and immutable: no amendments, no
+        environment variables and no authorized keys. Every input reaching the
+        guest is either measured or dm-verity bound.
+
+        :param runtime: Item hash of the runtime manifest STORE message
+        :param workload: The verity-bound workload volume (ref, hash_tree, roothash)
+        :param measurements: Expected launch measurements, one per vcpu_type
+        :param policy: SEV-SNP guest policy (Default: DEFAULT_SNP_POLICY)
+        :param runtime_comment: Free-form comment on the runtime
+        :param metadata: Metadata to attach to the message
+        :param address: Address to use (Default: account.get_address())
+        :param payment: Payment method, must be credit (Default: credit on ETH)
+        :param vcpus: Number of vCPUs to allocate
+        :param memory: Memory to allocate, in MiB
+        :param timeout_seconds: Timeout in seconds
+        :param internet: Whether the VM has internet access
+        :param volumes: Extra verity-bound read-only volumes (at most 8)
+        :param requirements: Host requirements (e.g. a specific CRN)
+        :param sync: If true, waits for the message to be processed by the API server
+        :param channel: Channel to use (Default: "TEST")
         :param storage_engine: Storage engine to use (Default: "storage")
         """
         raise NotImplementedError(
