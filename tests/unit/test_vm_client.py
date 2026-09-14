@@ -39,6 +39,79 @@ async def test_notify_allocation():
 
 
 @pytest.mark.asyncio
+async def test_start_instance_uses_machine_start_route():
+    account = ETHAccount(private_key=b"0x" + b"1" * 30)
+    vm_id = ItemHash("cafecafecafecafecafecafecafecafecafecafecafecafecafecafecafecafe")
+
+    with aioresponses() as m:
+        vm_client = VmClient(
+            account=account,
+            node_url="http://localhost",
+            session=aiohttp.ClientSession(),
+        )
+        m.post(
+            f"http://localhost/control/machine/{vm_id}/start",
+            status=200,
+            payload="Started VM with ref",
+        )
+
+        status, response_text = await vm_client.start_instance(vm_id)
+        assert status == 200
+        assert len(m.requests) == 1
+        assert ("POST", URL(f"http://localhost/control/machine/{vm_id}/start")) in m.requests
+        await vm_client.session.close()
+
+
+@pytest.mark.asyncio
+async def test_start_instance_falls_back_to_notify_on_404():
+    account = ETHAccount(private_key=b"0x" + b"1" * 30)
+    vm_id = ItemHash("cafecafecafecafecafecafecafecafecafecafecafecafecafecafecafecafe")
+
+    with aioresponses() as m:
+        vm_client = VmClient(
+            account=account,
+            node_url="http://localhost",
+            session=aiohttp.ClientSession(),
+        )
+        m.post(
+            f"http://localhost/control/machine/{vm_id}/start",
+            status=404,
+            body="404: Not Found",
+        )
+        m.post("http://localhost/control/allocation/notify", status=200)
+
+        status, response_text = await vm_client.start_instance(vm_id)
+        assert status == 200
+        assert len(m.requests) == 2
+        assert ("POST", URL(f"http://localhost/control/machine/{vm_id}/start")) in m.requests
+        assert ("POST", URL("http://localhost/control/allocation/notify")) in m.requests
+        await vm_client.session.close()
+
+
+@pytest.mark.asyncio
+async def test_start_instance_does_not_fall_back_on_other_errors():
+    account = ETHAccount(private_key=b"0x" + b"1" * 30)
+    vm_id = ItemHash("cafecafecafecafecafecafecafecafecafecafecafecafecafecafecafecafe")
+
+    with aioresponses() as m:
+        vm_client = VmClient(
+            account=account,
+            node_url="http://localhost",
+            session=aiohttp.ClientSession(),
+        )
+        m.post(
+            f"http://localhost/control/machine/{vm_id}/start",
+            status=403,
+            body="Unauthorized sender",
+        )
+
+        status, response_text = await vm_client.start_instance(vm_id)
+        assert status == 403
+        assert len(m.requests) == 1
+        await vm_client.session.close()
+
+
+@pytest.mark.asyncio
 async def test_perform_operation():
     account = ETHAccount(private_key=b"0x" + b"1" * 30)
     vm_id = ItemHash("cafecafecafecafecafecafecafecafecafecafecafecafecafecafecafecafe")
@@ -659,6 +732,7 @@ async def test_restore_from_file_not_found():
 
 
 def test_vm_operation_enum_values():
+    assert VmOperation.START == "start"
     assert VmOperation.STOP == "stop"
     assert VmOperation.REBOOT == "reboot"
     assert VmOperation.ERASE == "erase"
