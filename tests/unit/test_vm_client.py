@@ -58,7 +58,10 @@ async def test_start_instance_uses_machine_start_route():
         status, response_text = await vm_client.start_instance(vm_id)
         assert status == 200
         assert len(m.requests) == 1
-        assert ("POST", URL(f"http://localhost/control/machine/{vm_id}/start")) in m.requests
+        assert (
+            "POST",
+            URL(f"http://localhost/control/machine/{vm_id}/start"),
+        ) in m.requests
         await vm_client.session.close()
 
 
@@ -83,7 +86,10 @@ async def test_start_instance_falls_back_to_notify_on_404():
         status, response_text = await vm_client.start_instance(vm_id)
         assert status == 200
         assert len(m.requests) == 2
-        assert ("POST", URL(f"http://localhost/control/machine/{vm_id}/start")) in m.requests
+        assert (
+            "POST",
+            URL(f"http://localhost/control/machine/{vm_id}/start"),
+        ) in m.requests
         assert ("POST", URL("http://localhost/control/allocation/notify")) in m.requests
         await vm_client.session.close()
 
