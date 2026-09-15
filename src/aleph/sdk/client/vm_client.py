@@ -218,7 +218,7 @@ class VmClient:
                     logger.warning("WebSocket closed by server")
                     break
 
-    async def start_instance(self, vm_id: ItemHash) -> Tuple[int, str]:
+    async def start_instance(self, vm_id: ItemHash) -> Tuple[Optional[int], str]:
         """Start a VM its owner stopped.
 
         Calls the authenticated /control/machine/{ref}/start route, falling
