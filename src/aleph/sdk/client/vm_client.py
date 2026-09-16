@@ -28,6 +28,7 @@ _BACKUP_ID_RE = re.compile(r"^[a-zA-Z0-9_-]+$")
 
 
 class VmOperation(str, Enum):
+    START = "start"
     STOP = "stop"
     REBOOT = "reboot"
     ERASE = "erase"
@@ -217,8 +218,19 @@ class VmClient:
                     logger.warning("WebSocket closed by server")
                     break
 
-    async def start_instance(self, vm_id: ItemHash) -> Tuple[int, str]:
-        return await self.notify_allocation(vm_id)
+    async def start_instance(self, vm_id: ItemHash) -> Tuple[Optional[int], str]:
+        """Start a VM its owner stopped.
+
+        Calls the authenticated /control/machine/{ref}/start route, falling
+        back to the legacy /control/allocation/notify push on 404 for CRNs
+        that predate aleph-vm 2.1.
+        """
+        status, result = await self.perform_operation(vm_id, VmOperation.START)
+
+        if status == 404:
+            return await self.notify_allocation(vm_id)
+
+        return status, result
 
     async def stop_instance(self, vm_id: ItemHash) -> Tuple[Optional[int], str]:
         return await self.perform_operation(vm_id, VmOperation.STOP)
