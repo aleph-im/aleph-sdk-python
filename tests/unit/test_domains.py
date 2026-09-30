@@ -1,5 +1,9 @@
+import asyncio
+
+import aiodns
 import pytest
 
+from aleph.sdk.conf import settings
 from aleph.sdk.domain import DomainValidator, TargetType, hostname_from_url
 from aleph.sdk.exceptions import DomainConfigurationError
 
@@ -58,3 +62,23 @@ async def test_not_configured_domain():
     with pytest.raises(DomainConfigurationError):
         status = await alephdns.check_domain(hostname, TargetType.IPFS, "0xfakeaddress")
         assert status is None
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("hostname", ["attach", "example.com", "a.b.example.com"])
+async def test_get_name_servers_falls_back_when_no_ns(hostname):
+    """Every level failing NS must terminate and return the default resolvers."""
+    alephdns = DomainValidator()
+    queried = []
+
+    async def no_ns(name, query_type):
+        queried.append(name)
+        await asyncio.sleep(0)  # yield like the real resolver, so wait_for can fire
+        raise aiodns.error.DNSError(4, "Domain name not found")
+
+    alephdns.resolver.query = no_ns  # type: ignore[method-assign]
+
+    servers = await asyncio.wait_for(alephdns.get_name_servers(hostname), timeout=5)
+
+    assert servers == settings.DNS_RESOLVERS
+    assert len(queried) == max(1, hostname.count("."))
