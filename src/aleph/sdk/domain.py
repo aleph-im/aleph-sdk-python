@@ -111,8 +111,10 @@ class DomainValidator:
                     fqdn = Hostname(".".join(sub_domains[1:]))
                     continue
 
-                if len(sub_domains) == 2:
-                    break
+                # Nothing left to walk up to (registrable domain or a
+                # single-label name): keep the default resolvers. Without this
+                # break a single-label name like "attach" retries forever.
+                break
             except Exception as err:
                 logger.debug(f"Unexpected {err=}, {type(err)=}")
                 break
